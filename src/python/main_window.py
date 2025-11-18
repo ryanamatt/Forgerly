@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 
 from outline_manager import OutlineManager
+from rich_text_editor import RichTextEditor
 from db_connector import DBConnector
 
 class MainWindow(QMainWindow):
@@ -21,7 +22,6 @@ class MainWindow(QMainWindow):
         self.setGeometry(100, 100, 1200, 800)
 
         # Initialize DB Connector
-        # Using the default paths which assume execution from the project root
         self.db_connector = DBConnector() 
         if self.db_connector.connect():
             # Ensure the database is initialized on app startup
@@ -35,6 +35,9 @@ class MainWindow(QMainWindow):
         self._setup_menu_bar()
 
         self._connect_components()
+
+        # State tracking for the currently loaded chapter (ID 0 means nothing loaded)
+        self.current_chapter_id = 0
 
     def closeEvent(self, event) -> None:
         """Handles closing the database connection when the application exits."""
@@ -52,9 +55,8 @@ class MainWindow(QMainWindow):
         # --- Left Panel: Outline Manager
         self.outline_manager = OutlineManager(db_connector=self.db_connector)
 
-        # --- Right Panel: Editor Place Holder ---
-        self.editor_panel = QTextEdit()
-        self.editor_panel.setPlaceholderText("Select a chapter or start typing here...")
+        # --- Right Panel: Editor ---
+        self.editor_panel = RichTextEditor()
 
         # Add the panels to the splitter
         main_splitter.addWidget(self.outline_manager)
@@ -105,13 +107,22 @@ class MainWindow(QMainWindow):
         # Connect the chapter selection signal from the OutlineManager to a handler
         self.outline_manager.chapter_selected.connect(self._load_chapter_content)
 
-    def _load_chapter_content(self, chapter_id: int) -> None:
+    def _load_chapter_content(self, chapter_id: int):
         """
         Placeholder slot: Called when a chapter is selected in the outline.
         (Story 2.6 will implement the actual database lookup and text loading).
         """
+        # Update the state of the currently loaded chapter
+        self.current_chapter_id = chapter_id
+        
         print(f"MainWindow received selection for Chapter ID: {chapter_id}. Loading content...")
-        self.editor_panel.setText(f"--- Loaded Chapter Content (ID: {chapter_id}) ---\n\nThis is placeholder text for the chapter editor.")
+        
+        # Use the RichTextEditor's set_html_content method
+        self.editor_panel.set_html_content(
+            f"<h1>Chapter ID: {chapter_id}</h1>"
+            f"<p>This is the newly implemented **Rich Text Editor**. You can now use <b>Bold</b>, <i>Italic</i>, and <u>Underline</u>, as well as bulleted and numbered lists!</p>"
+            f"<ul><li>List Item 1</li><li>List Item 2</li></ul>"
+        )
         self.statusBar().showMessage(f"Chapter ID {chapter_id} selected.")
 
 if __name__ == '__main__':
