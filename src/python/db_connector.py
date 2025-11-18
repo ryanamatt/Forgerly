@@ -170,10 +170,23 @@ class DBConnector:
         rows = self.execute_query(query, (chapter_id,))
         return rows > 0
 
-    
+    def get_chapter_content(self, chapter_id: int) -> str | None:
+        """Fetches the Text_Content (HTML) for a given chapter ID."""
+        if not self.conn: return None
+        query = "SELECT Text_Content FROM Chapters WHERE ID = ?"
+        result = self.fetch_one(query, (chapter_id,))
+        # Return the string content, defaulting to an empty string if ID is found but content is NULL
+        return result['Text_Content'] if result and result['Text_Content'] is not None else ""
+        
+    def update_chapter_content(self, chapter_id: int, content_html: str) -> int:
+        """Updates the Text_Content (HTML) for a given chapter ID."""
+        query = "UPDATE Chapters SET Text_Content = ? WHERE ID = ?"
+        return self.execute_query(query, (content_html, chapter_id))
+
 # Example usage (for testing and demonstration only)
 if __name__ == '__main__':
-    # To run this script from the project root (C:\...\narrative-forge>), 
+    # Ensure database path is correct for this test
+    # This assumes running this script from the project root (C:\...\narrative-forge>), 
     # the paths should be relative to the root.
     # E.g., python src/python/db_connector.py
     
@@ -190,25 +203,24 @@ if __name__ == '__main__':
         # --- Example CRUD Operation ---
         try:
             # 1. INSERT a Chapter
-            new_id = db_connector.create_chapter("Test Chapter One")
+            new_id = db_connector.create_chapter("Test Content Persistence")
             print(f"Created new chapter with ID: {new_id}")
 
-            # 2. SELECT all Chapters
-            all_chapters = db_connector.fetch_all_chapters()
-            print(f"\nFetched {len(all_chapters)} total chapters.")
-            for chapter in all_chapters:
-                print(f" - ID: {chapter['ID']}, Title: {chapter['Title']}")
+            # 2. UPDATE content
+            test_content = "<h1>Saved Content</h1><p>This is the test content for persistence.</p>"
+            db_connector.update_chapter_content(new_id, test_content)
+            print(f"Content updated for ID: {new_id}")
             
-            # 3. UPDATE a Chapter
-            if new_id:
-                db_connector.update_chapter_title(new_id, "Test Chapter One - Renamed")
-            
+            # 3. GET content
+            fetched_content = db_connector.get_chapter_content(new_id)
+            print(f"\nFetched Content:\n{fetched_content}")
+
             # 4. DELETE a Chapter
             if new_id:
                 db_connector.delete_chapter(new_id)
-                print(f"\nDeleted chapter with ID: {new_id}")
-
-
+                print(f"Deleted chapter with ID: {new_id}")
+            
+        except Exception as e:
+            print(f"An error occurred during DB test: {e}")
         finally:
-            # Always close the connection
             db_connector.close()

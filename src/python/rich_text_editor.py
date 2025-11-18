@@ -10,6 +10,7 @@ from PyQt6.QtGui import (
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QStyle
+import sys
 
 class RichTextEditor(QWidget):
     """
@@ -18,6 +19,10 @@ class RichTextEditor(QWidget):
     """
     def __init__(self, parent =None) -> None:
         super().__init__(parent)
+
+        # State tracking for unsaved changes
+        self._is_dirty = False
+        self._last_saved_content = ""
 
         # Core components
         self.editor = QTextEdit()
@@ -37,6 +42,26 @@ class RichTextEditor(QWidget):
         # Connect signals for dynamic toolbar updates
         self.editor.selectionChanged.connect(self._update_toolbar_state)
         self.editor.cursorPositionChanged.connect(self._update_toolbar_state)
+        self.editor.textChanged.connect(self._set_dirty)
+
+    # --- Dirty Flag Management ---
+
+    def _set_dirty(self) -> None:
+        """Sets the dirty flag when the text content changes."""
+        # Only update the flag if the text change wasn't triggered internally (like by setHtmlContent)
+        if not self._is_dirty:
+            self._is_dirty = True
+            # print("Editor: Content is now DIRTY.") # Debugging line
+
+    def is_dirty(self) -> bool:
+        """Returns True if the content has been modified since the last save/load."""
+        return self._is_dirty
+
+    def mark_saved(self) -> None:
+        """Clears the dirty flag and updates the last saved content."""
+        self._is_dirty = False
+        self._last_saved_content = self.editor.toHtml()
+        # print("Editor: Content marked as clean.") # Debugging line
 
     def _setup_toolbar(self):
         """Creates and connects the formatting actions to the editor."""
@@ -170,6 +195,39 @@ class RichTextEditor(QWidget):
         """Returns the editor's content as Rich Text HTML."""
         return self.editor.toHtml()
 
-    def set_html_content(self, html_content: str):
-        """Sets the editor's content from Rich Text HTML."""
+    def set_html_content(self, html_content: str) -> None:
+        """
+        Sets the editor's content from Rich Text HTML and marks the content as clean.
+        The textChanged signal is temporarily blocked to prevent setting the dirty flag.
+        """
+        # Block signals to prevent _set_dirty from firing during load
+        self.editor.blockSignals(True) 
         self.editor.setHtml(html_content)
+        # Unblock signals
+        self.editor.blockSignals(False) 
+        
+        # Manually reset the dirty state after a successful load
+        self.mark_saved()
+        # print("Editor: Content loaded and marked as clean.") # Debugging line
+
+if __name__ == '__main__':
+    app = QApplication([])
+    
+    # Create the main window to host the editor (for testing purposes)
+    main_window = QMainWindow()
+    main_window.setWindowTitle("RichTextEditor Test")
+    main_window.setGeometry(100, 100, 800, 600)
+    
+    editor = RichTextEditor(main_window)
+    main_window.setCentralWidget(editor)
+    main_window.show()
+    
+    # Example content to load
+    editor.set_html_content(
+        "<h1>Hello World!</h1>"
+        "<p>This is a test of the <b>Rich Text Editor</b>.</p>"
+        "<ul><li>Bullet 1</li><li>Bullet 2</li></ul>"
+        "<ol><li>Numbered 1</li><li>Numbered 2</li></ol>"
+    )
+
+    sys.exit(app.exec())

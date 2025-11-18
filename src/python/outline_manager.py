@@ -21,6 +21,8 @@ class OutlineManager(QTreeWidget):
     """
     # Signal emitted when a chapter item is selected, carrying the Chapter ID
     chapter_selected = pyqtSignal(int)
+    # Emitted before a new chapter is selected, allowing the main window to save
+    pre_chapter_change = pyqtSignal()
 
     def __init__(self, db_connector: DBConnector= None) -> None:
         super().__init__()
@@ -37,7 +39,8 @@ class OutlineManager(QTreeWidget):
         # Connect Signals
         self.itemClicked.connect(self._handle_item_click)
         self.customContextMenuRequested.connect(self._show_context_menu)
-        self.itemChanged.connect(self._handle_item_changed)
+        self.itemDoubleClicked.connect(self._handle_item_double_click)
+        self.itemChanged.connect(self._handle_item_renamed)
 
         # Load the initial structure
         self.load_outline()
@@ -50,7 +53,6 @@ class OutlineManager(QTreeWidget):
         self.clear()
 
         # Placeholder Icons (using a simple style icon)
-        # We'll use the style engine to get standard icons for a professional look.
         chapter_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView)
         
         # Root item for the Narrative (e.g. The Project)
@@ -82,63 +84,93 @@ class OutlineManager(QTreeWidget):
             self.setCurrentItem(first_child)
             self.chapter_selected.emit(first_child.data(0, CHAPTER_ID_ROLE))
 
-    def _handle_item_click(self, item, column) -> None:
+    def _handle_item_click(self, item: QTreeWidgetItem, column: int) -> None:
         """Handles the click event on a tree item."""
         chapter_id = item.data(0, CHAPTER_ID_ROLE)
         
         if chapter_id is not None:
+            # Emit pre-change signal to allow the main window to save the current chapter
+            self.pre_chapter_change.emit()
+
             self.chapter_selected.emit(chapter_id)
             print(f"Outline Clicked: Selected Chapter ID: {chapter_id}")
 
-    def _handle_item_changed(self, item: QTreeWidgetItem, column: int) -> None:
+    def _handle_item_double_click(self, item: QTreeWidgetItem, column: int) -> None:
+        """Handles double click to initiate renaming"""
+        if item.data(0, CHAPTER_ID_ROLE) is not None:
+            # Only allow renaming for chapter items
+            self.editItem(item, 0)
+
+    def _handle_item_renamed(self, item: QTreeWidgetItem, column: int) -> None:
         """
-        Handles the signal emitted when a user finishes editing an item's text.
-        Updates the chapter title in the database.
+        Handles the signal emitted when a tree item has been successfully renamed.
         """
         chapter_id = item.data(0, CHAPTER_ID_ROLE)
+        new_title = item.text(0).strip()
+        
+        # Prevent actions if this is the root item or if the title is empty
+        if chapter_id is None or not new_title:
+            if not new_title:
+                # If the title was cleared, revert the name (requires re-loading or smarter logic)
+                QMessageBox.warning(self, "Invalid Title", "Chapter title cannot be empty. Reverting.")
+                self.load_outline() 
+            return
 
-        # Ensure it's a chapter item and not the root
-        if chapter_id is not None:
-            new_title = item.text(column)
-            if self.db and new_title.strip():
-                if self.db.update_chapter_title(chapter_id, new_title):
-                    print(f"DB Update: Chapter ID {chapter_id} renamed to '{new_title}'.")
-                else:
-                    print(f"DB Error: Failed to rename chapter ID {chapter_id}.")
+        # Check if the title actually changed
+        current_db_title = self.db.fetch_one("SELECT Title FROM Chapters WHERE ID = ?", (chapter_id,))
+        if current_db_title and current_db_title['Title'] == new_title:
+            return
 
-    def _show_context_menu(self, position: QPoint) -> None:
-        """Displays a context menu when the user right-clicks the widget."""
+        # Update the database
+        rows_affected = self.db.update_chapter_title(chapter_id, new_title)
+        
+        if rows_affected > 0:
+            print(f"Chapter ID {chapter_id} renamed to '{new_title}'.")
+        else:
+            QMessageBox.critical(self, "Database Error", "Failed to update chapter title in the database.")
+            # Revert the item name visually if the DB update failed
+            self.load_outline()
+
+    def _show_context_menu(self, pos: QPoint) -> None:
+        """Displays the context menu when right-clicked."""
+        item = self.itemAt(pos)
+        
+        if not item:
+            return
+            
+        is_chapter = item.data(0, CHAPTER_ID_ROLE) is not None
+        
         menu = QMenu(self)
-
-        # Determine the item under the mouse position
-        item = self.itemAt(position)
-
-        # Action for all items/empty space: New Chapter
-        new_action = menu.addAction("New Chapter...")
-        new_action.triggered.connect(self.prompt_and_add_chapter)
-
-        if item and item.data(0, CHAPTER_ID_ROLE) is not None:
-            # Only show Rename and Delete for actual Chapter items
-            menu.addSeparator()
+        
+        # Action for the Project Root (only visible if clicking the root item)
+        if item.data(0, ROOT_ITEM_ROLE):
+            new_action = menu.addAction("Add New Chapter...")
+            new_action.triggered.connect(self.prompt_and_add_chapter)
+        
+        # Actions for Chapters (visible if clicking a chapter item)
+        if is_chapter:
             rename_action = menu.addAction("Rename Chapter")
             delete_action = menu.addAction("Delete Chapter")
+            
+            rename_action.triggered.connect(lambda: self.editItem(item, 0))
+            # Wrap the delete action to ensure save check occurs
+            delete_action.triggered.connect(lambda: self.check_save_and_delete(item))
 
-            rename_action.triggered.connect(lambda: self._start_rename_editing(item))
-            delete_action.triggered.connect(lambda: self._delete_chapter(item))
+        # Show the menu
+        if menu.actions():
+            menu.exec(self.mapToGlobal(pos))
 
-        menu.exec(self.viewport().mapToGlobal(position))
-
-    def _start_rename_editing(self, item: QTreeWidgetItem) -> None:
-        """Starts the inline editing for the selected item"""
-        self.editItem(item)
-
-    def prompt_and_add_chapter(self):
-        """Prompts the user for a new chapter title and creates the chapter."""
+    def prompt_and_add_chapter(self) -> None:
+        """Prompts the user for a new chapter title and adds it to the DB and outline."""
+        
+        # Check save status before creating a new chapter (which implicitly changes selection)
+        self.pre_chapter_change.emit() 
+        
         title, ok = QInputDialog.getText(
             self, 
             "New Chapter", 
             "Enter the title for the new chapter:",
-            text="Untitled Chapter"
+            text="New Chapter"
         )
 
         if ok and title:
@@ -148,10 +180,16 @@ class OutlineManager(QTreeWidget):
                 print(f"Successfully created chapter with ID: {new_id}")
                 # Reload the outline to display the new chapter
                 self.load_outline()
+                # Automatically select the new chapter
+                # Find the new item and simulate a click to load its content
+                new_item = self.find_chapter_item_by_id(new_id)
+                if new_item:
+                     self.setCurrentItem(new_item)
+                     self._handle_item_click(new_item, 0) 
             else:
                 QMessageBox.warning(self, "Database Error", "Failed to save the new chapter to the database.")
 
-    def _delete_chapter(self, item: QTreeWidgetItem):
+    def _delete_chapter(self, item: QTreeWidgetItem) -> None:
         """Handles confirmation and deletion of a chapter."""
         chapter_id = item.data(0, CHAPTER_ID_ROLE)
         title = item.text(0)
@@ -175,3 +213,19 @@ class OutlineManager(QTreeWidget):
                 self.load_outline()
             else:
                 QMessageBox.critical(self, "Deletion Error", "A database error occurred while trying to delete the chapter.")
+
+    def check_save_and_delete(self, item: QTreeWidgetItem) -> None:
+        """Emits pre-change signal, then deletes the chapter"""
+        self.pre_chapter_change.emit()
+        self._delete_chapter()
+
+    def find_chapter_item_by_id(self, chapter_id: int) -> QTreeWidgetItem | None:
+        """Helper to find a chapter item by its stored ID."""
+        if not self.project_root_item:
+            return None
+        
+        for i in range(self.project_root_item.childCount()):
+            item = self.project_root_item.child(i)
+            if item.data(0, CHAPTER_ID_ROLE) == chapter_id:
+                return item
+        return None
