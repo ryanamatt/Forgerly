@@ -242,7 +242,7 @@ class DBConnector:
             return [(row['ID'], row['Name']) for row in cursor.fetchall()]
         return []
     
-    def set_chapter_tags(self, chapter_id: int, tag_names: List[str]) -> None:
+    def set_chapter_tags(self, chapter_id: int, tag_names: list[str]) -> None:
         """
         Updates the tags for a chapter. It deletes all current tags and inserts new ones.
         Creates any necessary new tags in the Tags table first.
