@@ -111,19 +111,19 @@ class MainWindow(QMainWindow):
         
         file_menu.addSeparator()
 
-        # Action: Save Current Chapter (connects to new handles)
+        # Action: Save Current Chapter
         save_action = QAction("Save", self)
-        save_action.setShortcut('Ctrl+S')
+        save_action.setShortcut("Ctrl+S")
         save_action.setStatusTip("Save the current chapter content to the database")
         save_action.triggered.connect(self._save_current_chapter)
         file_menu.addAction(save_action)
-
-        # Place holder for Future use
-        file_menu.addAction("Save All")
         
         # Action: Exit
-        exit_action = file_menu.addAction("Exit")
+        exit_action = QAction("Exit", self)
+        exit_action.setShortcut("Ctrl+E")
+        exit_action.setStatusTip("Exit the Application")
         exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
         
         # --- Edit Menu ---
         edit_menu = menu_bar.addMenu("&Edit")
