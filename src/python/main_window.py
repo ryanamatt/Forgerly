@@ -49,7 +49,6 @@ class MainWindow(QMainWindow):
         # Check for unsaved changes before allowing app to close
         if self.editor_panel.is_dirty():
             save_reply = QMessageBox(
-                self,
                 "Unsaved Changes",
                 "You have unsaved changes. Do you want to save them before exiting?",
                 QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
