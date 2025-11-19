@@ -32,7 +32,7 @@ class DBConnector:
         try:
             self.conn = sqlite3.connect(self.db_path)
             self.conn.row_factory = sqlite3.Row
-            print(f"Successfully connected to the database: {self.db_path}")
+            self.conn.execute("PRAGMA foreign_keys = ON") # Enforce FK constraints
             return True
         except sqlite3.Error as e:
             print(f"Database connection error: {e}")
@@ -56,7 +56,7 @@ class DBConnector:
             return False
         
         try:
-            with open(self.schema_path, 'r') as f:
+            with open(self.schema_path, 'r', encoding='utf-8') as f:
                 sql_script = f.read()
 
             # Executes the entire script at once
@@ -69,29 +69,28 @@ class DBConnector:
             print(f"Error executing scheme script: {e}")
             return False
         
-    def execute_query(self, query: str, params: tuple=()) -> int:
-        """
-        Executes non-SELECT query (INSERT, UPDATE, DELETE)
-
-        Args:
-            query (str): The SQL query string
-            params (tuple): Parameters to substitue into the query (for safety)
-
-        Returns:
-            int: The number of rows affected by the operation
-        """
+    def _execute_query(self, query: str, params: tuple = ()) -> sqlite3.Cursor | None:
+        """A utility method for safe query execution"""
         if not self.conn:
-            print(f"Query failed: Not connected to the database.")
-            return 0
-        
+            print("Database operation failed: Not connected.")
+            return None
         try:
             cursor = self.conn.execute(query, params)
-            self.conn.commit()
-            return cursor.rowcount
+            return cursor
         except sqlite3.Error as e:
-            print(f"Database WRITE error in query: {query}. Error: {e}")
-            return 0
+            print(f"Database query error: {e}\nQuery: {query}\nParams: {params}")
+            # Do not re-raise, but return None to indicate failure
+            return None
         
+    def _execute_commit(self, query: str, params: tuple = ()) -> bool:
+        """A utility method for executing a modifying query and committing"""
+        cursor = self._execute_query(query, params)
+        if cursor:
+            self.conn.commit()
+            return True
+        return False
+    
+    # Helper Fetch All
     def fetch_all(self, query: str, params: tuple = ()) -> list[sqlite3.Row]:
         """
         Executes a SELECT query and fetches all results as a list of dicts/Rows.
@@ -113,6 +112,7 @@ class DBConnector:
             print(f"Database READ error in query: {query}. Error: {e}")
             return []
         
+    # Helper Fetch One used in outline manager
     def fetch_one(self, query: str, params: tuple=()) -> sqlite3.Row | None:
         """
         Executes a SELECT query and fetches a single result.
@@ -127,100 +127,227 @@ class DBConnector:
         results = self.fetch_all(query, params)
         return results[0] if results else None
     
-    def fetch_all_chapters(self) -> list[sqlite3.Row]:
-        """Retrieves all chapters orderered by their sort order"""
-        query = "SELECT ID, Title, Sort_Order, Precursor_Chapter_ID FROM Chapters ORDER BY Sort_Order ASC"
-        return self.fetch_all(query)
+    # ---------------------------------------
+    # CHAPTERS CRUD
+    # ---------------------------------------
     
-    def create_chapter(self, title: str) -> int | None:
-        """
-        Creates a new chapter record, automatically determining the next Sort_Order.
-        
-        Returns:
-            int: The ID of the newly created chapter, or None if creation failed
-        """
-        if not self.conn:
-            return None
-        
-        # 1. Find the maximum current Sort_Order and increment it by 1
-        sort_order_query = "SELECT MAX(Sort_Order) AS max_order FROM Chapters"
-        max_order_result = self.fetch_one(sort_order_query)
-        next_sort_order = (max_order_result['max_order'] or 0) + 1
+    def get_all_chapters_for_outline(self) -> list[tuple[int, str]]:
+        """Retrieves ID and Title for all chapters, ordered by Sort_Order."""
+        query = "SELECT ID, Title, Sort_Order FROM Chapters ORDER BY Sort_Order ASC"
+        cursor = self._execute_query(query)
+        if cursor:
+            # Returns a list of (ID, Title, Sort_Order) tuples
+            return cursor.fetchall()
+        return []
 
-        # 2. Insert the new Chapter
-        insert_query = "INSERT INTO Chapters (Title, Sort_Order) VALUES (?, ?)"
-        try:
-            cursor = self.conn.execute(insert_query, (title, next_sort_order))
-            self.conn.commit()
-            # Return the ID of the last inserted row
-            return cursor.lastrowid
-        except sqlite3.Error as e:
-            print(f"Database INSERT error (Chapter): {e}")
-            return None
-        
-    def update_chapter_title(self, chapter_id: int, new_title: str) -> bool:
-        """Updates the title of an exisiting chapter"""
-        query = "UPDATE Chapters SET Title = ? WHERE ID = ?"
-        rows = self.execute_query(query, (new_title, chapter_id))
-        return rows > 0
-    
-    def delete_chapter(self, chapter_id: int) -> bool:
-        """Deletes a chapter record based on its ID."""
-        query = "DELETE FROM Chapters WHERE ID = ?"
-        rows = self.execute_query(query, (chapter_id,))
-        return rows > 0
+    def create_chapter(self, title: str) -> int:
+        """Creates a new chapter with a given title and returns its ID."""
+        # Find the max sort order and add 1, defaulting to 1 if no chapters exist
+        max_sort_order_cursor = self._execute_query("SELECT MAX(Sort_Order) FROM Chapters")
+        max_sort_order = max_sort_order_cursor.fetchone()[0] if max_sort_order_cursor else 0
+        new_sort_order = (max_sort_order or 0) + 1
+
+        query = """
+            INSERT INTO Chapters (Title, Text_Content, Sort_Order) 
+            VALUES (?, ?, ?)
+        """
+        if self._execute_commit(query, (title, f"<h1>{title}</h1>\n<p>Start writing here...</p>", new_sort_order)):
+            return self._execute_query("SELECT last_insert_rowid()").fetchone()[0]
+        return 0
 
     def get_chapter_content(self, chapter_id: int) -> str | None:
-        """Fetches the Text_Content (HTML) for a given chapter ID."""
-        if not self.conn: return None
+        """Retrieves the rich text content of a chapter."""
         query = "SELECT Text_Content FROM Chapters WHERE ID = ?"
-        result = self.fetch_one(query, (chapter_id,))
-        # Return the string content, defaulting to an empty string if ID is found but content is NULL
-        return result['Text_Content'] if result and result['Text_Content'] is not None else ""
-        
-    def update_chapter_content(self, chapter_id: int, content_html: str) -> int:
-        """Updates the Text_Content (HTML) for a given chapter ID."""
-        query = "UPDATE Chapters SET Text_Content = ? WHERE ID = ?"
-        return self.execute_query(query, (content_html, chapter_id))
+        cursor = self._execute_query(query, (chapter_id,))
+        if cursor:
+            row = cursor.fetchone()
+            return row['Text_Content'] if row else None
+        return None
 
-# Example usage (for testing and demonstration only)
-if __name__ == '__main__':
-    # Ensure database path is correct for this test
-    # This assumes running this script from the project root (C:\...\narrative-forge>), 
-    # the paths should be relative to the root.
-    # E.g., python src/python/db_connector.py
+    def update_chapter_content(self, chapter_id: int, content: str) -> bool:
+        """Updates the rich text content of an existing chapter."""
+        query = "UPDATE Chapters SET Text_Content = ? WHERE ID = ?"
+        return self._execute_commit(query, (content, chapter_id))
     
-    # Corrected path assumption: Running from project root
+    def update_chapter_title(self, chapter_id: int, title: str) -> bool:
+        """Updates the title of an existing chapter."""
+        query = "UPDATE Chapters SET Title = ? WHERE ID = ?"
+        return self._execute_commit(query, (title, chapter_id))
+
+    def delete_chapter(self, chapter_id: int) -> bool:
+        """Deletes a chapter and all associated records (due to ON DELETE CASCADE)."""
+        query = "DELETE FROM Chapters WHERE ID = ?"
+        return self._execute_commit(query, (chapter_id,))
+    
+    # ---------------------------------------
+    # TAGGING/METADATA CRUD
+    # ---------------------------------------
+
+    def create_tag(self, tag_name: str) -> int:
+        """
+        Creates a new tag and returns its ID. If the tag already exists,
+        it fails and returns 0
+        """
+        # Ensure tag_name is clean (no leading/trailing whitespace, forced lowercase for consistency)
+        clean_name = tag_name.strip().lower()
+
+        # Check if tag already exists using its unique contraint
+        cursor = self._execute_query("SELECT ID FROM Tags WHERE NAME = ?", (clean_name,))
+        if cursor and cursor.fetchone():
+            # Tag already exists
+            return 0
+        
+        query = "INSERT INTO Tages (Name) VALUES (?)"
+        if self._execute_commit(query, (clean_name,)):
+            return self._execute_query("SELECT last_insert_rowid()").fetchone()[0]
+        return 0
+    
+    def get_tag_id_or_create(self, tag_name: str) -> int:
+        """
+        Retrieves the ID of an existing tag or creates a new one and returns the ID
+        """
+        clean_name = tag_name.strip().lower()
+        
+        # 1. Try to get existing ID
+        cursor = self._execute_query("SELECT ID FROM Tags WHERE Name = ?", (clean_name,))
+        if cursor:
+            row = cursor.fetchone()
+            if row:
+                return row['ID']
+
+        # 2. If not found, create it (and get the ID)
+        query = "INSERT INTO Tags (Name) VALUES (?)"
+        if self._execute_commit(query, (clean_name,)):
+            return self._execute_query("SELECT last_insert_rowid()").fetchone()[0]
+        
+        # Should not happen unless a concurrent access issue
+        print(f"FATAL ERROR: Could not get or create tag '{clean_name}'")
+        return 0
+    
+    def get_chapter_tags(self, chapter_id: int) -> list[tuple[int, str]]:
+        """
+        Retrieves all tags associated with a specific chapter.
+        Returns a list of (Tag_ID, Tag_Name) tuples.
+        """
+        query = """
+            SELECT t.ID, t.Name 
+            FROM Tags t
+            JOIN Chapter_Tags ct ON t.ID = ct.Tag_ID
+            WHERE ct.Chapter_ID = ?
+        """
+        cursor = self._execute_query(query, (chapter_id,))
+        if cursor:
+            # We must use a list of tuples here because row_factory is set to sqlite3.Row
+            # to prevent potential type issues when accessing in other modules.
+            return [(row['ID'], row['Name']) for row in cursor.fetchall()]
+        return []
+    
+    def set_chapter_tags(self, chapter_id: int, tag_names: List[str]) -> None:
+        """
+        Updates the tags for a chapter. It deletes all current tags and inserts new ones.
+        Creates any necessary new tags in the Tags table first.
+        """
+        if not self.conn:
+            print("Database operation failed: Not connected.")
+            return
+
+        try:
+            # 1. Start a transaction
+            self.conn.execute("BEGIN TRANSACTION")
+
+            # 2. Delete all existing tags for the chapter
+            self.conn.execute("DELETE FROM Chapter_Tags WHERE Chapter_ID = ?", (chapter_id,))
+            
+            # 3. Process the new list of tag names
+            for tag_name in tag_names:
+                clean_name = tag_name.strip().lower()
+                if not clean_name:
+                    continue # Skip empty tags
+                
+                # Get the Tag_ID (creating the tag if it doesn't exist)
+                tag_id = self.get_tag_id_or_create(clean_name)
+                
+                if tag_id > 0:
+                    # 4. Create the new link in the Chapter_Tags table
+                    # Using INSERT OR IGNORE in case multiple users somehow get the same tag_id
+                    # within the same transaction (not strictly necessary but safe).
+                    self.conn.execute(
+                        "INSERT OR IGNORE INTO Chapter_Tags (Chapter_ID, Tag_ID) VALUES (?, ?)", 
+                        (chapter_id, tag_id)
+                    )
+
+            # 5. Commit the transaction
+            self.conn.commit()
+            print(f"Successfully updated tags for Chapter ID {chapter_id}.")
+
+        except sqlite3.Error as e:
+            print(f"Transaction error during set_chapter_tags: {e}")
+            self.conn.rollback() # Rollback on error
+
+
+# ------------------------------------
+# TESTING
+# ------------------------------------
+
+# --- Main block for testing DBConnector functionality (modified for Epic 3.1) ---
+if __name__ == '__main__':
+    # Adjust paths for testing if running this file directly
+    db_path_test = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'test_tagging.db')
+    schema_path_test = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'sql', 'schema_v1.sql')
+
+    print(f"Testing DBConnector with path: {db_path_test}")
+    # Remove old test DB file if it exists
+    if os.path.exists(db_path_test):
+        os.remove(db_path_test)
+        print("Removed old test database.")
+
     db_connector = DBConnector(
-        db_path=os.path.join('data', 'test_narrative_forge.db'), 
-        schema_path=os.path.join('sql', 'schema_v1.sql')
+        db_path=db_path_test, 
+        schema_path=schema_path_test
     )
 
     if db_connector.connect():
-        # Initialize the schema (will run the script created in Epic 1)
+        # Initialize the schema
         db_connector.initialize_schema()
 
-        # --- Example CRUD Operation ---
         try:
-            # 1. INSERT a Chapter
-            new_id = db_connector.create_chapter("Test Content Persistence")
-            print(f"Created new chapter with ID: {new_id}")
+            # 1. Create a Test Chapter
+            chapter_title = "Epic 3.1 Test Chapter"
+            chapter_id = db_connector.create_chapter(chapter_title)
+            print(f"\n1. Created new chapter with ID: {chapter_id}")
 
-            # 2. UPDATE content
-            test_content = "<h1>Saved Content</h1><p>This is the test content for persistence.</p>"
-            db_connector.update_chapter_content(new_id, test_content)
-            print(f"Content updated for ID: {new_id}")
+            # 2. Define tags and set them
+            tags_to_set = ["action", "fantasy", "test tag", "TAG_UPPERCASE", " tag with whitespace "]
+            print(f"\n2. Setting tags: {tags_to_set}")
+            db_connector.set_chapter_tags(chapter_id, tags_to_set)
+
+            # 3. Retrieve and verify
+            retrieved_tags = db_connector.get_chapter_tags(chapter_id)
+            print(f"\n3. Retrieved tags for Chapter {chapter_id}:")
+            for tag_id, tag_name in retrieved_tags:
+                print(f"   ID: {tag_id}, Name: '{tag_name}'")
             
-            # 3. GET content
-            fetched_content = db_connector.get_chapter_content(new_id)
-            print(f"\nFetched Content:\n{fetched_content}")
+            # Expected result: 5 tags, all lowercase and trimmed
+            
+            # 4. Update tags (remove some, add new)
+            new_tags_to_set = ["sci-fi", "thriller", "action"] # Action should be reused
+            print(f"\n4. Updating tags to: {new_tags_to_set}")
+            db_connector.set_chapter_tags(chapter_id, new_tags_to_set)
 
-            # 4. DELETE a Chapter
-            if new_id:
-                db_connector.delete_chapter(new_id)
-                print(f"Deleted chapter with ID: {new_id}")
+            # 5. Retrieve and verify update
+            retrieved_tags_updated = db_connector.get_chapter_tags(chapter_id)
+            print(f"\n5. Retrieved tags after update for Chapter {chapter_id}:")
+            for tag_id, tag_name in retrieved_tags_updated:
+                print(f"   ID: {tag_id}, Name: '{tag_name}'")
+            
+            # Expected result: 3 tags ("sci-fi", "thriller", "action")
             
         except Exception as e:
-            print(f"An error occurred during DB test: {e}")
+            print(f"An unexpected error occurred during testing: {e}")
         finally:
+            # Clean up the test environment
             db_connector.close()
+            # os.remove(db_path_test) # Keep for manual inspection if needed
+            print("\nTest finished.")
+    else:
+        print("Test environment setup failed.")

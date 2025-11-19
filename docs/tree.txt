@@ -22,11 +22,12 @@ This document outlines the standard directory structure for the project, alignin
 │   └── **python/** # All core Python/PyQt6 application logic
 │       ├── **ui/** # PyQt6 GUI components and custom widgets
 │       │   ├── chapter_editor.py
-│       │   ├── lore_editor.py
 │       │   └── tag_widget.py     # Reusable Tagging UI component (Epic 3)
 │       ├── db_connector.py       # SQLite connection handler (Story 2.1)
 │       ├── main_window.py        # Main PyQt6 application window (Story 2.2)
 │       ├── outline_manager.py    # QTreeWidget logic (Story 2.3)
+│       ├── rich_text_editor.py   # The rich text editor (Story 2.4)
+│       ├── lore_editor.py
 │       ├── causality_wrapper.py  # Python ctypes wrapper for C++ causality module (Epic 4)
 │       └── __init__.py           # Makes 'python' a package
 ├── **tests/** # Unit and integration tests

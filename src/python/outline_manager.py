@@ -63,7 +63,7 @@ class OutlineManager(QTreeWidget):
 
         # Fetch the actual chapter data from the database
         if self.db:
-            chapter_data = self.db.fetch_all_chapters()
+            chapter_data = self.db.get_all_chapters_for_outline()
         else:
             chapter_data = []
             print("Warning: OutlineManager has no DB connection. Using empty set.")
@@ -217,7 +217,7 @@ class OutlineManager(QTreeWidget):
     def check_save_and_delete(self, item: QTreeWidgetItem) -> None:
         """Emits pre-change signal, then deletes the chapter"""
         self.pre_chapter_change.emit()
-        self._delete_chapter()
+        self._delete_chapter(item)
 
     def find_chapter_item_by_id(self, chapter_id: int) -> QTreeWidgetItem | None:
         """Helper to find a chapter item by its stored ID."""
