@@ -1,14 +1,14 @@
 # Chapter Editor Composite Widget: src/python/ui/chapter_editor.py
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QGroupBox, QSizePolicy
+    QWidget, QVBoxLayout, QLabel, QGroupBox, QSizePolicy, QSplitter
 )
 from PyQt6.QtCore import pyqtSignal, Qt
 import sys
 import os
-from tag_widget import TagManagerWidget
 
-from rich_text_editor import RichTextEditor
+from .tag_widget import TagManagerWidget
+from .rich_text_editor import RichTextEditor
 
 class ChapterEditor(QWidget):
     """
@@ -44,9 +44,25 @@ class ChapterEditor(QWidget):
         content_label.setStyleSheet("font-weight: bold; padding: 5px 0 5px 0;")
         content_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        main_layout.addWidget(tag_group)
-        main_layout.addWidget(content_label)
-        main_layout.addWidget(self.rich_text_editor)
+        # Create a vertical QSplitter for Tag Group and Editor
+        content_splitter = QSplitter(Qt.Orientation.Vertical)
+
+        # Create a container widget for the content label and the rich text editor
+        content_container = QWidget()
+        content_layout = QVBoxLayout(content_container)
+        content_layout.setContentsMargins(0, 0, 0, 0) # Use 0 margins to control spacing externally
+        content_layout.setSpacing(0) 
+
+        content_layout.addWidget(content_label)
+        content_layout.addWidget(self.rich_text_editor)
+
+        content_splitter.addWidget(tag_group)
+        content_splitter.addWidget(content_container)
+
+        # Set the initial ratio of the splitter (e.g., 1:4 ratio for Tag Group to Editor)
+        content_splitter.setSizes([100, 600]) 
+        
+        main_layout.addWidget(content_splitter)
 
         # --- Connections ---
         # Any change in the tags *also* makes the chapter dirty

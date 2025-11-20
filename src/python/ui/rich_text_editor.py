@@ -8,7 +8,7 @@ from PyQt6.QtGui import (
     QAction, QTextCharFormat, QFont, QTextCursor, 
     QTextListFormat, QTextList, QTextBlockFormat
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import QStyle
 import sys
 
@@ -17,6 +17,9 @@ class RichTextEditor(QWidget):
     A Custom QWidget containing a QTextEdit and a formatiing toolbar
     Handles the rich text formating Action
     """
+    # signal to notify listeners (like ChapterEditor/LoreEditor) of content changes
+    content_changed = pyqtSignal()
+
     def __init__(self, parent =None) -> None:
         super().__init__(parent)
 
@@ -43,12 +46,12 @@ class RichTextEditor(QWidget):
         self.editor.selectionChanged.connect(self._update_toolbar_state)
         self.editor.cursorPositionChanged.connect(self._update_toolbar_state)
         self.editor.textChanged.connect(self._set_dirty)
+        self.editor.textChanged.connect(self.content_changed.emit)
 
     # --- Dirty Flag Management ---
 
     def _set_dirty(self) -> None:
         """Sets the dirty flag when the text content changes."""
-        # Only update the flag if the text change wasn't triggered internally (like by setHtmlContent)
         if not self._is_dirty:
             self._is_dirty = True
             # print("Editor: Content is now DIRTY.") # Debugging line

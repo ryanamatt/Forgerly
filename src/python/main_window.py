@@ -2,14 +2,13 @@
 
 import sys
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QHBoxLayout, QSplitter,
-    QMenuBar, QToolBar, QTextEdit, QListWidget, QMessageBox
+    QApplication, QMainWindow, QSplitter, QMessageBox
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCloseEvent, QAction
 
 from outline_manager import OutlineManager
-from rich_text_editor import RichTextEditor
+from ui.chapter_editor import ChapterEditor
 from db_connector import DBConnector
 
 class MainWindow(QMainWindow):
@@ -49,6 +48,7 @@ class MainWindow(QMainWindow):
         # Check for unsaved changes before allowing app to close
         if self.editor_panel.is_dirty():
             save_reply = QMessageBox(
+                self,
                 "Unsaved Changes",
                 "You have unsaved changes. Do you want to save them before exiting?",
                 QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
@@ -81,7 +81,7 @@ class MainWindow(QMainWindow):
         self.outline_manager = OutlineManager(db_connector=self.db_connector)
 
         # --- Right Panel: Editor ---
-        self.editor_panel = RichTextEditor()
+        self.editor_panel = ChapterEditor()
 
         # Add the panels to the splitter
         main_splitter.addWidget(self.outline_manager)
