@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QSplitter, QMessageBox, QFileDialog, QDialog
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QCloseEvent, QAction, QTextDocument
+from PyQt6.QtGui import QCloseEvent, QAction, QTextDocument, QIcon
 import os
 
 from outline_manager import OutlineManager
@@ -25,6 +25,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("The Narrative Forge")
         self.setGeometry(100, 100, 1200, 800)
+        self.setWindowIcon(QIcon(os.path.join('assets', 'logo.png')))
 
         # Initialize DB Connector
         self.db_connector = DBConnector() 
@@ -391,6 +392,9 @@ class MainWindow(QMainWindow):
 if __name__ == '__main__':
     # Initialize the QApplication
     app = QApplication(sys.argv)
+
+    app_icon = QIcon(os.path.join('assets', 'logo.png'))
+    app.setWindowIcon(app_icon)
     
     # Create the main window instance
     window = MainWindow()

@@ -59,6 +59,8 @@ class OutlineManager(QTreeWidget):
 
         # Placeholder Icons (using a simple style icon)
         chapter_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView)
+
+        self.blockSignals(True)
         
         # Root item for the Narrative (e.g. The Project)
         self.project_root_item = QTreeWidgetItem(self, ["The Story of Narrative Forge"])
@@ -68,7 +70,6 @@ class OutlineManager(QTreeWidget):
 
         # Fetch the actual chapter data from the database using the Repository
         if self.chapter_repo:
-            # --- REF: Use ChapterRepository.get_all_chapters() ---
             chapter_data = self.chapter_repo.get_all_chapters()
         else:
             chapter_data = []
@@ -82,6 +83,8 @@ class OutlineManager(QTreeWidget):
             chapter_item.setIcon(0, chapter_icon)
             chapter_item.setData(0, CHAPTER_ID_ROLE, chap_id)
             chapter_item.setFlags(chapter_item.flags() | Qt.ItemFlag.ItemIsEditable)
+
+        self.blockSignals(False)
 
         self.project_root_item.setExpanded(True)
 
