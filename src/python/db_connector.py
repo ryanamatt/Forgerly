@@ -180,7 +180,7 @@ class DBConnector:
         return self._execute_commit(query, (chapter_id,))
     
     # ---------------------------------------
-    # TAGGING/METADATA CRUD
+    # Chapter TAGGING/METADATA CRUD
     # ---------------------------------------
 
     def create_tag(self, tag_name: str) -> int:
@@ -284,12 +284,113 @@ class DBConnector:
             print(f"Transaction error during set_chapter_tags: {e}")
             self.conn.rollback() # Rollback on error
 
+    # -------------------------------
+    # Lore Entries CRUD Operations
+    # -------------------------------
+
+    def create_lore_entry(self, title: str, category: str = "General") -> int:
+        """Creates a new lore entry and returns its ID."""
+        initial_content = f"<h1>{title}</h1>\n<p>Describe this {category} entry here...</p>"
+        query = """
+            INSERT INTO Lore_Entries (Title, Content, Category) 
+            VALUES (?, ?, ?)
+        """
+        if self._execute_commit(query, (title, initial_content, category)):
+            # The last_insert_rowid() is safe because we just committed a single insert.
+            cursor = self._execute_query("SELECT last_insert_rowid()")
+            return cursor.fetchone()[0] if cursor else 0
+        return 0
+    
+    def get_all_lore_entries(self) -> list[sqlite3.Row]:
+        """Retrieves akk kire entires (ID, Title, Category), ordered by Title"""
+        query = "SELECT ID, Title, Category FROM Lore_Entries ORDER BY Title ASC"
+        return self.fetch_all(query)
+    
+    def get_lore_entry(self, lore_id: int) -> sqlite3.Row | None:
+        """Retrieves a singe lore entry (Title, Content, Category), by ID"""
+        query = "SELECT Title, Content, Category FROM Lore_Entries WHERE ID = ?"
+        return self.fetch_one(query, (lore_id,))
+    
+    def update_lore_entry(self, lore_id: int, title: str, content: str, category: str) -> bool:
+        """Updates the title, content, and category of an exisitng lore entry."""
+        query = "UPDATE Lore_Entries SET Title = ?, Content = ?, Category = ? WHERE ID = ?"
+        return self._execute_commit(query, (title, content, category, lore_id))
+    
+    def delete_lore_entry(self, lore_id: int) -> bool:
+        """Deletes a lore entry and all associated records (due to ON DELETE CASCADE)."""
+        query = "DELETE FROM Lore_Entries WHERE ID = ?"
+        return self._execute_commit(query, (lore_id,))
+    
+    # ---------------------------------------
+    # LORE TAGGING/METADATA CRUD
+    # ---------------------------------------
+
+    def get_lore_tags(self, lore_id: int) -> list[tuple[int, str]]:
+        """
+        Retrieves all tags associated with a specific lore entry.
+        Returns a list of (Tag_ID, Tag_Name) tuples.
+        """
+        query = """
+            SELECT t.ID, t.Name 
+            FROM Tags t
+            JOIN Lore_Tags lt ON t.ID = lt.Tag_ID
+            WHERE lt.Lore_ID = ?
+        """
+        cursor = self._execute_query(query, (lore_id,))
+        if cursor:
+            # Returns a list of (ID, Name) tuples
+            return [(row['ID'], row['Name']) for row in cursor.fetchall()]
+        return []
+    
+    def set_lore_tags(self, lore_id: int, tag_names: list[str]) -> None:
+        """
+        Updates the tags for a lore entry. It deletes all current tags and inserts new ones.
+        Creates any necessary new tags in the Tags table first.
+        """
+        if not self.conn:
+            print("Database operation failed: Not connected.")
+            return
+
+        try:
+            # 1. Start a transaction
+            # Using BEGIN is safer for complex transactions involving selects and inserts
+            self.conn.execute("BEGIN") 
+
+            # 2. Delete all existing tags for the lore entry
+            self.conn.execute("DELETE FROM Lore_Tags WHERE Lore_ID = ?", (lore_id,))
+            
+            # 3. Process the new list of tag names
+            for tag_name in tag_names:
+                clean_name = tag_name.strip().lower()
+                if not clean_name:
+                    continue # Skip empty tags
+                
+                # Get the Tag_ID (creating the tag if it doesn't exist) 
+                # Use the new transactional-safe helper
+                tag_id = self.get_tag_id_or_create(clean_name)
+                
+                if tag_id > 0:
+                    # 4. Create the new link in the Lore_Tags table
+                    self.conn.execute(
+                        "INSERT OR IGNORE INTO Lore_Tags (Lore_ID, Tag_ID) VALUES (?, ?)", 
+                        (lore_id, tag_id)
+                    )
+
+            # 5. Commit the transaction
+            self.conn.commit()
+            print(f"Successfully updated tags for Lore Entry ID {lore_id}.")
+
+        except sqlite3.Error as e:
+            # If any error occurs, rollback all changes
+            print(f"Transaction error during set_lore_tags: {e}")
+            if self.conn:
+                self.conn.rollback()
+
 
 # ------------------------------------
 # TESTING
 # ------------------------------------
 
-# --- Main block for testing DBConnector functionality (modified for Epic 3.1) ---
 if __name__ == '__main__':
     # Adjust paths for testing if running this file directly
     db_path_test = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'test_tagging.db')
@@ -341,6 +442,54 @@ if __name__ == '__main__':
                 print(f"   ID: {tag_id}, Name: '{tag_name}'")
             
             # Expected result: 3 tags ("sci-fi", "thriller", "action")
+
+            # ------------------------------------
+            # 6. Test Lore Entry CRUD and Tagging
+            # ------------------------------------
+            
+            print("\n" + "="*50)
+            print("6. Testing Lore Entry CRUD and Tagging")
+            print("="*50)
+
+            # 6a. Create Lore Entry
+            lore_title = "The Obsidian Tower"
+            lore_category = "Location"
+            lore_id = db_connector.create_lore_entry(lore_title, lore_category)
+            print(f"6a. Created new lore entry with ID: {lore_id}")
+
+            # 6b. Retrieve Lore Entry
+            lore_entry = db_connector.get_lore_entry(lore_id)
+            print(f"6b. Retrieved Lore Entry: {dict(lore_entry)}")
+            
+            # 6c. Update Lore Entry
+            new_content = "<p>A dark, brooding tower.</p>"
+            update_success = db_connector.update_lore_entry(lore_id, lore_title, new_content, "Landmark")
+            print(f"6c. Update success: {update_success}")
+            
+            # 6d. Get All Lore Entries (should be 1)
+            all_lore = db_connector.get_all_lore_entries()
+            print(f"6d. All Lore Entries (Count: {len(all_lore)}):")
+            for entry in all_lore:
+                print(f"    ID: {entry['ID']}, Title: {entry['Title']}, Category: {entry['Category']}")
+                
+            # 6e. Set Lore Tags
+            lore_tags = ["dark", "magical", "location"]
+            print(f"6e. Setting lore tags: {lore_tags}")
+            db_connector.set_lore_tags(lore_id, lore_tags)
+            
+            # 6f. Retrieve Lore Tags
+            retrieved_lore_tags = db_connector.get_lore_tags(lore_id)
+            print(f"6f. Retrieved Lore Tags:")
+            for tag_id, tag_name in retrieved_lore_tags:
+                print(f"    ID: {tag_id}, Name: '{tag_name}'")
+                
+            # 6g. Delete Lore Entry
+            delete_success = db_connector.delete_lore_entry(lore_id)
+            print(f"6g. Deletion success: {delete_success}")
+            
+            # 6h. Verify deletion (should be 0)
+            all_lore_after_delete = db_connector.get_all_lore_entries()
+            print(f"6h. All Lore Entries after delete (Count: {len(all_lore_after_delete)})")
             
         except Exception as e:
             print(f"An unexpected error occurred during testing: {e}")
