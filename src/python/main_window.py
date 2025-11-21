@@ -2,16 +2,19 @@
 
 import sys
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QSplitter, QMessageBox
+    QApplication, QMainWindow, QSplitter, QMessageBox, QFileDialog, QDialog
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QCloseEvent, QAction
+from PyQt6.QtGui import QCloseEvent, QAction, QTextDocument
+import os
 
 from outline_manager import OutlineManager
 from ui.chapter_editor import ChapterEditor
 from db_connector import DBConnector
 from chapter_repository import ChapterRepository
 from tag_repository import TagRepository
+from settings_dialog import SettingsDialog
+from settings_manager import SettingsManager
 
 class MainWindow(QMainWindow):
     """
@@ -35,6 +38,11 @@ class MainWindow(QMainWindow):
         # --- Initialize Repositories ---
         self.chapter_repo = ChapterRepository(self.db_connector)
         self.tag_repo = TagRepository(self.db_connector)
+
+        # --- Settings and Theme Management ---
+        self.settings_manager = SettingsManager()
+        self.current_settings = self.settings_manager.load_settings()
+        self._apply_theme(self.current_settings)
 
         # State tracking for the currently loaded chapter
         self.current_chapter_id = 0
@@ -123,6 +131,13 @@ class MainWindow(QMainWindow):
         save_action.setStatusTip("Save the current chapter content to the database")
         save_action.triggered.connect(self._save_chapter)
         file_menu.addAction(save_action)
+
+        # Action Export Story
+        export_action = QAction("Export Story...", self)
+        export_action.setShortcut("Ctrl+O")
+        export_action.setStatusTip("Export the entire story (all chapters) to a single file")
+        export_action.triggered.connect(self._export_story)
+        file_menu.addAction(export_action)
         
         # Action: Exit
         exit_action = QAction("Exit", self)
@@ -135,6 +150,16 @@ class MainWindow(QMainWindow):
         edit_menu = menu_bar.addMenu("&Edit")
         edit_menu.addAction("Undo")
         edit_menu.addAction("Redo")
+
+        # --- Settings Menu ----
+        settings_menu = menu_bar.addMenu("&Settings")
+
+        # Settings Action
+        settings_action = QAction("Open Settings...", self)
+        settings_action.setShortcut("Ctrl+,")
+        settings_action.setStatusTip("Open application settings, including themes.")
+        settings_action.triggered.connect(self._open_settings_dialog)
+        settings_menu.addAction(settings_action)
         
         # --- Help Menu ---
         help_menu = menu_bar.addMenu("&Help")
@@ -229,6 +254,139 @@ class MainWindow(QMainWindow):
 
         self.editor_panel.set_tags(tag_names)
 
+    def _export_story(self) -> None:
+        """Prompts the user for a save location and exports the entire story content."""
+
+        # 1. Check for unsaved changes before exporting
+        if not self._check_save_before_change():
+            return
+        
+        file_filers = (
+            "Markdown Files (*.md);;"
+            "HTML Files (*.html);;"
+            "Plain Text Files (*.txt);;"
+            "All Files (*)"
+        )
+
+        # 2. Get file save location from the user
+        file_path, selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Export Story",
+            "narrative_forge_export.md",
+            file_filers
+        )
+
+        if not file_path:
+            return
+        
+        # Determine the selected export format
+        if "(*.html)" in selected_filter:
+            file_format = "html"
+        elif "(*.txt)" in selected_filter:
+            file_format = "text"
+        else:
+            # Default to markdown, which is the first filter and handles *.md
+            file_format = "markdown"
+        
+        self.statusBar().showMessage("Exporting Story... Please wait.")
+        QApplication.processEvents()
+
+        try:
+            all_chapters_data = self.chapter_repo.get_all_chapters_with_content()
+
+            if not all_chapters_data:
+                QMessageBox.warning(self, "Export Failed", "No chapters found to export.")
+                self.statusBar().showMessage("Export cancelled: No chapters found.")
+                return
+            
+            # 2. Format and write the content based on the selected format
+            with open(file_path, 'w', encoding='utf-8') as f:
+                
+                # --- HTML Header/Footer (Optional but good practice) ---
+                if file_format == "html":
+                    f.write("<!DOCTYPE html><html><head><title>Narrative Forge Export</title></head><body>\n")
+                    f.write("<h1>The Narrative Forge Export</h1>\n")
+
+                # --- Write Chapter Content ---
+                for chapter in all_chapters_data:
+                    title = chapter['Title']
+                    sort_order = chapter['Sort_Order']
+                    content = chapter['Text_Content']
+                    
+                    if file_format == "markdown":
+                        # Markdown format (uses raw content which is HTML, so it may need cleanup,
+                        # but works well for simple rich text converted to MD)
+                        f.write(f"## Chapter {sort_order}: {title}\n\n")
+                        f.write(f"{content}\n\n---\n\n")
+                        
+                    elif file_format == "html":
+                        # HTML format (uses the raw HTML content directly)
+                        f.write(f'<section id="chapter-{sort_order}">\n')
+                        f.write(f'  <h2>Chapter {sort_order}: {title}</h2>\n')
+                        f.write(f'{content}\n') # Text_Content is stored as HTML
+                        f.write('</section>\n\n')
+
+                    elif file_format == "text":
+                        # Plain Text format (simplest format, removes HTML tags)
+                        f.write(f"--- Chapter {sort_order}: {title} ---\n\n")
+
+                        doc = QTextDocument()
+                        doc.setHtml(content)
+                        f.write(doc.toPlainText())
+                        f.write("\n\n")
+                        
+                # --- HTML Footer ---
+                if file_format == "html":
+                    f.write("</body></html>")
+
+
+            self.statusBar().showMessage(f"Story exported successfully to: {file_path}", 5000)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Export Error", f"Failed to export story: {e}")
+            self.statusBar().showMessage("Export failed.", 5000)
+
+    def _open_settings_dialog(self) -> None:
+        """Handles opening the settings dialog and applying changes."""
+
+        dialog = SettingsDialog(
+            current_settings=self.current_settings,
+            settings_manager=self.settings_manager,
+            parent=self
+            )
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            new_settings = dialog.get_new_settings()
+            
+            # 1. Save the new settings to the user file
+            self.settings_manager.save_settings(new_settings)
+            
+            # 2. Apply the new settings
+            self.current_settings = new_settings
+            self._apply_theme(self.current_settings)
+            
+            self.statusBar().showMessage(f"Settings saved and applied. Theme: {new_settings['theme']}.", 5000)
+
+    def _apply_theme(self, settings: dict) -> None:
+        """Loads and applies the QSS file for the selected theme."""
+
+        theme_name = settings.get("theme", "Light") # Use 'Dark' as a hardcoded fallback
+        
+        theme_file = os.path.join('styles', f"{theme_name.lower()}.qss")
+        
+        if os.path.exists(theme_file):
+            try:
+                with open(theme_file, 'r') as f:
+                    # Apply the stylesheet to the entire application
+                    self.setStyleSheet(f.read())
+
+                self.current_settings['theme'] = theme_name
+                print(f"Theme applied: {theme_name}")
+
+            except Exception as e:
+                print(f"Error loading theme file {theme_file}: {e}")
+        else:
+            print(f"Theme file not found: {theme_file}")
 
 if __name__ == '__main__':
     # Initialize the QApplication

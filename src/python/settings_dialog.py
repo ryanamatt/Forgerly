@@ -1,0 +1,109 @@
+# src/python/settings_dialog.py
+
+from PyQt6.QtWidgets import (
+    QDialog, QVBoxLayout, QGroupBox, QComboBox, 
+    QLabel, QDialogButtonBox, QHBoxLayout, QPushButton,
+    QMessageBox
+)
+from PyQt6.QtCore import Qt
+
+from settings_manager import SettingsManager
+
+class SettingsDialog(QDialog):
+    """A dialog window for managing application settings"""
+
+    def __init__(self, current_settings: dict, settings_manager: SettingsManager, parent=None) -> None:
+        super().__init__(parent)
+
+        self.setWindowTitle("Application Settings")
+        self.setGeometry(200, 200, 400, 200)
+
+        self.settings_manager = settings_manager
+        self._new_settings = current_settings.copy()
+
+        self._setup_ui()
+
+    def _setup_ui(self):
+        main_layout = QVBoxLayout(self)
+
+        # --- Appearance Group Box (Themes) ---
+        appearance_group = QGroupBox("Appearance")
+        group_layout = QVBoxLayout(appearance_group)
+
+        # Theme Selection
+        theme_label = QLabel("Select Theme:")
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItems(["Light", "Dark"])
+        
+        # Set the combo box to the current theme
+        index = self.theme_combo.findText(self._new_settings.get('theme', 'Light'))
+        if index != -1:
+            self.theme_combo.setCurrentIndex(index)
+
+        group_layout.addWidget(theme_label)
+        group_layout.addWidget(self.theme_combo)
+
+        main_layout.addWidget(appearance_group)
+
+        # --- Standard OK/Cancel Buttons and Revert ---
+        
+        # 1. Revert Button
+        revert_button = QPushButton("Revert to Defaults")
+        revert_button.clicked.connect(self._revert_to_defaults)
+        
+        # 2. OK/Cancel Buttons
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        button_box.accepted.connect(self._on_accept)
+        button_box.rejected.connect(self.reject)
+        
+        # Layout for the button box (Revert on left, OK/Cancel on right)
+        h_layout = QHBoxLayout()
+        h_layout.addWidget(revert_button)
+        h_layout.addStretch(1)
+        h_layout.addWidget(button_box)
+        
+        main_layout.addLayout(h_layout)
+
+    def _on_accept(self):
+        """Called when the OK button is pressed. Saves the selected settings."""
+        self.selected_theme = self.theme_combo.currentText()
+        self.accept()
+
+    def _revert_to_defaults(self):
+        """Reverts settings by deleting the user file and updating the dialog UI."""
+        reply = QMessageBox.question(
+            self,
+            "Confirm Revert",
+            "Are you sure you want to revert ALL settings to their factory defaults? This will erase your saved preferences.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            # 1. Delete user file and get defaults from manager
+            default_settings = self.settings_manager.revert_to_defaults()
+            
+            # 2. Update the internal state
+            self._new_settings = default_settings.copy()
+            
+            # 3. Update the UI controls
+            new_theme = default_settings.get('theme', 'Light')
+            index = self.theme_combo.findText(new_theme)
+            if index != -1:
+                self.theme_combo.setCurrentIndex(index)
+                
+            QMessageBox.information(self, "Reverted", "Settings reverted to defaults. Click OK to apply these changes.")
+            
+    def _on_accept(self):
+        """Called when the OK button is pressed. Saves the selected settings to internal state."""
+        # Update the internal settings dictionary with current UI values
+        self._new_settings['theme'] = self.theme_combo.currentText()
+        # Update other settings here as you expand the dialog
+        
+        self.accept()
+
+    def get_new_settings(self) -> dict:
+        """Returns the settings dictionary intended to be saved and applied."""
+        return self._new_settings

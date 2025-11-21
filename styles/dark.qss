@@ -1,0 +1,51 @@
+/* styles/dark.qss */
+/* A simple dark theme */
+
+QWidget {
+    background-color: #212121;
+    color: #f0f0f0;
+}
+
+QMainWindow, QSplitter {
+    background-color: #333333;
+}
+
+QTextEdit, QLineEdit {
+    background-color: #2a2a2a;
+    border: 1px solid #555555;
+}
+
+QTextEdit {
+    font-size: 14px;
+}
+
+QMenuBar {
+    background-color: #444444;
+    color: #f0f0f0;
+}
+
+QMenu::item:selected {
+    background-color: #555555;
+}
+
+QToolBar {
+    background-color: #333333;
+    border: none;
+}
+
+QPushButton {
+    background-color: #555555;
+    border: 1px solid #777777;
+    padding: 5px;
+}
+
+QPushButton:hover {
+    background-color: #666666;
+}
+
+QTreeWidget {
+    background-color: #2a2a2a;
+    alternate-background-color: #333333;
+    selection-background-color: #005080;
+    show-decoration-selected: 1; 
+}

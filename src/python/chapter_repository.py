@@ -12,6 +12,18 @@ class ChapterRepository:
     def __init__(self, db_connector: DBConnector) -> None:
         self.db = db_connector
 
+    def get_all_chapters_with_content(self) -> list[dict[str, Any]]:
+        """
+        Retrieves all chapters with their full text content, ordered by Sort_Order.
+        Used for full story export.
+        """
+        query = """
+        SELECT ID, Title, Text_Content, Sort_Order, Precursor_Chapter_ID
+        FROM Chapters
+        ORDER BY Sort_Order ASC;
+        """
+        return self.db._execute_query(query, fetch_all=True)
+
     def create_chapter(self, title: str, sort_order: int, precursor_id: int | None = None) -> int | None:
         """Creates a new chapter and returns its ID"""
         query = """
@@ -56,4 +68,4 @@ class ChapterRepository:
     def update_chapter_title(self, chapter_id: int, title: str) -> str | None:
         """Updates the Chapter title by Chapter ID"""
         query = "UPDATE Chapters SET Title = ? WHERE ID = ?"
-        return self.db._execute_commit(query, (chapter_id, title))
+        return self.db._execute_commit(query, (title, chapter_id))
