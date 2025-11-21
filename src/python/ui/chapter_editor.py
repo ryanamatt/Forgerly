@@ -79,13 +79,12 @@ class ChapterEditor(QWidget):
     
     def is_dirty(self) -> bool:
         """Checks if the content or the tags have unsaved changes."""
-        return self.rich_text_editor.is_dirty()
+        return self.rich_text_editor.is_dirty() or self.tag_manager.is_dirty()
 
     def mark_saved(self) -> None:
         """Marks both content and tags as clean."""
-        # The tag manager's state is implicitly marked clean when its tags are saved
-        # via the MainWindow calling set_chapter_tags, which relies on the DB save.
         self.rich_text_editor.mark_saved()
+        self.tag_manager.mark_saved()
         
     def set_enabled(self, enabled: bool) -> None:
         """Enables/disables the entire chapter editor panel."""

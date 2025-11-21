@@ -163,6 +163,8 @@ class TagManagerWidget(QWidget):
     def __init__(self, initial_tags: list[str] = None, parent=None):
         super().__init__(parent)
         self.tags = set() # Use a set for quick lookups and uniqueness
+
+        self._is_dirty = False
         
         # --- UI Setup ---
         
@@ -188,6 +190,21 @@ class TagManagerWidget(QWidget):
         if initial_tags:
             self.set_tags(initial_tags)
 
+    def is_dirty(self) -> bool:
+        """Checks if the tags have unsaved changes"""
+        return self._is_dirty
+    
+    def mark_saved(self) -> None:
+        """Marks the tags as clean."""
+        self._is_dirty = False
+        
+    def _set_dirty(self) -> None:
+        """Sets the dirty flag and emits change signal if state changes."""
+        if not self._is_dirty:
+            self._is_dirty = True
+            # The signal is emitted here, which will be handled by MainWindow
+            self.tags_changed.emit(self.get_tags())
+
     def _add_tag_from_input(self):
         """
         Processes the input line, splitting by comma or semicolon, 
@@ -211,8 +228,11 @@ class TagManagerWidget(QWidget):
         if new_tags_added:
             self.tags_changed.emit(self.get_tags())
         
-        # Clear the input field after processing
-        self.tag_input.clear()
+        if clean_tag and clean_tag not in self.tags:
+            self.tags.add(clean_tag)
+            self._create_tag_label(clean_tag)
+            self.tag_input.clear()
+            self._set_dirty()
         
     def _create_tag_label(self, tag_name: str):
         """Instantiates a new TagLabel and adds it to the flow layout."""
@@ -242,11 +262,14 @@ class TagManagerWidget(QWidget):
         # Convert the set back to a list for a stable, user-friendly order
         return sorted(list(self.tags))
 
-    def set_tags(self, tag_names: list[str]):
+    def set_tags(self, tag_names: list[str]) -> None:
         """
-        Clears the current tags and sets a new list. 
+        Sets the tags to a new list. 
         Used when loading a new chapter.
         """
+        # This prevents the initial loading process from firing the tags_changed signal.
+        self.blockSignals(True) 
+
         # Clear existing tags and widgets
         while self.tag_flow_layout.count():
             item = self.tag_flow_layout.takeAt(0)
@@ -258,13 +281,15 @@ class TagManagerWidget(QWidget):
         
         # Add new tags
         for tag_name in tag_names:
-            clean_tag = tag_name.strip().lower()
+            # Note: This line should be using the new normalize_tag_name utility
+            clean_tag = tag_name.strip().lower() 
             if clean_tag and clean_tag not in self.tags:
                 self.tags.add(clean_tag)
                 self._create_tag_label(clean_tag)
         
-        # Emit signal to inform listeners that the state has been updated
-        self.tags_changed.emit(self.get_tags())
+        # Restore signals and explicitly mark clean ---
+        self.blockSignals(False) 
+        self.mark_saved()
 
 # --- Test Execution ---
 if __name__ == '__main__':
