@@ -6,9 +6,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6.QtGui import QIcon
 import os
-# --- REF: Changed import from DBConnector to ChapterRepository ---
 from chapter_repository import ChapterRepository 
-# ---------------------------------------------------------------
+
 
 # Define the roles for the custom data we want to store in the QTreeWidget
 # This makes it easy to retrieve the Chapter ID associated with a clicked item.

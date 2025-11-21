@@ -8,12 +8,13 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCloseEvent, QAction, QTextDocument, QIcon
 import os
 
-from outline_manager import OutlineManager
+from ui.outline_manager import OutlineManager
 from ui.chapter_editor import ChapterEditor
+from ui.settings_dialog import SettingsDialog
+
 from db_connector import DBConnector
 from chapter_repository import ChapterRepository
 from tag_repository import TagRepository
-from settings_dialog import SettingsDialog
 from settings_manager import SettingsManager
 
 class MainWindow(QMainWindow):
