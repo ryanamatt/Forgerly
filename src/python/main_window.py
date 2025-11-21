@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
 
         # Check for unsaved changes before allowing app to close
         if self.editor_panel.is_dirty():
-            save_reply = QMessageBox(
+            save_reply = QMessageBox.question(
                 self,
                 "Unsaved Changes",
                 "You have unsaved changes. Do you want to save them before exiting?",
@@ -171,20 +171,37 @@ class MainWindow(QMainWindow):
     
     def _save_current_chapter(self) -> bool:
         """Saves the Rich Text content of the current chapter to the database."""
-        if self.current_chapter_id == 0:
+        chapter_id = self.current_chapter_id
+
+        if chapter_id == 0:
             self.statusBar().showMessage("Cannot save: No chapter is currently selected.")
             return False
         
-        content_html = self.editor_panel.get_html_content()
-        rows = self.db_connector.update_chapter_content(self.current_chapter_id, content_html)
-        
-        if rows > 0:
-            self.editor_panel.mark_saved()
-            self.statusBar().showMessage(f"Chapter ID {self.current_chapter_id} saved successfully.")
-            print(f"Content saved for Chapter ID: {self.current_chapter_id}")
+        if not self.editor_panel.is_dirty():
+            self.statusBar().showMessage(f"Chapter ID {chapter_id}: No changes to save.")
             return True
-        else:
-            QMessageBox.critical(self, "Save Error", f"Failed to save content for Chapter ID {self.current_chapter_id}.")
+        
+        try:
+            # 1. Save Content
+            content = self.editor_panel.get_html_content()
+            content_saved = self.db_connector.update_chapter_content(chapter_id, content)
+
+            # 2. Save Tags
+            tag_names = self.editor_panel.get_tags()
+            tags_saved = self.db_connector.set_chapter_tags(chapter_id, tag_names)
+
+            if content_saved and tags_saved:
+                self.editor_panel.mark_saved()
+                self.statusBar().showMessage(f"Chapter ID {chapter_id} saved successfully!")
+                return True
+            else:
+                self.statusBar().showMessage(f"Chapter ID {chapter_id}: Error saving to database.")
+                return False
+            
+        except Exception as e:
+            print(f"Error during save: {e}")
+            self.statusBar().showMessage(f"Chapter ID {chapter_id}: An unexpected error occurred during save.")
+            return False
 
     def _load_chapter_content(self, chapter_id: int) -> None:
         """
@@ -198,6 +215,7 @@ class MainWindow(QMainWindow):
         
         print(f"MainWindow loading content for Chapter ID: {chapter_id}...")
         
+        # 1. Load Content (Handles content persistence / new chapter initialization)
         content = self.db_connector.get_chapter_content(chapter_id)
         
         if content is None:
@@ -210,6 +228,12 @@ class MainWindow(QMainWindow):
             self.editor_panel.set_html_content(content)
             self.editor_panel.setEnabled(True)
             self.statusBar().showMessage(f"Chapter ID {chapter_id} selected and loaded.")
+
+        # 2. Load Tags
+        tags_data = self.db_connector.get_chapter_tags(chapter_id)
+        tag_names = [name for _, name in tags_data] if tags_data else []
+
+        self.editor_panel.set_tags(tag_names)
 
 
 if __name__ == '__main__':

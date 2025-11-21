@@ -242,10 +242,10 @@ class DBConnector:
             return [(row['ID'], row['Name']) for row in cursor.fetchall()]
         return []
     
-    def set_chapter_tags(self, chapter_id: int, tag_names: list[str]) -> None:
+    def set_chapter_tags(self, chapter_id: int, tag_names: list[str]) -> bool:
         """
         Updates the tags for a chapter. It deletes all current tags and inserts new ones.
-        Creates any necessary new tags in the Tags table first.
+        Creates any necessary new tags in the Tags table first. Returns true is successful.
         """
         if not self.conn:
             print("Database operation failed: Not connected.")
@@ -280,9 +280,12 @@ class DBConnector:
             self.conn.commit()
             print(f"Successfully updated tags for Chapter ID {chapter_id}.")
 
+            return True
+
         except sqlite3.Error as e:
             print(f"Transaction error during set_chapter_tags: {e}")
             self.conn.rollback() # Rollback on error
+            return False
 
     # -------------------------------
     # Lore Entries CRUD Operations
