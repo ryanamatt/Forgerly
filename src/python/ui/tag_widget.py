@@ -2,7 +2,7 @@
 
 from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, 
-    QPushButton, QLabel, QStyle, QSizePolicy, QLayout, 
+    QPushButton, QLabel, QSizePolicy, QLayout, 
     QApplication, QMainWindow
 )
 from PyQt6.QtCore import Qt, QSize, pyqtSignal, QRect, QPoint

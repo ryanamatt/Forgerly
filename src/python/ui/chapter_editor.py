@@ -1,11 +1,9 @@
 # Chapter Editor Composite Widget: src/python/ui/chapter_editor.py
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QGroupBox, QSizePolicy, QSplitter
+    QWidget, QVBoxLayout, QLabel, QGroupBox, QSplitter
 )
-from PyQt6.QtCore import pyqtSignal, Qt
-import sys
-import os
+from PyQt6.QtCore import Qt
 
 from .tag_widget import TagManagerWidget
 from .rich_text_editor import RichTextEditor

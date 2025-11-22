@@ -1,6 +1,6 @@
 # src/python/tag_repository.py
 
-from db_connector import DBConnector
+from .db_connector import DBConnector
 
 class TagRepository:
     """

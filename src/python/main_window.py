@@ -1,21 +1,23 @@
 # Main Application Window: src/python/main_window.py
 
-import sys
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QSplitter, QMessageBox, QFileDialog, QDialog
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCloseEvent, QAction, QTextDocument, QIcon
 import os
+import ctypes
 
-from ui.outline_manager import OutlineManager
-from ui.chapter_editor import ChapterEditor
-from ui.settings_dialog import SettingsDialog
+from .ui.outline_manager import OutlineManager
+from .ui.chapter_editor import ChapterEditor
+from .ui.settings_dialog import SettingsDialog
 
-from db_connector import DBConnector
-from chapter_repository import ChapterRepository
-from tag_repository import TagRepository
-from settings_manager import SettingsManager
+from .db_connector import DBConnector
+from .chapter_repository import ChapterRepository
+from .tag_repository import TagRepository
+from .settings_manager import SettingsManager
+
+from ._version import __version__
 
 class MainWindow(QMainWindow):
     """
@@ -24,9 +26,14 @@ class MainWindow(QMainWindow):
     """
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("The Narrative Forge")
+
+        # This is a workaround to allow the taskbar to have the same icon as the window icon
+        appID = "narrative-forge.0.1.0"
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(appID)
+
+        self.setWindowTitle(f"The Narrative Forge v{__version__}")
         self.setGeometry(100, 100, 1200, 800)
-        self.setWindowIcon(QIcon(os.path.join('assets', 'logo.png')))
+        self.setWindowIcon(QIcon(os.path.join('assets', 'logo.ico')))
 
         # Initialize DB Connector
         self.db_connector = DBConnector() 

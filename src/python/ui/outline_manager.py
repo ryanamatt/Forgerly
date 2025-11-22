@@ -4,9 +4,8 @@ from PyQt6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QHeaderView, QStyle, QMenu, QInputDialog, QMessageBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
-from PyQt6.QtGui import QIcon
-import os
-from chapter_repository import ChapterRepository 
+
+from ..chapter_repository import ChapterRepository 
 
 
 # Define the roles for the custom data we want to store in the QTreeWidget

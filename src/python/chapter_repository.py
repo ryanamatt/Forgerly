@@ -1,6 +1,6 @@
 # src/python/chapter_repository.py
 
-from db_connector import DBConnector
+from .db_connector import DBConnector
 
 from typing import Any
 

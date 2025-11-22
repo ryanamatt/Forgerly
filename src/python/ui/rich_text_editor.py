@@ -1,18 +1,14 @@
 # Rich Text Editor Component: src/python/rich_text_editor.py
 
 from PyQt6.QtWidgets import (
-    QTextEdit, QToolBar, QWidget, QVBoxLayout, 
-    QApplication, QMainWindow, QStatusBar, QStyle,
+    QTextEdit, QToolBar, QWidget, QVBoxLayout, QStyle,
     QFontComboBox, QComboBox, QColorDialog
 )
 from PyQt6.QtGui import (
     QAction, QTextCharFormat, QFont, QTextCursor, 
-    QTextListFormat, QTextList, QTextBlockFormat, QIcon,
-    QColor, QBrush, QTextFormat
+    QTextListFormat, QTextBlockFormat, QIcon, QBrush,
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
-
-import sys
 
 class RichTextEditor(QWidget):
     """
