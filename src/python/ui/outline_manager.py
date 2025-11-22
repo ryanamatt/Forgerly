@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 
-from chapter_repository import ChapterRepository 
+from repository.chapter_repository import ChapterRepository 
 
 
 # Define the roles for the custom data we want to store in the QTreeWidget

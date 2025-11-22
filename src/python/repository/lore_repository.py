@@ -33,11 +33,11 @@ class LoreRepository:
     def get_lore_entry_details(self, lore_id: int) -> dict[str, Any] | None:
         """Retrieves the full details (Title, Content, Category) for a specific ID."""
         query = """
-        SELECT Title, Content Category
+        SELECT ID, Title, Content, Category
         FROM Lore_Entries
         WHERE ID = ?;
         """
-        self.db._execute_query(query, (lore_id,), fetch_one=True)
+        return self.db._execute_query(query, (lore_id,), fetch_one=True)
 
     def update_lore_entry(self, lore_id: int, title: str, category: str, content: str) -> bool:
         """Updates the title, category, and content of an existing lore entry."""

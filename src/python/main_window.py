@@ -13,8 +13,8 @@ from ui.chapter_editor import ChapterEditor
 from ui.settings_dialog import SettingsDialog
 
 from db_connector import DBConnector
-from chapter_repository import ChapterRepository
-from tag_repository import TagRepository
+from repository.chapter_repository import ChapterRepository
+from repository.tag_repository import TagRepository
 from settings_manager import SettingsManager
 
 from _version import __version__
