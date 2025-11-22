@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QMessageBox
 )
 
-from ..settings_manager import SettingsManager
+from settings_manager import SettingsManager
 
 class SettingsDialog(QDialog):
     """A dialog window for managing application settings"""

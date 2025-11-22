@@ -8,16 +8,16 @@ from PyQt6.QtGui import QCloseEvent, QAction, QTextDocument, QIcon
 import os
 import ctypes
 
-from .ui.outline_manager import OutlineManager
-from .ui.chapter_editor import ChapterEditor
-from .ui.settings_dialog import SettingsDialog
+from ui.outline_manager import OutlineManager
+from ui.chapter_editor import ChapterEditor
+from ui.settings_dialog import SettingsDialog
 
-from .db_connector import DBConnector
-from .chapter_repository import ChapterRepository
-from .tag_repository import TagRepository
-from .settings_manager import SettingsManager
+from db_connector import DBConnector
+from chapter_repository import ChapterRepository
+from tag_repository import TagRepository
+from settings_manager import SettingsManager
 
-from ._version import __version__
+from _version import __version__
 
 class MainWindow(QMainWindow):
     """
