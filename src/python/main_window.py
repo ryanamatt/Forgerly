@@ -131,7 +131,7 @@ class MainWindow(QMainWindow):
         save_action = QAction("Save", self)
         save_action.setShortcut("Ctrl+S")
         save_action.setStatusTip("Save the current chapter content to the database")
-        save_action.triggered.connect(self._save_chapter)
+        save_action.triggered.connect(lambda: self._save_chapter(self.current_chapter_id))
         file_menu.addAction(save_action)
 
         # Action Export Story
@@ -389,19 +389,3 @@ class MainWindow(QMainWindow):
                 print(f"Error loading theme file {theme_file}: {e}")
         else:
             print(f"Theme file not found: {theme_file}")
-
-if __name__ == '__main__':
-    # Initialize the QApplication
-    app = QApplication(sys.argv)
-
-    app_icon = QIcon(os.path.join('assets', 'logo.png'))
-    app.setWindowIcon(app_icon)
-    
-    # Create the main window instance
-    window = MainWindow()
-    
-    # Show the window
-    window.show()
-    
-    # Start the event loop
-    sys.exit(app.exec())
