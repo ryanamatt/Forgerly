@@ -50,7 +50,7 @@ class ChapterRepository:
         result = self.db._execute_query(query, (chapter_id,), fetch_one=True)
         return result['Text_Content'] if result else None
     
-    def set_chapter_content(self, chapter_id: int, content: str) -> bool:
+    def update_chapter_content(self, chapter_id: int, content: str) -> bool:
         """Updates the rich text content for a chapter"""
         query = "UPDATE Chapters SET Text_Content = ? WHERE ID = ?;"
         return self.db._execute_commit(query, (content, chapter_id))

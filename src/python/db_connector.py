@@ -5,32 +5,6 @@ import os
 import sys
 from typing import Any
 
-def resolve_bundled_path(relative_path: str) -> str:
-    """
-    Returns the absolute path for a resource bundled by PyInstaller 
-    or running normally.
-    """
-    if getattr(sys, 'frozen', False):
-        # Running as a PyInstaller executable: Resources are copied relative 
-        # to the executable's base path or sys._MEIPASS.
-        base_path = os.path.dirname(sys.executable)
-        
-        # PyInstaller copies the assets directly relative to the EXE.
-        # Example: 'styles/dark.qss' is copied to 'EXE_DIR/styles/dark.qss'
-        
-        # If running in one-file mode, use sys._MEIPASS (more reliable for single EXE)
-        if hasattr(sys, '_MEIPASS'):
-             return os.path.join(sys._MEIPASS, relative_path)
-        
-        return os.path.join(base_path, relative_path)
-
-    else:
-        # Running as a standard Python script:
-        # Start from the current file's directory (src/python) and go up 
-        # two levels to the project root (narrative-forge/)
-        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        return os.path.join(base_path, relative_path)
-
 class DBConnector:
     """
     Handles the connection, initialization, and safe query execution for the
@@ -41,7 +15,7 @@ class DBConnector:
                  schema_path: str = os.path.join('sql', 'schema_v1.sql')) -> None:
         """Initializes paths and connection attribute"""
         self.db_path = db_path
-        self.schema_path = resolve_bundled_path(schema_path)
+        self.schema_path = schema_path
         self.conn = None
         self.initialize_directories()
 

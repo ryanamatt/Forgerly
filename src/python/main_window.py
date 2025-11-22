@@ -218,7 +218,7 @@ class MainWindow(QMainWindow):
         tags = self.editor_panel.get_tags()
 
         # 1. Save Content (using ChapterRepository)
-        content_saved = self.chapter_repo.set_chapter_content(chapter_id, content)
+        content_saved = self.chapter_repo.update_chapter_content(chapter_id, content)
 
         # 2. Save Tags (using TagRepository)
         tags_saved = self.tag_repo.set_tags_for_chapter(chapter_id, tags)
