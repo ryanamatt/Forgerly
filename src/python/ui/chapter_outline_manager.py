@@ -142,26 +142,24 @@ class ChapterOutlineManager(QTreeWidget):
     def _show_context_menu(self, pos: QPoint) -> None:
         """Displays the context menu when right-clicked."""
         item = self.itemAt(pos)
-        
-        if not item:
-            return
-            
-        is_chapter = item.data(0, CHAPTER_ID_ROLE) is not None
-        
+
         menu = QMenu(self)
         
         # New Chapter Button
         new_action = menu.addAction("Add New Chapter...")
         new_action.triggered.connect(self.prompt_and_add_chapter)
+
+        if item:            
+            is_chapter = item.data(0, CHAPTER_ID_ROLE) is not None
         
-        # Actions for Chapters (visible if clicking a chapter item)
-        if is_chapter:
-            rename_action = menu.addAction("Rename Chapter")
-            delete_action = menu.addAction("Delete Chapter")
-            
-            rename_action.triggered.connect(lambda: self.editItem(item, 0))
-            # Wrap the delete action to ensure save check occurs
-            delete_action.triggered.connect(lambda: self.check_save_and_delete(item))
+            # Actions for Chapters (visible if clicking a chapter item)
+            if is_chapter:
+                rename_action = menu.addAction("Rename Chapter")
+                delete_action = menu.addAction("Delete Chapter")
+                
+                rename_action.triggered.connect(lambda: self.editItem(item, 0))
+                # Wrap the delete action to ensure save check occurs
+                delete_action.triggered.connect(lambda: self.check_save_and_delete(item))
 
         # Show the menu
         if menu.actions():
