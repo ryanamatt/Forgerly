@@ -110,3 +110,25 @@ class DBConnector:
             print(f"Database Commit Error: {e}\nSQL: {sql}\nParams: {params}")
             self.conn.rollback()
             return False
+        
+    def _execute_transaction(self, operations: list[tuple[str, tuple | None]]) -> bool:
+        """
+        Executes a sequence of non-SELECT operations in a single transaction.
+        'operations' is a list of (sql_query, parameters_tuple) pairs.
+        Returns True on success, False on error (with automatic rollback).
+        """
+        if not self.conn:
+            print("ERROR: DB not connected for transaction.")
+            return False
+        
+        try:
+            for sql, params in operations:
+                self.conn.execute(sql, params or ())
+            
+            self.conn.commit()
+            return True
+        
+        except sqlite3.Error as e:
+            print(f"Database Transaction Error: {e}\nOperations: {operations}")
+            self.conn.rollback()
+            return False

@@ -52,28 +52,18 @@ class TagRepository:
         Replaces all tags for a chapter with the new list.
         Performs transactions to ensure atomicity.
         """
-        try:
-            # 1. Start a transaction
-            self.db.conn.execute("BEGIN;")
+        operations = []
+        
+        delete_query = "DELETE FROM Chapter_Tags WHERE Chapter_ID = ?;"
+        operations.append((delete_query, (chapter_id,)))
 
-            # 2. Clear existing tags for the chapter
-            delete_sql = "DELETE FROM Chapter_Tags WHERE Chapter_ID = ?;"
-            self.db.conn.execute(delete_sql, (chapter_id,))
-
-            # 3. Insert new tags and associations
-            for tag_name in tag_names:
-                tag_id = self._create_tag(tag_name)
-                if tag_id is not None:
-                    insert_sql = "INSERT OR IGNORE INTO Chapter_Tags (Chapter_ID, Tag_ID) VALUES (?, ?);"
-                    self.db.conn.execute(insert_sql, (chapter_id, tag_id))
-
-            # 4. Commit the transaction
-            self.db.conn.commit()
-            return True
-        except Exception as e:
-            self.db.conn.rollback()
-            print(f"Error setting chapter tags: {e}")
-            return False
+        for tag_name in tag_names:
+            tag_id = self._create_tag(tag_name)
+            if tag_id is not None:
+                insert_query = "INSERT OR IGNORE INTO Chapter_Tags (Chapter_ID, Tag_ID) VALUES (?, ?)"
+                operations.append((insert_query, (chapter_id, tag_id)))
+        
+        return self.db._execute_transaction(operations)
         
     # --- Tags for Lore ---
     def get_tags_for_lore_entry(self, lore_id: int) -> list[tuple[int, str]]:
@@ -91,23 +81,15 @@ class TagRepository:
         """
         Replaces all tags for a lore entry with the new list using an atomic transaction.
         """
-        try:
-            self.db.conn.execute("BEGIN;")
+        operations = []
 
-            # 1. Clear existing Lore_Tags for the entry
-            delete_sql = "DELETE FROM Lore_Tags WHERE Lore_ID = ?;"
-            self.db.conn.execute(delete_sql, (lore_id,))
+        delete_query = "DELETE FROM Lore_Tags WHERE Lore_ID = ?"
+        operations.append((delete_query, (lore_id,)))
 
-            # 2. Insert new tags and associations
-            for tag_name in tag_names:
-                tag_id = self._create_tag(tag_name) # Reuses existing tag creation logic
-                if tag_id is not None:
-                    insert_sql = "INSERT OR IGNORE INTO Lore_Tags (Lore_ID, Tag_ID) VALUES (?, ?);"
-                    self.db.conn.execute(insert_sql, (lore_id, tag_id))
-
-            self.db.conn.commit()
-            return True
-        except Exception as e:
-            print(f"Lore Tag Transaction Error: {e}")
-            self.db.conn.rollback()
-            return False
+        for tag_name in tag_names:
+            tag_id = self._create_tag(tag_name)
+            if tag_id is not None:
+                insert_query = "INSERT OR IGNORE INTO Chapter_Tags (Chapter_ID, Tag_ID) VALUES (?, ?)"
+                operations.append((insert_query, (lore_id, tag_id)))
+        
+        return self.db._execute_transaction(operations)
