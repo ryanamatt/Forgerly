@@ -6,7 +6,8 @@ from PyQt6.QtWidgets import (
     QMessageBox
 )
 
-from settings_manager import SettingsManager
+from services.settings_manager import SettingsManager
+from utils.theme_utils import get_available_themes
 
 class SettingsDialog(QDialog):
     """A dialog window for managing application settings"""
@@ -32,12 +33,18 @@ class SettingsDialog(QDialog):
         # Theme Selection
         theme_label = QLabel("Select Theme:")
         self.theme_combo = QComboBox()
-        self.theme_combo.addItems(["Light", "Dark"])
+        
+        available_themes = get_available_themes()
+        self.theme_combo.addItems(available_themes)
+
+        current_theme_name = self._new_settings.get('theme', 'Light')
         
         # Set the combo box to the current theme
-        index = self.theme_combo.findText(self._new_settings.get('theme', 'Light'))
+        index = self.theme_combo.findText(current_theme_name)
         if index != -1:
             self.theme_combo.setCurrentIndex(index)
+        else:
+            self.theme_combo.setCurrentIndex(0)
 
         group_layout.addWidget(theme_label)
         group_layout.addWidget(self.theme_combo)

@@ -9,11 +9,11 @@ from PyQt6.QtGui import QCloseEvent, QAction, QTextDocument, QIcon
 import os
 import ctypes
 
-from ui.chapter_outline_manager import ChapterOutlineManager
-from ui.chapter_editor import ChapterEditor
-from ui.lore_outline_manager import LoreOutlineManager
-from ui.lore_editor import LoreEditor
-from ui.settings_dialog import SettingsDialog
+from ui.views.chapter_outline_manager import ChapterOutlineManager
+from ui.views.chapter_editor import ChapterEditor
+from ui.views.lore_outline_manager import LoreOutlineManager
+from ui.views.lore_editor import LoreEditor
+from ui.dialogs.settings_dialog import SettingsDialog
 
 from db_connector import DBConnector
 
@@ -21,9 +21,10 @@ from repository.chapter_repository import ChapterRepository
 from repository.lore_repository import LoreRepository
 from repository.tag_repository import TagRepository
 
-from settings_manager import SettingsManager
+from services.settings_manager import SettingsManager
 
-from _version import __version__
+from utils._version import __version__
+from utils.theme_utils import apply_theme
 
 # Enum-Like class for view state clarity
 class ViewType:
@@ -64,11 +65,14 @@ class MainWindow(QMainWindow):
         # --- Settings and Theme Management ---
         self.settings_manager = SettingsManager()
         self.current_settings = self.settings_manager.load_settings()
-        self._apply_theme(self.current_settings)
+        if (apply_theme(self, self.current_settings)):
+            self.current_settings['theme'] = self.current_settings.get("theme", "Dark")
 
         # State tracking for the currently loaded item (Chapter or Lore)
         self.current_item_id = 0
         self.current_view = ViewType.CHAPTER
+
+        self._create_view_shortcut()
 
         self._setup_ui()
 
@@ -109,6 +113,26 @@ class MainWindow(QMainWindow):
         if self.db_connector:
             self.db_connector.close()
         super().closeEvent(event)
+
+    def _create_view_shortcut(self):
+        """Creates and registers the keyboard shortcut to toggle the main view."""
+        switch_view_action = QAction("Swtich View", self)
+        switch_view_action.setShortcut("Ctrl+Tab")
+        switch_view_action.setToolTip("Switch between Chapter and Lore Views (Ctrl+Tab)")
+        switch_view_action.triggered.connect(self._toggle_view)
+        self.addAction(switch_view_action)
+
+    def _toggle_view(self):
+        """Toggles the application's main view between Chapter and Lore."""
+        # Determine the target view
+        target_view = ViewType.LORE if self.current_view == ViewType.CHAPTER else ViewType.CHAPTER
+        
+        # Call the view switching logic. This function will update self.current_view internally.
+        self._switch_to_view(target_view)
+        
+        # Optional: Provide user feedback
+        view_name = "Lore" if self.current_view == ViewType.LORE else "Chapter"
+        self.statusBar().showMessage(f"Switched to {view_name} View.", 2000)
 
     def _setup_ui(self):
         """Setsup the central widget and the main split layout"""
@@ -261,23 +285,23 @@ class MainWindow(QMainWindow):
         self.current_view = view
         self.current_item_id = 0 # Reset current item id
 
-        # Toggle Visibility
-        is_chapter_view = (view == ViewType.CHAPTER)
+        match self.current_view:
+            case ViewType.CHAPTER:
+                self.chapter_outline_manager.show()
+                self.chapter_editor_panel.show()
+                self.lore_outline_manager.hide()
+                self.lore_editor_panel.hide()
 
-        # Outline Managers
-        self.chapter_outline_manager.setVisible(is_chapter_view)
-        self.lore_outline_manager.setVisible(not is_chapter_view)
-
-        # Editor Panels
-        self.chapter_editor_panel.setVisible(is_chapter_view)
-        self.lore_editor_panel.setVisible(not is_chapter_view)
+            case ViewType.LORE:
+                self.chapter_outline_manager.hide()
+                self.chapter_editor_panel.hide()
+                self.lore_outline_manager.show()
+                self.lore_editor_panel.show()
         
         # 4. Disable the newly visible editor until an item is selected
         editor = self._get_current_editor()
         if editor:
             editor.set_enabled(False)
-
-        self.statusBar().showMessage(f"Switched to {'Chapter' if is_chapter_view else 'Lore'} View.")
 
     def _check_save_before_change(self) -> bool:
         """
@@ -377,11 +401,11 @@ class MainWindow(QMainWindow):
         if content is None:
             content = "<h1>Error Loading Chapter</h1><p>Content could not be retrieved from the database.</p>"
             self.chapter_editor_panel.set_html_content(content)
-            self.chapter_editor_panel.setEnabled(False)
+            self.chapter_editor_panel.set_enabled(False)
             self.statusBar().showMessage(f"Error loading Chapter ID {chapter_id}.")
         else:
             self.chapter_editor_panel.set_html_content(content)
-            self.chapter_editor_panel.setEnabled(True)
+            self.chapter_editor_panel.set_enabled(True)
             self.statusBar().showMessage(f"Chapter ID {chapter_id} selected and loaded.")
 
         # 2. Load Tags
@@ -546,27 +570,8 @@ class MainWindow(QMainWindow):
             
             # 2. Apply the new settings
             self.current_settings = new_settings
-            self._apply_theme(self.current_settings)
+            
+            if apply_theme(self, self.current_settings):
+                self.current_settings['theme'] = new_settings.get("theme", "Light")
             
             self.statusBar().showMessage(f"Settings saved and applied. Theme: {new_settings['theme']}.", 5000)
-
-    def _apply_theme(self, settings: dict) -> None:
-        """Loads and applies the QSS file for the selected theme."""
-
-        theme_name = settings.get("theme", "Light") # Use 'Dark' as a hardcoded fallback
-        
-        theme_file = os.path.join('styles', f"{theme_name.lower()}.qss")
-        
-        if os.path.exists(theme_file):
-            try:
-                with open(theme_file, 'r') as f:
-                    # Apply the stylesheet to the entire application
-                    self.setStyleSheet(f.read())
-
-                self.current_settings['theme'] = theme_name
-                print(f"Theme applied: {theme_name}")
-
-            except Exception as e:
-                print(f"Error loading theme file {theme_file}: {e}")
-        else:
-            print(f"Theme file not found: {theme_file}")

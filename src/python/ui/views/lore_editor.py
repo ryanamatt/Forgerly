@@ -7,8 +7,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Any
 
-from .tag_widget import TagManagerWidget
-from .rich_text_editor import RichTextEditor
+from ui.widgets.tag_widget import TagManagerWidget
+from ui.widgets.rich_text_editor import RichTextEditor
 
 class LoreEditor(QWidget):
     """
@@ -34,7 +34,7 @@ class LoreEditor(QWidget):
         self.title_input.setPlaceholderText("Enter Lore Entry Title (e.g., 'The Sunken City of K'tal')")
 
         self.category_combo = QComboBox()
-        self.category_combo.addItems(["Character", "Location", "Magic System", "Creature", "Event", "Concept"])
+        self.category_combo.addItems(["Magic System", "Creature", "Event", "Concept"])
         self.category_combo.setEditable(True) 
 
         # --- Layout Setup ---
