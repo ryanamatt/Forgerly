@@ -63,8 +63,9 @@ class ChapterRepository:
     def get_chapter_title(self, chapter_id: int) -> str | None:
         """Retrieves the chapter title by Chapter ID"""
         query = "SELECT Title FROM Chapters WHERE ID = ?"
-        return self.db._execute_query(query, (chapter_id,))
-    
+        result = self.db._execute_query(query, (chapter_id,), fetch_one=True)
+        return result['Title'] if result else None
+
     def update_chapter_title(self, chapter_id: int, title: str) -> str | None:
         """Updates the Chapter title by Chapter ID"""
         query = "UPDATE Chapters SET Title = ? WHERE ID = ?"

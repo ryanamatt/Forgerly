@@ -71,7 +71,7 @@ class ChapterOutlineManager(QTreeWidget):
             chapter_data = self.chapter_repo.get_all_chapters()
         else:
             chapter_data = []
-            print("Warning: OutlineManager has no ChapterRepository. Using empty set.")
+            print("Warning: ChapterOutlineManager has no ChapterRepository. Using empty set.")
 
         for chapter in chapter_data:
             chap_id = chapter['ID']
@@ -100,7 +100,6 @@ class ChapterOutlineManager(QTreeWidget):
             self.pre_chapter_change.emit()
 
             self.chapter_selected.emit(chapter_id)
-            print(f"Outline Clicked: Selected Chapter ID: {chapter_id}")
 
     def _handle_item_double_click(self, item: QTreeWidgetItem, column: int) -> None:
         """Handles double click to initiate renaming"""
@@ -128,20 +127,14 @@ class ChapterOutlineManager(QTreeWidget):
             return
 
         # Check if the title actually changed
-        # This requires an assumed ChapterRepository method: get_chapter_title
         current_db_title = self.chapter_repo.get_chapter_title(chapter_id) 
         if current_db_title and current_db_title == new_title:
             return
 
         # Update the database
-        # This requires an assumed ChapterRepository method: update_chapter_title
         rows_affected = self.chapter_repo.update_chapter_title(chapter_id, new_title)
         
-        # Note: If update_chapter_title returns a boolean (True/False) instead of rows affected,
-        # the check below should be adjusted, but assuming rows_affected for now.
-        if rows_affected > 0:
-            print(f"Chapter ID {chapter_id} renamed to '{new_title}'.")
-        else:
+        if rows_affected <= 0:
             QMessageBox.critical(self, "Database Error", "Failed to update chapter title in the database.")
             # Revert the item name visually if the DB update failed
             self.load_outline()
@@ -195,7 +188,6 @@ class ChapterOutlineManager(QTreeWidget):
             # Determine the sort order for the new chapter (place it last at the root level)
             current_sort_order = self.project_root_item.childCount()
             
-            # --- REF: Use ChapterRepository.create_chapter with sort order ---
             # Precursor_Chapter_ID is None for top-level chapters
             new_id = self.chapter_repo.create_chapter(
                 title=title, 
@@ -237,10 +229,7 @@ class ChapterOutlineManager(QTreeWidget):
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            # --- REF: Use ChapterRepository.delete_chapter() ---
             if self.chapter_repo.delete_chapter(chapter_id):
-                print(f"Successfully deleted chapter ID: {chapter_id}")
-                # Reload the outline after deletion
                 self.load_outline()
             else:
                 QMessageBox.critical(self, "Deletion Error", "A database error occurred while trying to delete the chapter.")

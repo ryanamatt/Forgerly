@@ -57,8 +57,8 @@ class ChapterEditor(QWidget):
         content_splitter.addWidget(tag_group)
         content_splitter.addWidget(content_container)
 
-        # Set the initial ratio of the splitter (e.g., 1:4 ratio for Tag Group to Editor)
-        content_splitter.setSizes([100, 600]) 
+        # Set the initial ratio of the splitter (e.g., 1:8 ratio for Tag Group to Editor)
+        content_splitter.setSizes([100, 800]) 
         
         main_layout.addWidget(content_splitter)
 

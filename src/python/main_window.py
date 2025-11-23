@@ -10,6 +10,8 @@ import ctypes
 
 from ui.chapter_outline_manager import ChapterOutlineManager
 from ui.chapter_editor import ChapterEditor
+from ui.lore_outline_manager import LoreOutlineManager
+
 from ui.settings_dialog import SettingsDialog
 
 from db_connector import DBConnector
@@ -127,7 +129,7 @@ class MainWindow(QMainWindow):
         # --- File Menu ---
         file_menu = menu_bar.addMenu("&File")
         
-        # Action: New Chapter (Will be implemented in Story 2.4)
+        # Action: New Chapter
         new_chapter_action = file_menu.addAction("New Chapter...")
         new_chapter_action.setStatusTip("Create a new chapter document")
         new_chapter_action.triggered.connect(self.outline_manager.prompt_and_add_chapter)
