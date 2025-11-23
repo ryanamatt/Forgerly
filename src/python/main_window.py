@@ -8,7 +8,7 @@ from PyQt6.QtGui import QCloseEvent, QAction, QTextDocument, QIcon
 import os
 import ctypes
 
-from ui.outline_manager import OutlineManager
+from ui.chapter_outline_manager import ChapterOutlineManager
 from ui.chapter_editor import ChapterEditor
 from ui.settings_dialog import SettingsDialog
 
@@ -101,7 +101,7 @@ class MainWindow(QMainWindow):
         main_splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # --- Left Panel: Outline Manager
-        self.outline_manager = OutlineManager(chapter_repo=self.chapter_repo)
+        self.outline_manager = ChapterOutlineManager(chapter_repo=self.chapter_repo)
 
         # --- Right Panel: Editor ---
         self.editor_panel = ChapterEditor()
@@ -176,7 +176,7 @@ class MainWindow(QMainWindow):
 
     def _connect_components(self) -> None:
         """Connects signals from custom widgets to slots in the main window."""
-        # Connect the chapter selection signal from the OutlineManager to a handler
+        # Connect the chapter selection signal from the ChapterOutlineManager to a handler
         self.outline_manager.chapter_selected.connect(self._load_chapter_content)
         # Connect the pre-change signal to ensure content is saved if necessary
         self.outline_manager.pre_chapter_change.connect(self._check_save_before_change)
@@ -237,7 +237,7 @@ class MainWindow(QMainWindow):
         Loads content from the database and updates the editor.
         """
         # Ensure the pre-change save check passed before proceeding with load
-        # Note: OutlineManager ensures this, but a safety check is good practice
+        # Note: ChapterOutlineManager ensures this, but a safety check is good practice
         
         self.current_chapter_id = chapter_id
         

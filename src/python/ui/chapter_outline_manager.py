@@ -1,4 +1,4 @@
-# Outline Manager Component: src/python/outline_manager.py
+# Outline Manager Component: src/python/ui/outline_manager.py
 
 from PyQt6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QHeaderView, QStyle, QMenu, QInputDialog, QMessageBox
@@ -14,18 +14,18 @@ CHAPTER_ID_ROLE = Qt.ItemDataRole.UserRole + 1
 # Role to identify the root item (which is not a chapter)
 ROOT_ITEM_ROLE = Qt.ItemDataRole.UserRole + 2
 
-class OutlineManager(QTreeWidget):
+class ChapterOutlineManager(QTreeWidget):
     """
     A custom QTreeWidget dedicated to displaying the hierarchical outline 
     of Chapters and other narrative elements.
-    It now interacts with the data layer via ChapterRepository.
+    It interacts with the data layer via ChapterRepository.
     """
+
     # Signal emitted when a chapter item is selected, carrying the Chapter ID
     chapter_selected = pyqtSignal(int)
     # Emitted before a new chapter is selected, allowing the main window to save
     pre_chapter_change = pyqtSignal()
 
-    # --- REF: Constructor now takes ChapterRepository ---
     def __init__(self, chapter_repo: ChapterRepository | None = None) -> None:
         super().__init__()
         # Renamed attribute to clearly show its new role
@@ -157,10 +157,9 @@ class OutlineManager(QTreeWidget):
         
         menu = QMenu(self)
         
-        # Action for the Project Root (only visible if clicking the root item)
-        if item.data(0, ROOT_ITEM_ROLE):
-            new_action = menu.addAction("Add New Chapter...")
-            new_action.triggered.connect(self.prompt_and_add_chapter)
+        # New Chapter Button
+        new_action = menu.addAction("Add New Chapter...")
+        new_action.triggered.connect(self.prompt_and_add_chapter)
         
         # Actions for Chapters (visible if clicking a chapter item)
         if is_chapter:
