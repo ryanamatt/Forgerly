@@ -63,3 +63,48 @@ class LoreRepository:
         """
         query = "DELETE FROM Lore_Entries WHERE ID = ?;"
         return self.db._execute_commit(query, (lore_id,))
+    
+    def search_lore_entries(self, user_query: str) -> list[dict] | None:
+        """
+        Accepts a keyword query and performs a hybrid search:
+        1. FTS on Title, Content, and Category (ranked results).
+        2. JOIN search on Tag names (unranked results).
+        3. Merges and deduplicates the results, prioritizing FTS rank.
+        """
+
+        clean_query = user_query.strip()
+        if not clean_query:
+            return None
+
+        fts_query = user_query.strip()
+        if fts_query and not any(op in fts_query for op in [' ', '*', 'OR', 'AND', '"']):
+            fts_query = fts_query + '*'
+
+        # --- 1. Combined FTS and Tag Search ---
+        # We use a UNION to combine results from FTS and a standard JOIN for tags.
+        # FTS matches will have a rank, Tag matches will be assigned a poor rank (e.g., 1000000)
+        # to ensure FTS results are always shown first.
+
+        query = """
+            WITH Search_Results AS (
+                SELECT T1.ID, T1.Title, T1.Category, T2.rank AS search_rank
+                FROM Lore_Entries AS T1
+                JOIN Lore_Entries_FTS AS T2 ON T1.ID = T2.rowid
+                WHERE T2.Lore_Entries_FTS MATCH ?
+
+                UNION
+
+                SELECT LE.ID, LE.Title, LE.Category, 1000000 as search_rank
+                FROM Lore_Entries AS LE
+                JOIN Lore_Tags AS LT ON LE.ID = LT.Lore_ID
+                JOIN Tags AS T ON LT.Tag_ID = T.ID
+                WHERE T.Name LIKE ?
+            )
+
+            SELECT ID, Title, Category, MIN(search_rank) AS final_rank
+            FROM Search_Results
+            GROUP BY ID
+            ORDER BY final_rank ASC;
+            """
+        params = (fts_query, f'%{clean_query}')
+        return self.db._execute_query(query, params, fetch_all=True)

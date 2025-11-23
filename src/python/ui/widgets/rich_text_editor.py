@@ -35,7 +35,7 @@ class RichTextEditor(QWidget):
 
         # Core components
         self.editor = QTextEdit()
-        self.editor.setPlaceholderText("Start writing your chapter here")
+        self.editor.setPlaceholderText("Start writing here")
 
         self.editor.cursorPositionChanged.connect(self._update_format_controls)
 

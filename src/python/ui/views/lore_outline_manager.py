@@ -1,7 +1,8 @@
 # src/python/ui/lore_outline_manager.py
 
 from PyQt6.QtWidgets import (
-    QTreeWidget, QTreeWidgetItem, QHeaderView, QStyle, QMenu, QInputDialog, QMessageBox
+    QTreeWidget, QTreeWidgetItem, QHeaderView, QStyle, QMenu, QInputDialog, QMessageBox,
+    QWidget, QVBoxLayout, QLineEdit
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 
@@ -13,7 +14,7 @@ LORE_ID_ROLE = Qt.ItemDataRole.UserRole + 1
 # Role to identify the root item (which is not a Lore Entry)
 ROOT_ITEM_ROLE = Qt.ItemDataRole.UserRole + 2
 
-class LoreOutlineManager(QTreeWidget):
+class LoreOutlineManager(QWidget):
     """
     A custom QTreeWidget dedicated to displaying the hierarchical outline 
     of Lore elements.
@@ -32,60 +33,96 @@ class LoreOutlineManager(QTreeWidget):
         self.lore_repo = lore_repository
         self.project_root_item = None
 
-        # Configuration and Styling
-        self.setHeaderLabels(["Lore Items"])
-        self.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.setMidLineWidth(100)
-        self.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        # --- 1. Setup Main LAyout and Components ---
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Connect Signals
-        self.itemClicked.connect(self._handle_item_click)
-        self.customContextMenuRequested.connect(self._show_context_menu)
-        self.itemDoubleClicked.connect(self._handle_item_double_click)
-        self.itemChanged.connect(self._handle_item_renamed)
+        # Create the Search Bar
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText('Search Lore Entries...')
+        self.search_input.textChanged.connect(self._handle_search_input)
+
+        # The actual tree widget is a child
+        self.tree_widget = QTreeWidget()
+        self.tree_widget.setHeaderLabels(["Lore Items"])
+
+        main_layout.addWidget(self.search_input)
+        main_layout.addWidget(self.tree_widget)
+
+        # --- 2. Configuration and Signals (Updated to use self.tree_widget) ---
+        self.tree_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tree_widget.customContextMenuRequested.connect(self._show_context_menu)
+        self.tree_widget.itemSelectionChanged.connect(self._handle_selection_change)
 
         # Load the initial structure
         self.load_outline()
 
-    def load_outline(self) -> None:
+    def load_outline(self, lore_entries: list[dict] | None = None) -> None:
         """
-        Loads the outline structure by fetching all lore entries from the database
-        and populating the QTreeWidget
+        Loads the Lore Entries into the outline manager.
+        If lore_entries is provided (e.g., from a search), it loads those.
+        Otherwise, it loads all entries from the repository.
         """
-        self.clear()
+        if not self.lore_repo:
+            return
 
-        # Placeholder Icons (using a simple style icon)
-        lore_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView)
-
-        self.blockSignals(True)
-
-        # Root item for the Lore Entries
-        self.project_root_item = QTreeWidgetItem(self, ["The Lore of Narrative Forge"])
-        self.project_root_item.setFlags(self.project_root_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+        # Fetch all entries if none are provided (default mode)
+        if lore_entries is None:
+            lore_entries = self.lore_repo.get_all_lore_entries()
+            
+        self.tree_widget.clear()
+        
+        # Create the root item
+        self.project_root_item = QTreeWidgetItem(self.tree_widget, ["World Lore Base"])
         self.project_root_item.setData(0, ROOT_ITEM_ROLE, True)
+        self.project_root_item.setFlags(self.project_root_item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+        self.project_root_item.setFlags(self.project_root_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
 
-        if self.lore_repo:
-            lore_data = self.lore_repo.get_all_lore_entries()
-        else:
-            lore_data = []
-            print("Warning: LoreOutlineManager has no LoreRepository. Using empty set.")
+        # Add all fetched lore entries as children
+        if lore_entries:
+            for entry in lore_entries:
+                # The search function returns Title and Category, so we can use them here
+                title = entry.get("Title", "Untitled Entry")
+                category = entry.get("Category", "Uncategorized")
+                
+                item = QTreeWidgetItem(self.project_root_item, [title])
+                item.setData(0, LORE_ID_ROLE, entry["ID"])
+                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+                item.setToolTip(0, f"Category: {category}") 
+                
+        self.tree_widget.expandAll()
+        self.tree_widget.setCurrentItem(self.project_root_item)
 
-        for lore in lore_data:
-            lore_id = lore['ID']
-            title = lore['Title']
+    def _handle_search_input(self, query: str) -> None:
+        """
+        Handles text changes in the search bar. 
+        Performs FTS search or reverts to the full outline.
+        """
+        clean_query = query.strip()
 
-            lore_item = QTreeWidgetItem(self.project_root_item, [title])
-            lore_item.setIcon(0, lore_icon)
-            lore_item.setData(0, LORE_ID_ROLE, lore_id)
-            lore_item.setFlags(lore_item.flags() | Qt.ItemFlag.ItemIsEditable)
+        if clean_query and self.lore_repo:
+            search_results = self.lore_repo.search_lore_entries(clean_query)
+            if search_results:
+                self.load_outline(search_results)
+            else:
+                self.tree_widget.clear()
+                no_result_item = QTreeWidgetItem(self.tree_widget, ["No search results found."])
+                no_result_item.setData(0, LORE_ID_ROLE, -1)
+                self.tree_widget.expandAll()
+        
+        # Search is cleared, revert to full outline
+        elif not clean_query:
+            self.load_outline()
 
-        self.blockSignals(False)
+    def _handle_selection_change(self) -> None:
+        """Emits a signal with the selected Lore ID when the selection changes."""
+        current_item = self.tree_widget.currentItem() # <--- ADJUSTED
+        if current_item:
+            lore_id = current_item.data(0, LORE_ID_ROLE)
+            # Only emit if a valid lore entry (not the root or a 'no result' message) is selected
+            if isinstance(lore_id, int) and lore_id > 0:
+                self.lore_selected.emit(lore_id)
 
-        if self.project_root_item.childCount() > 0:
-            first_child = self.project_root_item.child(0)
-            self.setCurrentItem(first_child)
-            self.lore_selected.emit(first_child.data(0, LORE_ID_ROLE))
 
     def _handle_item_click(self, item: QTreeWidgetItem, column: int) -> None:
         """Handles the click event on a tree item"""
@@ -100,7 +137,7 @@ class LoreOutlineManager(QTreeWidget):
     def _handle_item_double_click(self, item: QTreeWidget, column: int) -> None:
         """Handles double click to initiate renaming"""
         if item.data(0, LORE_ID_ROLE) is not None:
-            self.editItem(item, 0)
+            self.tree_widget.editItem(item, 0)
 
     def _handle_item_renamed(self, item: QTreeWidgetItem, column: int) -> None:
         """
@@ -135,7 +172,7 @@ class LoreOutlineManager(QTreeWidget):
 
     def _show_context_menu(self, pos: QPoint) -> None:
         """Displays the context menu when right-clicked"""
-        item = self.itemAt(pos)
+        item = self.tree_widget.itemAt(pos)
 
         menu = QMenu(self)
 
@@ -149,7 +186,7 @@ class LoreOutlineManager(QTreeWidget):
                 rename_action = menu.addAction("Rename Lore Entry")
                 delete_action = menu.addAction("Delete Lore Entry")
 
-                rename_action.triggered.connect(lambda: self.editItem(item, 0))
+                rename_action.triggered.connect(lambda: self.tree_widget.editItem(item, 0))
                 delete_action.triggered.connect(lambda: self.check_save_and_delete(item))
 
         if menu.actions():
@@ -182,7 +219,7 @@ class LoreOutlineManager(QTreeWidget):
                 self.load_outline()
                 new_item = self.find_lore_item_by_id(new_id)
                 if new_item:
-                    self.setCurrentItem(new_item)
+                    self.tree_widget.setCurrentItem(new_item)
                     self._handle_item_click(new_item, 0)
         else:
             QMessageBox.warning(self, "Database Error", "Failed to save the new Lore Entry to the database.")
