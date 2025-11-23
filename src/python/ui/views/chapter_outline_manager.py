@@ -1,11 +1,11 @@
-# Outline Manager Component: src/python/outline_manager.py
+# Outline Manager Component: src/python/ui/outline_manager.py
 
 from PyQt6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QHeaderView, QStyle, QMenu, QInputDialog, QMessageBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 
-from chapter_repository import ChapterRepository 
+from repository.chapter_repository import ChapterRepository 
 
 
 # Define the roles for the custom data we want to store in the QTreeWidget
@@ -14,22 +14,22 @@ CHAPTER_ID_ROLE = Qt.ItemDataRole.UserRole + 1
 # Role to identify the root item (which is not a chapter)
 ROOT_ITEM_ROLE = Qt.ItemDataRole.UserRole + 2
 
-class OutlineManager(QTreeWidget):
+class ChapterOutlineManager(QTreeWidget):
     """
     A custom QTreeWidget dedicated to displaying the hierarchical outline 
     of Chapters and other narrative elements.
-    It now interacts with the data layer via ChapterRepository.
+    It interacts with the data layer via ChapterRepository.
     """
+
     # Signal emitted when a chapter item is selected, carrying the Chapter ID
     chapter_selected = pyqtSignal(int)
     # Emitted before a new chapter is selected, allowing the main window to save
     pre_chapter_change = pyqtSignal()
 
-    # --- REF: Constructor now takes ChapterRepository ---
-    def __init__(self, chapter_repo: ChapterRepository | None = None) -> None:
+    def __init__(self, chapter_repository: ChapterRepository | None = None) -> None:
         super().__init__()
         # Renamed attribute to clearly show its new role
-        self.chapter_repo = chapter_repo 
+        self.chapter_repo = chapter_repository 
         self.project_root_item = None
 
         # Configuration and Styling
@@ -71,7 +71,7 @@ class OutlineManager(QTreeWidget):
             chapter_data = self.chapter_repo.get_all_chapters()
         else:
             chapter_data = []
-            print("Warning: OutlineManager has no ChapterRepository. Using empty set.")
+            print("Warning: ChapterOutlineManager has no ChapterRepository. Using empty set.")
 
         for chapter in chapter_data:
             chap_id = chapter['ID']
@@ -100,7 +100,6 @@ class OutlineManager(QTreeWidget):
             self.pre_chapter_change.emit()
 
             self.chapter_selected.emit(chapter_id)
-            print(f"Outline Clicked: Selected Chapter ID: {chapter_id}")
 
     def _handle_item_double_click(self, item: QTreeWidgetItem, column: int) -> None:
         """Handles double click to initiate renaming"""
@@ -128,20 +127,14 @@ class OutlineManager(QTreeWidget):
             return
 
         # Check if the title actually changed
-        # This requires an assumed ChapterRepository method: get_chapter_title
         current_db_title = self.chapter_repo.get_chapter_title(chapter_id) 
         if current_db_title and current_db_title == new_title:
             return
 
         # Update the database
-        # This requires an assumed ChapterRepository method: update_chapter_title
         rows_affected = self.chapter_repo.update_chapter_title(chapter_id, new_title)
         
-        # Note: If update_chapter_title returns a boolean (True/False) instead of rows affected,
-        # the check below should be adjusted, but assuming rows_affected for now.
-        if rows_affected > 0:
-            print(f"Chapter ID {chapter_id} renamed to '{new_title}'.")
-        else:
+        if rows_affected <= 0:
             QMessageBox.critical(self, "Database Error", "Failed to update chapter title in the database.")
             # Revert the item name visually if the DB update failed
             self.load_outline()
@@ -149,27 +142,24 @@ class OutlineManager(QTreeWidget):
     def _show_context_menu(self, pos: QPoint) -> None:
         """Displays the context menu when right-clicked."""
         item = self.itemAt(pos)
-        
-        if not item:
-            return
-            
-        is_chapter = item.data(0, CHAPTER_ID_ROLE) is not None
-        
+
         menu = QMenu(self)
         
-        # Action for the Project Root (only visible if clicking the root item)
-        if item.data(0, ROOT_ITEM_ROLE):
-            new_action = menu.addAction("Add New Chapter...")
-            new_action.triggered.connect(self.prompt_and_add_chapter)
+        # New Chapter Button
+        new_action = menu.addAction("Add New Chapter...")
+        new_action.triggered.connect(self.prompt_and_add_chapter)
+
+        if item:            
+            is_chapter = item.data(0, CHAPTER_ID_ROLE) is not None
         
-        # Actions for Chapters (visible if clicking a chapter item)
-        if is_chapter:
-            rename_action = menu.addAction("Rename Chapter")
-            delete_action = menu.addAction("Delete Chapter")
-            
-            rename_action.triggered.connect(lambda: self.editItem(item, 0))
-            # Wrap the delete action to ensure save check occurs
-            delete_action.triggered.connect(lambda: self.check_save_and_delete(item))
+            # Actions for Chapters (visible if clicking a chapter item)
+            if is_chapter:
+                rename_action = menu.addAction("Rename Chapter")
+                delete_action = menu.addAction("Delete Chapter")
+                
+                rename_action.triggered.connect(lambda: self.editItem(item, 0))
+                # Wrap the delete action to ensure save check occurs
+                delete_action.triggered.connect(lambda: self.check_save_and_delete(item))
 
         # Show the menu
         if menu.actions():
@@ -196,7 +186,6 @@ class OutlineManager(QTreeWidget):
             # Determine the sort order for the new chapter (place it last at the root level)
             current_sort_order = self.project_root_item.childCount()
             
-            # --- REF: Use ChapterRepository.create_chapter with sort order ---
             # Precursor_Chapter_ID is None for top-level chapters
             new_id = self.chapter_repo.create_chapter(
                 title=title, 
@@ -238,10 +227,7 @@ class OutlineManager(QTreeWidget):
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            # --- REF: Use ChapterRepository.delete_chapter() ---
             if self.chapter_repo.delete_chapter(chapter_id):
-                print(f"Successfully deleted chapter ID: {chapter_id}")
-                # Reload the outline after deletion
                 self.load_outline()
             else:
                 QMessageBox.critical(self, "Deletion Error", "A database error occurred while trying to delete the chapter.")

@@ -15,8 +15,8 @@ CREATE TABLE Chapters (
     Title                   TEXT NOT NULL,
     Text_Content            TEXT,                -- Stores rich text (HTML or Markdown)
     Sort_Order              INTEGER NOT NULL,    -- For outline hierarchy/order
-    Start_Date              TEXT,                -- Chronological start date (used by Epic 4)
-    End_Date                TEXT,                -- Chronological end date (used by Epic 4)
+    Start_Date              TEXT,                -- Chronological start date
+    End_Date                TEXT,                -- Chronological end date
     Precursor_Chapter_ID    INTEGER,             -- Self-referencing FK for causality
 
     -- Foreign Key Constraint for self-reference
@@ -37,6 +37,17 @@ CREATE TABLE Characters (
     Name                    TEXT NOT NULL UNIQUE,
     Description             TEXT,
     Status                  TEXT                  -- e.g., 'Alive', 'Deceased', 'Major', 'Minor'
+);
+
+-- LOCATIONS: Physical or conceptual places in the narrative.
+CREATE TABLE Locations (
+    ID                      INTEGER PRIMARY KEY,
+    Name                    TEXT NOT NULL UNIQUE,
+    Description             TEXT,
+    Type                    TEXT,               -- e.g., 'City', 'Building', 'Planet', 'Pocket Dimension'
+    Parent_Location_ID      INTEGER,            -- For hierarchical locations (e.g., Room inside a Building)
+
+    FOREIGN KEY (Parent_Location_ID) REFERENCES Locations(ID) ON DELETE SET NULL
 );
 
 -- -----------------------------------------------------------------------------
@@ -67,6 +78,48 @@ CREATE TABLE Lore_Tags (
     PRIMARY KEY (Lore_ID, Tag_ID),
     FOREIGN KEY (Lore_ID) REFERENCES Lore_Entries(ID) ON DELETE CASCADE,
     FOREIGN KEY (Tag_ID) REFERENCES Tags(ID) ON DELETE CASCADE
+);
+
+-- LORE_LOCATIONS: Many-to-many relationship linking lore entries to their relevant locations.
+CREATE TABLE Lore_Locations (
+    Lore_ID                 INTEGER NOT NULL,
+    Location_ID             INTEGER NOT NULL,
+
+    PRIMARY KEY (Lore_ID, Location_ID),
+    FOREIGN KEY (Lore_ID) REFERENCES Lore_Entries(ID) ON DELETE CASCADE,
+    FOREIGN KEY (Location_ID) REFERENCES Locations(ID) ON DELETE CASCADE
+);
+
+-- CHAPTER_CHARACTERS: Many-to-many relationship tracking character appearances in chapters.
+CREATE TABLE Chapter_Characters (
+    Chapter_ID              INTEGER NOT NULL,
+    Character_ID            INTEGER NOT NULL,
+    Role_In_Chapter         TEXT,           -- e.g., 'Protagonist', 'Antagonist', 'Mentioned', 'Cameo'
+
+    PRIMARY KEY (Chapter_ID, Character_ID)
+    FOREIGN KEY (Chapter_ID) REFERENCES Chapters(ID) ON DELETE CASCADE,
+    FOREIGN KEY (Character_ID) REFERENCES Characters(ID) ON DELETE CASCADE
+);
+
+-- CHAPTER_LORE: Explicitly links chapters to the lore entries they reference.
+CREATE TABLE Chapter_Lore (
+    Chapter_ID              INTEGER NOT NULL,
+    Lore_ID                 INTEGER NOT NULL,
+
+    PRIMARY KEY (Chapter_ID, Lore_ID),
+    FOREIGN KEY (Chapter_ID) REFERENCES Chapters(ID) ON DELETE CASCADE,
+    FOREIGN KEY (Lore_ID) REFERENCES Lore_Entries(ID) ON DELETE CASCADE
+);
+
+-- CHAPTER_LOCATIONS: Links chapters to the locations where the scene takes place.
+CREATE TABLE Chapter_Locations (
+    Chapter_ID              INTEGER NOT NULL,
+    Location_ID             INTEGER NOT NULL,
+    Is_Primary_Setting      INTEGER DEFAULT 0,  -- 1 for the main setting, 0 otherwise
+
+    PRIMARY KEY (Chapter_ID, Location_ID),
+    FOREIGN KEY (Chapter_ID) REFERENCES Chapters(ID) ON DELETE CASCADE,
+    FOREIGN KEY (Location_ID) REFERENCES Locations(ID) ON DELETE CASCADE
 );
 
 -- -----------------------------------------------------------------------------
@@ -110,6 +163,7 @@ CREATE INDEX idx_relationships_a ON Relationships (Character_A_ID);
 CREATE INDEX idx_relationships_b ON Relationships (Character_B_ID);
 CREATE INDEX idx_chapter_tags_tag ON Chapter_Tags (Tag_ID);
 CREATE INDEX idx_lore_tags_tag ON Lore_Tags (Tag_ID);
+CREATE INDEX idx_lore_locations_location on LORE_Locations (Location_ID);
 
 -- Index for quick look up of Chapters by Title (e.g., for search/autocomplete)
 CREATE INDEX idx_chapters_title ON Chapters (Title);

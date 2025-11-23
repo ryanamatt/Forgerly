@@ -50,7 +50,7 @@ class ChapterRepository:
         result = self.db._execute_query(query, (chapter_id,), fetch_one=True)
         return result['Text_Content'] if result else None
     
-    def set_chapter_content(self, chapter_id: int, content: str) -> bool:
+    def update_chapter_content(self, chapter_id: int, content: str) -> bool:
         """Updates the rich text content for a chapter"""
         query = "UPDATE Chapters SET Text_Content = ? WHERE ID = ?;"
         return self.db._execute_commit(query, (content, chapter_id))
@@ -62,10 +62,11 @@ class ChapterRepository:
     
     def get_chapter_title(self, chapter_id: int) -> str | None:
         """Retrieves the chapter title by Chapter ID"""
-        query = "SELECT Title FROM Chapters WHERE ID = ?"
-        return self.db._execute_query(query, (chapter_id,))
-    
+        query = "SELECT Title FROM Chapters WHERE ID = ?;"
+        result = self.db._execute_query(query, (chapter_id,), fetch_one=True)
+        return result['Title'] if result else None
+
     def update_chapter_title(self, chapter_id: int, title: str) -> str | None:
         """Updates the Chapter title by Chapter ID"""
-        query = "UPDATE Chapters SET Title = ? WHERE ID = ?"
+        query = "UPDATE Chapters SET Title = ? WHERE ID = ?;"
         return self.db._execute_commit(query, (title, chapter_id))

@@ -5,8 +5,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
-from .tag_widget import TagManagerWidget
-from .rich_text_editor import RichTextEditor
+from ui.widgets.tag_widget import TagManagerWidget
+from ui.widgets.rich_text_editor import RichTextEditor
 
 class ChapterEditor(QWidget):
     """
@@ -57,8 +57,8 @@ class ChapterEditor(QWidget):
         content_splitter.addWidget(tag_group)
         content_splitter.addWidget(content_container)
 
-        # Set the initial ratio of the splitter (e.g., 1:4 ratio for Tag Group to Editor)
-        content_splitter.setSizes([100, 600]) 
+        # Set the initial ratio of the splitter (e.g., 1:8 ratio for Tag Group to Editor)
+        content_splitter.setSizes([100, 800]) 
         
         main_layout.addWidget(content_splitter)
 

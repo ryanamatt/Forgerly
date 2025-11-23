@@ -74,3 +74,40 @@ class TagRepository:
             self.db.conn.rollback()
             print(f"Error setting chapter tags: {e}")
             return False
+        
+    # --- Tags for Lore ---
+    def get_tags_for_lore_entry(self, lore_id: int) -> list[tuple[int, str]]:
+        """Retrieves all tags (ID, Name) for a given lore entry."""
+        query = """
+        SELECT t.ID, t.Name
+        FROM Tags t
+        JOIN Lore_Tags lt ON t.ID = lt.Tag_ID
+        WHERE lt.Lore_ID = ?
+        ORDER BY t.Name ASC;
+        """
+        return self.db._execute_query(query, (lore_id,), fetch_all=True, as_list=True)
+    
+    def set_tags_for_lore_entry(self, lore_id: int, tag_names: list[str]) -> bool:
+        """
+        Replaces all tags for a lore entry with the new list using an atomic transaction.
+        """
+        try:
+            self.db.conn.execute("BEGIN;")
+
+            # 1. Clear existing Lore_Tags for the entry
+            delete_sql = "DELETE FROM Lore_Tags WHERE Lore_ID = ?;"
+            self.db.conn.execute(delete_sql, (lore_id,))
+
+            # 2. Insert new tags and associations
+            for tag_name in tag_names:
+                tag_id = self._create_tag(tag_name) # Reuses existing tag creation logic
+                if tag_id is not None:
+                    insert_sql = "INSERT OR IGNORE INTO Lore_Tags (Lore_ID, Tag_ID) VALUES (?, ?);"
+                    self.db.conn.execute(insert_sql, (lore_id, tag_id))
+
+            self.db.conn.commit()
+            return True
+        except Exception as e:
+            print(f"Lore Tag Transaction Error: {e}")
+            self.db.conn.rollback()
+            return False
