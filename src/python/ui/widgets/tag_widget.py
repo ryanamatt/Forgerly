@@ -265,7 +265,7 @@ class TagManagerWidget(QWidget):
     def set_tags(self, tag_names: list[str]) -> None:
         """
         Sets the tags to a new list. 
-        Used when loading a new chapter.
+        Used when loading a new chapter/lore_entry.
         """
         # This prevents the initial loading process from firing the tags_changed signal.
         self.blockSignals(True) 
@@ -281,8 +281,11 @@ class TagManagerWidget(QWidget):
         
         # Add new tags
         for tag_name in tag_names:
-            # Note: This line should be using the new normalize_tag_name utility
-            clean_tag = tag_name.strip().lower() 
+            clean_tag = tag_name.strip().lower()
+            
+            # Check to make sure we're not adding empty tags
+            if clean_tag == "": continue 
+
             if clean_tag and clean_tag not in self.tags:
                 self.tags.add(clean_tag)
                 self._create_tag_label(clean_tag)

@@ -167,3 +167,30 @@ CREATE INDEX idx_lore_locations_location on LORE_Locations (Location_ID);
 
 -- Index for quick look up of Chapters by Title (e.g., for search/autocomplete)
 CREATE INDEX idx_chapters_title ON Chapters (Title);
+
+--- DDL For Lore Entry Full-Text Search (FTS5)
+
+-- 1. Create the virtual FTS table, linking it to the Lore Entries content
+CREATE VIRTUAL TABLE Lore_Entries_FTS using fts5(
+    Title,                  -- Index the Title for searching
+    Content,                -- Index the main Content for searching
+    Category,
+    content='Lore_Entries', -- Link the FTS table to the main Lore_Entries table
+    content_rowid='ID',     -- Use the Lore_Entries.ID column as the ROWID
+    tokenize='porter'       -- Use the Porter Stemmer for better results (e.g., 'jumping' matches 'jump')
+);
+
+-- 2. Create Triggers to keep the FTS index synchronized with the main table
+-- The FTS5 module uses triggers to automatically maintain the index when 
+-- the content in the original table changes.
+CREATE TRIGGER lore_fts_insert AFTER INSERT ON Lore_Entries BEGIN
+  INSERT INTO Lore_Entries_FTS(rowid, Title, Content, Category) VALUES (new.ID, new.Title, new.Content, new.Category);
+END;
+
+CREATE TRIGGER lore_fts_update AFTER UPDATE ON Lore_Entries BEGIN
+  UPDATE Lore_Entries_FTS SET Title = new.Title, Content = new.Content, Category = new.Category WHERE rowid = old.ID;
+END;
+-- Delete trigger remains unchanged for the FTS table structure
+CREATE TRIGGER lore_fts_delete AFTER DELETE ON Lore_Entries BEGIN
+  INSERT INTO Lore_Entries_FTS(Lore_Entries_FTS, rowid, Title, Content, Category) VALUES('delete', old.ID, old.Title, old.Content, old.Category);
+END;
