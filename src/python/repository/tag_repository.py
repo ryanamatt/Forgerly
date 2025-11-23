@@ -76,7 +76,7 @@ class TagRepository:
             return False
         
     # --- Tags for Lore ---
-    def get_tags_for_lore(self, lore_id: int) -> list[tuple[int, str]]:
+    def get_tags_for_lore_entry(self, lore_id: int) -> list[tuple[int, str]]:
         """Retrieves all tags (ID, Name) for a given lore entry."""
         query = """
         SELECT t.ID, t.Name
@@ -87,7 +87,7 @@ class TagRepository:
         """
         return self.db._execute_query(query, (lore_id,), fetch_all=True, as_list=True)
     
-    def set_tags_for_lore(self, lore_id: int, tag_names: list[str]) -> bool:
+    def set_tags_for_lore_entry(self, lore_id: int, tag_names: list[str]) -> bool:
         """
         Replaces all tags for a lore entry with the new list using an atomic transaction.
         """

@@ -26,10 +26,10 @@ class ChapterOutlineManager(QTreeWidget):
     # Emitted before a new chapter is selected, allowing the main window to save
     pre_chapter_change = pyqtSignal()
 
-    def __init__(self, chapter_repo: ChapterRepository | None = None) -> None:
+    def __init__(self, chapter_repository: ChapterRepository | None = None) -> None:
         super().__init__()
         # Renamed attribute to clearly show its new role
-        self.chapter_repo = chapter_repo 
+        self.chapter_repo = chapter_repository 
         self.project_root_item = None
 
         # Configuration and Styling

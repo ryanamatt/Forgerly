@@ -34,7 +34,7 @@ class LoreOutlineManager(QTreeWidget):
 
         # Configuration and Styling
         self.setHeaderLabels(["Lore Items"])
-        self.header().setSizeAdjustPolicy(0, QHeaderView.ResizeMode.Stretch)
+        self.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.setMidLineWidth(100)
         self.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -61,7 +61,7 @@ class LoreOutlineManager(QTreeWidget):
         self.blockSignals(True)
 
         # Root item for the Lore Entries
-        self.project_root_item = QTreeWidgetItem(self, ["The Lroe of Narrative Forge"])
+        self.project_root_item = QTreeWidgetItem(self, ["The Lore of Narrative Forge"])
         self.project_root_item.setFlags(self.project_root_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
         self.project_root_item.setData(0, ROOT_ITEM_ROLE, True)
 
@@ -136,20 +136,21 @@ class LoreOutlineManager(QTreeWidget):
     def _show_context_menu(self, pos: QPoint) -> None:
         """Displays the context menu when right-clicked"""
         item = self.itemAt(pos)
-        
-        is_lore_entry = item.data(0, LORE_ID_ROLE) if not None else None
 
         menu = QMenu(self)
 
         new_action = menu.addAction("Add New Lore Entry...")
         new_action.triggered.connect(self.prompt_and_add_lore)
+        
+        if item:
+            is_lore_entry = item.data(0, LORE_ID_ROLE)
 
-        if is_lore_entry:
-            rename_action = menu.addAction("Rename Lore Entry")
-            delete_action = menu.addAction("Delete Lore Entry")
+            if is_lore_entry:
+                rename_action = menu.addAction("Rename Lore Entry")
+                delete_action = menu.addAction("Delete Lore Entry")
 
-            rename_action.triggered.connect(lambda: self.editItem(item, 0))
-            delete_action.triggered.connect(lambda: self.check_save_and_delete(item))
+                rename_action.triggered.connect(lambda: self.editItem(item, 0))
+                delete_action.triggered.connect(lambda: self.check_save_and_delete(item))
 
         if menu.actions():
             menu.exec(self.mapToGlobal(pos))
