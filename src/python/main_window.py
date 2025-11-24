@@ -262,7 +262,6 @@ class MainWindow(QMainWindow):
             f"<p>Version: {__version__}</p>"
             f"<p>A writing application designed for worldbuilders and novel writers.</p>"
             f"<p>Built with Python and PyQt6.</p>"
-            f"<p>Icon: Freepik via flaticon.com</p>"
         )
 
     # -------------------------------------------------------------------------
