@@ -139,6 +139,9 @@ class MainWindow(QMainWindow):
                 self.chapter_editor_panel.hide()
                 self.lore_outline_manager.show()
                 self.lore_editor_panel.show()
+
+        self.view_lore_action.setChecked(ViewType.LORE == self.current_view)
+        self.view_chapter_action.setChecked(ViewType.CHAPTER == self.current_view)
         
         # 4. Disable the newly visible editor until an item is selected
         editor = self.coordinator.get_current_editor()
@@ -209,7 +212,6 @@ class MainWindow(QMainWindow):
 
         save_action = QAction("&Save Content", self)
         save_action.setShortcut("Ctrl+S")
-        # UPDATED: Connect save action to the new wrapper method
         save_action.triggered.connect(self._save_current_item_wrapper) 
         file_menu.addAction(save_action)
 
@@ -235,17 +237,17 @@ class MainWindow(QMainWindow):
         # --- View Menu ---
         view_menu = menu_bar.addMenu("&View")
 
-        view_chapter_action = QAction("Chapter Outline", self)
-        view_chapter_action.setCheckable(True)
-        view_chapter_action.setChecked(self.current_view == ViewType.CHAPTER)
-        view_chapter_action.triggered.connect(lambda: self._switch_to_view(ViewType.CHAPTER))
-        view_menu.addAction(view_chapter_action)
+        self.view_chapter_action = QAction("Chapter Outline", self)
+        self.view_chapter_action.setCheckable(True)
+        self.view_chapter_action.setChecked(self.current_view == ViewType.CHAPTER)
+        self.view_chapter_action.triggered.connect(lambda: self._switch_to_view(ViewType.CHAPTER))
+        view_menu.addAction(self.view_chapter_action)
 
-        view_lore_action = QAction("Lore Outline", self)
-        view_lore_action.setCheckable(True)
-        view_lore_action.setChecked(self.current_view == ViewType.LORE)
-        view_lore_action.triggered.connect(lambda: self._switch_to_view(ViewType.LORE))
-        view_menu.addAction(view_lore_action)
+        self.view_lore_action = QAction("Lore Outline", self)
+        self.view_lore_action.setCheckable(True)
+        self.view_lore_action.setChecked(self.current_view == ViewType.LORE)
+        self.view_lore_action.triggered.connect(lambda: self._switch_to_view(ViewType.LORE))
+        view_menu.addAction(self.view_lore_action)
 
         # --- Help Menu ---
         help_menu = menu_bar.addMenu("&Help")

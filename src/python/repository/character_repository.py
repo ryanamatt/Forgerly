@@ -28,7 +28,7 @@ class CharacterRepository:
     def update_character(self, char_id: int, title: str, description: str, status: str) -> bool:
         """Updates the Character in the database"""
         query = """
-        UPDATE Characters SET Title = ?, Description = ?, Status = ?,
+        UPDATE Characters SET Title = ?, Description = ?, Status = ?
         WHERE ID = ?;
         """
         self.db._execute_commit(query, (title, description, status, char_id))

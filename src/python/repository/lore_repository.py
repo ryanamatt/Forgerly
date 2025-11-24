@@ -47,16 +47,11 @@ class LoreRepository:
         """
         return self.db._execute_query(query, (lore_id,), fetch_one=True)
 
-    def update_lore_entry(self, lore_id: int, title: str, category: str, content: str) -> bool:
-        """Updates the title, category, and content of an existing lore entry."""
-        query = """
-        UPDATE Lore_Entries 
-        SET Title = ?, Content = ?, Category = ?
-        WHERE ID = ?;
-        """
-        return self.db._execute_commit(
-            query, (title, content, category, lore_id)
-        )
+    def update_lore_entry(self, lore_id: int, title: str, content: str = "", category: str = "") -> bool:
+        """Updates the title, content, and category of an existing lore entry."""
+        query = query = "UPDATE Lore_Entries SET Title = ?, Content = ?, Category = ? WHERE ID = ?;"
+        params = (title, content, category, lore_id)
+        return self.db._execute_commit(query, params)
     
     def delete_lore_entry(self, lore_id: int) -> bool:
         """

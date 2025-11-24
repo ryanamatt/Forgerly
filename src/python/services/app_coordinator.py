@@ -1,8 +1,7 @@
 # src/python/services/app_coordinator.py
 
-from PyQt6.QtCore import QObject, pyqtSignal, QCoreApplication
+from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QMessageBox
-from PyQt6.QtGui import QTextDocument
 
 from db_connector import DBConnector
 from repository.chapter_repository import ChapterRepository
@@ -20,7 +19,7 @@ class AppCoordinator(QObject):
     Coordinates data flow between the UI components (Outline/Editor) and the 
     database repositories. Centralizes save/load/dirty checking logic.
     """
-    # --- Signals for Editor Panel Updates (Data OUT) ---
+    # --- Signals for Editor Panel Updates ---
     chapter_loaded = pyqtSignal(int, str, list)      # id, content_html, tags
     lore_loaded = pyqtSignal(int, str, str, str, list) # id, title, category, content_html, tags
     
@@ -51,7 +50,7 @@ class AppCoordinator(QObject):
     def set_editors(self, editor_map: dict[ViewType, Any]) -> None:
         """
         Sets all editor references using a dictionary map where keys are ViewType constants.
-        Example: {ViewType.CHAPTER: chapter_editor, ViewType.LORE: lore_editor}
+        Example: {ViewType.CHAPTER: chapter_editor, ViewType.LORE: lore_editor...}
         """
         self.editors = editor_map
         
@@ -104,6 +103,7 @@ class AppCoordinator(QObject):
     
     def save_current_item(self, item_id: int, view: ViewType, parent=None) -> bool:
         """General Method to save either chapter or a lore entry."""
+
         if item_id <= 0:
             return False
         
