@@ -1,6 +1,8 @@
 # src/python/tag_repository.py
 
-from db_connector import DBConnector
+from typing import TYPE_CHECKING, Any
+if TYPE_CHECKING:
+    from db_connector import DBConnector
 
 class TagRepository:
     """
