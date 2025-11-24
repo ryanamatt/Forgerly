@@ -1,5 +1,6 @@
 # src/python/chapter_repository.py
 
+from utils.types import ChapterContentDict, ChapterBasicDict
 from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from db_connector import DBConnector
@@ -12,7 +13,16 @@ class ChapterRepository:
     def __init__(self, db_connector: DBConnector) -> None:
         self.db = db_connector
 
-    def get_all_chapters_with_content(self) -> list[dict[str, Any]]:
+    def get_all_chapters(self) -> ChapterBasicDict:
+        """Retrives all chapters order by Sort_Order"""
+        query = """
+        SELECT ID, Title, Sort_Order, Precursor_Chapter_ID
+        FROM Chapters
+        ORDER BY Sort_Order ASC;
+        """
+        return self.db._execute_query(query, fetch_all=True)
+
+    def get_all_chapters_with_content(self) -> ChapterContentDict:
         """
         Retrieves all chapters with their full text content, ordered by Sort_Order.
         Used for full story export.
@@ -34,15 +44,6 @@ class ChapterRepository:
             query, (title, "<p></p>", sort_order, precursor_id), fetch_id=True
         )
         return chapter_id
-    
-    def get_all_chapters(self) -> list[dict[str, Any]]:
-        """Retrives all chapters order by Sort_Order"""
-        query = """
-        SELECT ID, Title, Sort_Order, Precursor_Chapter_ID
-        FROM Chapters
-        ORDER BY Sort_Order ASC;
-        """
-        return self.db._execute_query(query, fetch_all=True)
 
     def get_chapter_content(self, chapter_id: int) -> str | None:
         """Retrieves the rich text content for a specific chapter ID"""
@@ -52,7 +53,7 @@ class ChapterRepository:
     
     def update_chapter_content(self, chapter_id: int, content: str) -> bool:
         """Updates the rich text content for a chapter"""
-        query = "UPDATE Chapters SET Text_Content = ? WHERE ID = ?;"
+        query = "UPDATE Chapters SET Text_Content = ?, WHERE ID = ?;"
         return self.db._execute_commit(query, (content, chapter_id))
     
     def delete_chapter(self, chapter_id: int) -> bool:

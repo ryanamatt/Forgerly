@@ -1,5 +1,6 @@
 # src/python/tag_repository.py
 
+from utils.types import TagTuple, TagTupleList
 from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from db_connector import DBConnector
@@ -38,7 +39,7 @@ class TagRepository:
     
     # --- Chapter Tag Methods ---
 
-    def get_tags_for_chapter(self, chapter_id: int) -> list[tuple[int, str]]:
+    def get_tags_for_chapter(self, chapter_id: int) -> TagTupleList:
         """Retrieves all tags (ID, Name) for a given chapter"""
         query = """
         SELECT t.ID, t.Name
@@ -68,7 +69,7 @@ class TagRepository:
         return self.db._execute_transaction(operations)
         
     # --- Tags for Lore ---
-    def get_tags_for_lore_entry(self, lore_id: int) -> list[tuple[int, str]]:
+    def get_tags_for_lore_entry(self, lore_id: int) -> TagTupleList:
         """Retrieves all tags (ID, Name) for a given lore entry."""
         query = """
         SELECT t.ID, t.Name
