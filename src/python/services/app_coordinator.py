@@ -7,6 +7,8 @@ from db_connector import DBConnector
 from repository.chapter_repository import ChapterRepository
 from repository.lore_repository import LoreRepository
 from repository.tag_repository import TagRepository
+from repository.character_repository import CharacterRepository
+
 from utils.constants import ViewType
 
 from typing import TYPE_CHECKING, Any
@@ -143,7 +145,7 @@ class AppCoordinator(QObject):
         content = data['content']
         tags = data['tags']
 
-        content_saved = self.lore_repo.update_lore_entry(lore_id, title, category, content)
+        content_saved = self.lore_repo.update_lore_entry(lore_id, title, content, category)
         tags_saved = self.tag_repo.set_tags_for_lore_entry(lore_id, tags)
 
         if content_saved and tags_saved:

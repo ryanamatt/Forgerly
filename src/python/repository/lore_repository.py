@@ -23,7 +23,7 @@ class LoreRepository:
         """
         return self.db._execute_query(query, fetch_all=True)
 
-    def create_lore_entry(self, title: str, category: str = "", content:str = "") -> int | None:
+    def create_lore_entry(self, title: str, content: str = "", category: str = "") -> int | None:
         """Creates a new lore entry and returns its ID."""
         query = """
         INSERT INTO Lore_Entries (Title, Content, Category)
@@ -73,35 +73,20 @@ class LoreRepository:
         if not clean_query:
             return None
 
-        fts_query = user_query.strip()
-        if fts_query and not any(op in fts_query for op in [' ', '*', 'OR', 'AND', '"']):
-            fts_query = fts_query + '*'
-
-        # --- 1. Combined FTS and Tag Search ---
-        # We use a UNION to combine results from FTS and a standard JOIN for tags.
-        # FTS matches will have a rank, Tag matches will be assigned a poor rank (e.g., 1000000)
-        # to ensure FTS results are always shown first.
+        # Wildcard pattern for case-insensitive LIKE Search
+        like_pattern = f'%{clean_query}%'
 
         query = """
-            WITH Search_Results AS (
-                SELECT T1.ID, T1.Title, T1.Category, T2.rank AS search_rank
-                FROM Lore_Entries AS T1
-                JOIN Lore_Entries_FTS AS T2 ON T1.ID = T2.rowid
-                WHERE T2.Lore_Entries_FTS MATCH ?
-
-                UNION
-
-                SELECT LE.ID, LE.Title, LE.Category, 1000000 as search_rank
-                FROM Lore_Entries AS LE
-                JOIN Lore_Tags AS LT ON LE.ID = LT.Lore_ID
-                JOIN Tags AS T ON LT.Tag_ID = T.ID
-                WHERE T.Name LIKE ?
-            )
-
-            SELECT ID, Title, Category, MIN(search_rank) AS final_rank
-            FROM Search_Results
-            GROUP BY ID
-            ORDER BY final_rank ASC;
-            """
-        params = (fts_query, f'%{clean_query}')
+        SELECT DISTINCT LE.ID, LE.Title, LE.Category
+        FROM Lore_Entries AS LE
+        LEFT JOIN Lore_Tags AS LT ON LE.ID = LT.Lore_ID
+        LEFT JOIN Tags AS T ON LT.Tag_ID = T.ID
+        WHERE
+            LE.Title LIKE ? OR
+            LE.Content LIKE ? OR
+            LE.Category LIKE ? OR
+            T.Name LIKE ?
+        ORDER BY LE.Title ASC;
+        """
+        params = (like_pattern, like_pattern, like_pattern, like_pattern)
         return self.db._execute_query(query, params, fetch_all=True)
