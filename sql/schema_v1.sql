@@ -10,7 +10,7 @@ PRAGMA foreign_keys = ON;
 -- -----------------------------------------------------------------------------
 
 -- CHAPTERS: The primary writing unit.
-CREATE TABLE Chapters (
+CREATE TABLE IF NOT EXISTS Chapters (
     ID                      INTEGER PRIMARY KEY, -- Auto-incrementing primary key
     Title                   TEXT NOT NULL,
     Text_Content            TEXT,                -- Stores rich text (HTML)
@@ -24,7 +24,7 @@ CREATE TABLE Chapters (
 );
 
 -- Lore_Entries: The world wiki/knowledge base.
-CREATE TABLE Lore_Entries (
+CREATE TABLE IF NOT EXISTS Lore_Entries (
     ID                      INTEGER PRIMARY KEY,
     Title                   TEXT NOT NULL UNIQUE,
     Content                 TEXT,
@@ -32,7 +32,7 @@ CREATE TABLE Lore_Entries (
 );
 
 -- CHARACTERS: Named entities in the narrative.
-CREATE TABLE Characters (
+CREATE TABLE IF NOT EXISTS Characters (
     ID                      INTEGER PRIMARY KEY,
     Name                    TEXT NOT NULL UNIQUE,
     Description             TEXT,
@@ -40,7 +40,7 @@ CREATE TABLE Characters (
 );
 
 -- LOCATIONS: Physical or conceptual places in the narrative.
-CREATE TABLE Locations (
+CREATE TABLE IF NOT EXISTS Locations (
     ID                      INTEGER PRIMARY KEY,
     Name                    TEXT NOT NULL UNIQUE,
     Description             TEXT,
@@ -55,13 +55,13 @@ CREATE TABLE Locations (
 -- -----------------------------------------------------------------------------
 
 -- TAGS: Flexible metadata for linking knowledge.
-CREATE TABLE Tags (
+CREATE TABLE IF NOT EXISTS Tags (
     ID                      INTEGER PRIMARY KEY,
     Name                    TEXT NOT NULL UNIQUE
 );
 
 -- CHAPTER_TAGS: Many-to-many relationship between Chapters and Tags.
-CREATE TABLE Chapter_Tags (
+CREATE TABLE IF NOT EXISTS Chapter_Tags (
     Chapter_ID              INTEGER NOT NULL,
     Tag_ID                  INTEGER NOT NULL,
 
@@ -71,7 +71,7 @@ CREATE TABLE Chapter_Tags (
 );
 
 -- LORE_TAGS: Many-to-many relationship between Lore_Entries and Tags.
-CREATE TABLE Lore_Tags (
+CREATE TABLE IF NOT EXISTS Lore_Tags (
     Lore_ID                 INTEGER NOT NULL,
     Tag_ID                  INTEGER NOT NULL,
 
@@ -81,7 +81,7 @@ CREATE TABLE Lore_Tags (
 );
 
 -- LORE_LOCATIONS: Many-to-many relationship linking lore entries to their relevant locations.
-CREATE TABLE Lore_Locations (
+CREATE TABLE IF NOT EXISTS Lore_Locations (
     Lore_ID                 INTEGER NOT NULL,
     Location_ID             INTEGER NOT NULL,
 
@@ -91,7 +91,7 @@ CREATE TABLE Lore_Locations (
 );
 
 -- CHAPTER_CHARACTERS: Many-to-many relationship tracking character appearances in chapters.
-CREATE TABLE Chapter_Characters (
+CREATE TABLE IF NOT EXISTS Chapter_Characters (
     Chapter_ID              INTEGER NOT NULL,
     Character_ID            INTEGER NOT NULL,
     Role_In_Chapter         TEXT,           -- e.g., 'Protagonist', 'Antagonist', 'Mentioned', 'Cameo'
@@ -102,7 +102,7 @@ CREATE TABLE Chapter_Characters (
 );
 
 -- CHAPTER_LORE: Explicitly links chapters to the lore entries they reference.
-CREATE TABLE Chapter_Lore (
+CREATE TABLE IF NOT EXISTS Chapter_Lore (
     Chapter_ID              INTEGER NOT NULL,
     Lore_ID                 INTEGER NOT NULL,
 
@@ -112,7 +112,7 @@ CREATE TABLE Chapter_Lore (
 );
 
 -- CHAPTER_LOCATIONS: Links chapters to the locations where the scene takes place.
-CREATE TABLE Chapter_Locations (
+CREATE TABLE IF NOT EXISTS Chapter_Locations (
     Chapter_ID              INTEGER NOT NULL,
     Location_ID             INTEGER NOT NULL,
     Is_Primary_Setting      INTEGER DEFAULT 0,  -- 1 for the main setting, 0 otherwise
@@ -127,7 +127,7 @@ CREATE TABLE Chapter_Locations (
 -- -----------------------------------------------------------------------------
 
 -- RELATIONSHIPS: Tracks defined relationships between two characters.
-CREATE TABLE Relationships (
+CREATE TABLE IF NOT EXISTS Relationships (
     ID                      INTEGER PRIMARY KEY,
     Character_A_ID          INTEGER NOT NULL,
     Character_B_ID          INTEGER NOT NULL,
@@ -142,7 +142,7 @@ CREATE TABLE Relationships (
 );
 
 -- VERSION_HISTORY: Records snapshots of chapter drafts.
-CREATE TABLE Version_History (
+CREATE TABLE IF NOT EXISTS Version_History (
     ID                      INTEGER PRIMARY KEY,
     Chapter_ID              INTEGER NOT NULL,
     Timestamp               TEXT NOT NULL,      -- UTC Timestamp of snapshot
@@ -157,15 +157,15 @@ CREATE TABLE Version_History (
 -- -----------------------------------------------------------------------------
 
 -- Indexes to improve lookup performance on foreign keys
-CREATE INDEX idx_chapters_precursor ON Chapters (Precursor_Chapter_ID);
-CREATE INDEX idx_version_chapter ON Version_History (Chapter_ID);
-CREATE INDEX idx_relationships_a ON Relationships (Character_A_ID);
-CREATE INDEX idx_relationships_b ON Relationships (Character_B_ID);
-CREATE INDEX idx_chapter_tags_tag ON Chapter_Tags (Tag_ID);
-CREATE INDEX idx_lore_tags_tag ON Lore_Tags (Tag_ID);
-CREATE INDEX idx_lore_locations_location on LORE_Locations (Location_ID);
-CREATE INDEX ix_lore_title ON Lore_Entries(Title)
-CREATE INDEX idx_lore_category ON Lore_Entries
+CREATE INDEX IF NOT EXISTS idx_chapters_precursor ON Chapters (Precursor_Chapter_ID);
+CREATE INDEX IF NOT EXISTS idx_version_chapter ON Version_History (Chapter_ID);
+CREATE INDEX IF NOT EXISTS idx_relationships_a ON Relationships (Character_A_ID);
+CREATE INDEX IF NOT EXISTS idx_relationships_b ON Relationships (Character_B_ID);
+CREATE INDEX IF NOT EXISTS idx_chapter_tags_tag ON Chapter_Tags (Tag_ID);
+CREATE INDEX IF NOT EXISTS idx_lore_tags_tag ON Lore_Tags (Tag_ID);
+CREATE INDEX IF NOT EXISTS idx_lore_locations_location on LORE_Locations (Location_ID);
+CREATE INDEX IF NOT EXISTS vix_lore_title ON Lore_Entries(Title);
+CREATE INDEX IF NOT EXISTS idx_lore_category ON Lore_Entries (Category);
 
 -- Index for quick look up of Chapters by Title (e.g., for search/autocomplete)
-CREATE INDEX idx_chapters_title ON Chapters (Title);
+CREATE INDEX IF NOT EXISTS idx_chapters_title ON Chapters (Title);
