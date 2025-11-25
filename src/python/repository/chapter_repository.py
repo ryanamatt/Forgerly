@@ -53,7 +53,7 @@ class ChapterRepository:
     
     def update_chapter_content(self, chapter_id: int, content: str) -> bool:
         """Updates the rich text content for a chapter"""
-        query = "UPDATE Chapters SET Text_Content = ?, WHERE ID = ?;"
+        query = "UPDATE Chapters SET Text_Content = ? WHERE ID = ?;"
         return self.db._execute_commit(query, (content, chapter_id))
     
     def delete_chapter(self, chapter_id: int) -> bool:

@@ -151,7 +151,7 @@ class LoreEditor(QWidget):
     # INTERNAL HANDLERS
     # =========================================================================
         
-    def _set_dirty(self, *args) -> None:
+    def _set_dirty(self) -> None:
         """Placeholder for dirtiness signals. Actual dirtiness is checked in is_dirty()."""
         pass
 

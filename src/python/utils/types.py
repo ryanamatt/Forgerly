@@ -3,7 +3,8 @@
 from typing import TypedDict, List, Tuple, Any
 
 # Type Alias for a list of generic dictionary results (used frequently for SELECT * or partial data)
-DBRowList = List[dict[str, Any]]
+DBRow = dict[str, Any]
+DBRowList = List[DBRow]
 
 # --- Chapter Repository Types ---
 

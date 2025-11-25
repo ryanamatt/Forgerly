@@ -28,7 +28,7 @@ class CharacterRepository:
     def update_character(self, char_id: int, title: str, description: str, status: str) -> bool:
         """Updates the Character in the database"""
         query = """
-        UPDATE Characters SET Title = ?, Description = ?, Status = ?,
+        UPDATE Characters SET Title = ?, Description = ?, Status = ?
         WHERE ID = ?;
         """
         self.db._execute_commit(query, (title, description, status, char_id))
@@ -41,5 +41,5 @@ class CharacterRepository:
     def get_character_name(self, char_id) -> str | None:
         """Retrieves a characters name given ID"""
         query = "SELECT Name FROM Characters WHERE ID = ?"
-        result = self.db._execute_query(self, (char_id,), fetch_one=True)
+        result = self.db._execute_query(query, (char_id,), fetch_one=True)
         return result['Name'] if result else None
