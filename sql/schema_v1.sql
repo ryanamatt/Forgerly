@@ -28,7 +28,11 @@ CREATE TABLE IF NOT EXISTS Lore_Entries (
     ID                      INTEGER PRIMARY KEY,
     Title                   TEXT NOT NULL UNIQUE,
     Content                 TEXT,
-    Category                TEXT                 -- e.g., 'Location', 'Magic System', 'History'
+    Category                TEXT,                 -- e.g., 'Location', 'Magic System', 'History'
+    Parent_Lore_ID          INTEGER,
+
+    -- Foreign Key Constraint for self-reference (crucial for deletion)
+    FOREIGN KEY (Parent_Lore_ID) REFERENCES Lore_Entries(ID) ON DELETE CASCADE
 );
 
 -- CHARACTERS: Named entities in the narrative.
@@ -132,6 +136,7 @@ CREATE TABLE IF NOT EXISTS Relationships (
     Character_A_ID          INTEGER NOT NULL,
     Character_B_ID          INTEGER NOT NULL,
     Type                    TEXT,               -- e.g., "Rivalry", "Family", "Mentor/Student"
+    Description             TEXT,
     Strength_Score          INTEGER,            -- Score from 1-10
 
     -- Constraint: Characters A and B must be distinct

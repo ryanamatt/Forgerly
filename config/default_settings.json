@@ -1,4 +1,5 @@
 {
     "theme": "Dark",
+    "Autosave Mode": "Time-based",
     "autosave_interval_minutes": 5
 }
