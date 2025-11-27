@@ -36,6 +36,7 @@ class AppCoordinator(QObject):
         # Create Repositorys
         self.chapter_repo = ChapterRepository(self.db)
         self.lore_repo = LoreRepository(self.db)
+        self.char_repo = CharacterRepository(self.db)
         self.tag_repo = TagRepository(self.db)
 
         # State Tracking

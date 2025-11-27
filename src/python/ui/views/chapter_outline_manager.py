@@ -132,9 +132,9 @@ class ChapterOutlineManager(QTreeWidget):
             return
 
         # Update the database
-        rows_affected = self.chapter_repo.update_chapter_title(chapter_id, new_title)
+        success = self.chapter_repo.update_chapter_title(chapter_id, new_title)
         
-        if rows_affected <= 0:
+        if not success:
             QMessageBox.critical(self, "Database Error", "Failed to update chapter title in the database.")
             # Revert the item name visually if the DB update failed
             self.load_outline()

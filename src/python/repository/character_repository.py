@@ -18,20 +18,20 @@ class CharacterRepository:
         query = "SELECT ID, Name FROM Characters ORDER BY Name ASC;"
         return self.db._execute_query(query, fetch_all=True)
     
-    def create_character(self, title: str, description: str = "", status: str = "") -> int | None:
+    def create_character(self, name: str, description: str = "", status: str = "") -> int | None:
         """Creates a new character and returns its ID, None if failed."""
-        query = """INSERT INTO Characters (Title, Description, Status) 
+        query = """INSERT INTO Characters (Name, Description, Status) 
         VALUES (?, ?, ?);
         """
-        return self.db._execute_commit(query, (title, description, status), fetch_id=True)
+        return self.db._execute_commit(query, (name, description, status), fetch_id=True)
     
-    def update_character(self, char_id: int, title: str, description: str, status: str) -> bool:
+    def update_character(self, char_id: int, name: str, description: str = "", status: str = "") -> bool:
         """Updates the Character in the database"""
         query = """
-        UPDATE Characters SET Title = ?, Description = ?, Status = ?
+        UPDATE Characters SET Name = ?, Description = ?, Status = ?
         WHERE ID = ?;
         """
-        self.db._execute_commit(query, (title, description, status, char_id))
+        self.db._execute_commit(query, (name, description, status, char_id))
 
     def delete_character(self, char_id) -> bool:
         """Deletes a character and returns its success"""

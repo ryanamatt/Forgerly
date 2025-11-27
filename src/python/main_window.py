@@ -13,6 +13,7 @@ from ui.views.chapter_outline_manager import ChapterOutlineManager
 from ui.views.chapter_editor import ChapterEditor
 from ui.views.lore_outline_manager import LoreOutlineManager
 from ui.views.lore_editor import LoreEditor
+from ui.views.character_outline_manager import CharacterOutlineManager
 from ui.dialogs.settings_dialog import SettingsDialog
 
 from db_connector import DBConnector
@@ -159,12 +160,14 @@ class MainWindow(QMainWindow):
         # Note: Outline Managers now only handle C/U/D, the Coordinator handles R/Update.
         self.chapter_repo = self.coordinator.chapter_repo
         self.lore_repo = self.coordinator.lore_repo
+        self.char_repo = self.coordinator.char_repo
         
         # 2. Instantiate Main Components
         self.chapter_outline_manager = ChapterOutlineManager(chapter_repository=self.chapter_repo)
         self.chapter_editor_panel = ChapterEditor()
         self.lore_outline_manager = LoreOutlineManager(lore_repository=self.lore_repo)
         self.lore_editor_panel = LoreEditor()
+        self.character_outline_manger = CharacterOutlineManager(character_repository=self.char_repo)
 
         # 3. Left Panel: Outline Stack
         self.outline_stack = QWidget()

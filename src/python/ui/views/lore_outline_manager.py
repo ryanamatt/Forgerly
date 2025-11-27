@@ -1,7 +1,7 @@
 # src/python/ui/lore_outline_manager.py
 
 from PyQt6.QtWidgets import (
-    QTreeWidget, QTreeWidgetItem, QHeaderView, QStyle, QMenu, QInputDialog, QMessageBox,
+    QTreeWidget, QTreeWidgetItem, QMenu, QInputDialog, QMessageBox,
     QWidget, QVBoxLayout, QLineEdit
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
@@ -33,7 +33,7 @@ class LoreOutlineManager(QWidget):
         self.lore_repo = lore_repository
         self.project_root_item = None
 
-        # --- 1. Setup Main LAyout and Components ---
+        # --- 1. Setup Main Layout and Components ---
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -49,7 +49,7 @@ class LoreOutlineManager(QWidget):
         main_layout.addWidget(self.search_input)
         main_layout.addWidget(self.tree_widget)
 
-        # --- 2. Configuration and Signals (Updated to use self.tree_widget) ---
+        # --- 2. Configuration and Signals  ---
         self.tree_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree_widget.customContextMenuRequested.connect(self._show_context_menu)
         self.tree_widget.itemSelectionChanged.connect(self._handle_selection_change)
@@ -116,13 +116,12 @@ class LoreOutlineManager(QWidget):
 
     def _handle_selection_change(self) -> None:
         """Emits a signal with the selected Lore ID when the selection changes."""
-        current_item = self.tree_widget.currentItem() # <--- ADJUSTED
+        current_item = self.tree_widget.currentItem()
         if current_item:
             lore_id = current_item.data(0, LORE_ID_ROLE)
             # Only emit if a valid lore entry (not the root or a 'no result' message) is selected
             if isinstance(lore_id, int) and lore_id > 0:
                 self.lore_selected.emit(lore_id)
-
 
     def _handle_item_click(self, item: QTreeWidgetItem, column: int) -> None:
         """Handles the click event on a tree item"""
@@ -163,9 +162,9 @@ class LoreOutlineManager(QWidget):
         if current_db_title and current_db_title == new_title:
             return
         
-        rows_affected = self.lore_repo.update_lore_entry(lore_id, new_title)
+        success = self.lore_repo.update_lore_entry(lore_id, new_title)
 
-        if rows_affected <= 0:
+        if not success:
             QMessageBox.critical(self, "Database Error", "Failed to update Lore Entry title in the database.")
             # Revert the item name visually if the DB update failed
             self.load_outline()
@@ -210,9 +209,6 @@ class LoreOutlineManager(QWidget):
         )
 
         if ok and title:
-            # Determine the sort order for the new lore entry (place it last at the root level)
-            current_sort_order = self.project_root_item.childCount()
-
             new_id = self.lore_repo.create_lore_entry(title=title)
             
             if new_id:
