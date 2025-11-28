@@ -4,12 +4,12 @@ import argparse
 from pathlib import Path
 
 # --- Configuration ---
-VERSION_FILE_PATH = Path("src/python/utils/_version.py")
+VERSION_FILE_PATH = Path("src/python/_version.py")
 VERSION_VARIABLE_NAME = "__version__"
 # Regex to find the version string
 VERSION_REGEX = r'^{0}\s*=\s*["\'](?P<version>[\d\.]+)(?P<prerelease>.*?)["\']$'.format(VERSION_VARIABLE_NAME)
 
-def increment_version(level):
+def increment_version(level, custom_prerelease):
     """Reads, increments the specified version level, and writes the new version."""
 
     print(f"Reading version from: {VERSION_FILE_PATH}")
@@ -46,26 +46,33 @@ def increment_version(level):
     # 3. Calculate the new version based on the level
     new_parts = list(parts)
     
-    if level == 'major':
-        # Increment major, reset minor and patch
-        new_parts[0] += 1
-        new_parts[1] = 0
-        new_parts[2] = 0
-        # When moving to a new major version, often the prerelease tag is dropped
-        # unless explicitly required (e.g., 1.0.0-beta)
-        new_prerelease_tag = "" 
-    elif level == 'minor':
-        # Increment minor, reset patch
-        new_parts[1] += 1
-        new_parts[2] = 0
-        new_prerelease_tag = prerelease_tag # Keep prerelease tag for minor increments
-    elif level == 'patch':
-        # Increment patch only
-        new_parts[2] += 1
-        new_prerelease_tag = prerelease_tag # Keep prerelease tag for patch increments
-    else:
-        print(f"Error: Invalid increment level '{level}'. Add --level 'major', 'minor', or 'patch'.")
+    # Determine the index to increment: 0=major, 1=minor, 2=patch
+    level_map = {'major': 0, 'minor': 1, 'patch': 2}
+    if level not in level_map:
+        print(f"Error: Invalid increment level '{level}'. Choose 'major', 'minor', or 'patch'.")
         sys.exit(1)
+        
+    level_index = level_map[level]
+    
+    # Increment the specified part and reset lower parts
+    new_parts[level_index] += 1
+    for i in range(level_index + 1, 3):
+        new_parts[i] = 0
+
+    # Determine the new pre-release tag
+    if custom_prerelease is not None:
+        # Use the custom tag provided by the user
+        new_prerelease_tag = f"-{custom_prerelease}" if custom_prerelease else ""
+    elif level == 'major' and not prerelease_tag:
+        # If major is incremented and no current prerelease tag exists, keep it empty.
+        new_prerelease_tag = ""
+    elif level == 'major' and prerelease_tag:
+        # If major is incremented and a prerelease tag exists, drop it by default (release version).
+        new_prerelease_tag = ""
+    else:
+        # For minor/patch increments, keep the existing tag
+        new_prerelease_tag = prerelease_tag
+
 
     new_version_number_str = ".".join(map(str, new_parts))
     new_version = new_version_number_str + new_prerelease_tag
@@ -93,5 +100,13 @@ if __name__ == "__main__":
         choices=['major', 'minor', 'patch'],
         help="The level of the version to increment (major, minor, or patch)."
     )
+    parser.add_argument(
+        '--prerelease',
+        type=str,
+        nargs='?', # Allows the flag to be present without a value
+        const='',  # If the flag is present but no value is given, treat it as an empty string (remove tag)
+        default=None, # If the flag is not present at all, use default logic (keep tag)
+        help="Set a new pre-release tag (e.g., 'beta'). Use --prerelease='' to remove the tag."
+    )
     args = parser.parse_args()
-    increment_version(args.level)
+    increment_version(args.level, args.prerelease)

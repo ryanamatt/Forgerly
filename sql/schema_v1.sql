@@ -1,6 +1,5 @@
 -- schema_v1.sql
 -- Complete SQLite Schema for The Narrative Forge
--- Corresponds to Epic 1: Database Foundation & Schema (Stories 1.1 - 1.4)
 
 -- Enable Foreign Key constraints enforcement, crucial for data integrity checks
 PRAGMA foreign_keys = ON;
@@ -15,8 +14,8 @@ CREATE TABLE IF NOT EXISTS Chapters (
     Title                   TEXT NOT NULL,
     Text_Content            TEXT,                -- Stores rich text (HTML)
     Sort_Order              INTEGER NOT NULL,    -- For outline hierarchy/order
-    Start_Date              TEXT,                -- Chronological start date
-    End_Date                TEXT,                -- Chronological end date
+    Start_Date              TEXT,                -- Chronological start date (Text to allow user to set Data themeselves)
+    End_Date                TEXT,                -- Chronological end date (Text to allow user to set Data themeselves)
     Precursor_Chapter_ID    INTEGER,             -- Self-referencing FK for causality
 
     -- Foreign Key Constraint for self-reference
@@ -40,7 +39,16 @@ CREATE TABLE IF NOT EXISTS Characters (
     ID                      INTEGER PRIMARY KEY,
     Name                    TEXT NOT NULL UNIQUE,
     Description             TEXT,
-    Status                  TEXT                  -- e.g., 'Alive', 'Deceased', 'Major', 'Minor'
+    Status                  TEXT,                  -- e.g., 'Alive', 'Deceased', 'Major', 'Minor'
+    Age                     INTEGER,
+    Date_of_Birth           TEXT,
+    Pronouns                TEXT,
+    Sexual_Orientation      TEXT,
+    Gender_Identity         TEXT,
+    Ethnicity_Background    TEXT,
+    Occupation_School       TEXT,
+    Hometown_City           TEXT,
+    Physical_Description    TEXT
 );
 
 -- LOCATIONS: Physical or conceptual places in the narrative.
@@ -52,6 +60,19 @@ CREATE TABLE IF NOT EXISTS Locations (
     Parent_Location_ID      INTEGER,            -- For hierarchical locations (e.g., Room inside a Building)
 
     FOREIGN KEY (Parent_Location_ID) REFERENCES Locations(ID) ON DELETE SET NULL
+);
+
+-- TIMELINE_EVENTS: Specific chronological plot points.
+CREATE TABLE IF NOT EXISTS Timeline_Events (
+    ID                      INTEGER PRIMARY KEY,
+    Title                   TEXT NOT NULL,
+    Event_Date              TEXT NOT NULL,
+    Description             TEXT,
+    Chapter_ID              INTEGER,
+    Lore_ID                 INTEGER,
+
+    FOREIGN KEY (Chapter_ID) REFERENCES Chapters(ID) ON DELETE SET NULL,
+    FOREIGN KEY (Lore_ID) REFERENCES Lore_Entries(ID) ON DELETE SET NULL
 );
 
 -- -----------------------------------------------------------------------------
@@ -115,6 +136,16 @@ CREATE TABLE IF NOT EXISTS Chapter_Lore (
     FOREIGN KEY (Lore_ID) REFERENCES Lore_Entries(ID) ON DELETE CASCADE
 );
 
+-- CHARACTER_LORE: Explicitly links characters to the lore entries they reference.
+CREATE TABLE IF NOT EXISTS Character_Lore (
+    Character_ID              INTEGER NOT NULL,
+    Lore_ID                   INTEGER NOT NULL,
+
+    PRIMARY KEY (Character_ID, Lore_ID),
+    FOREIGN KEY (Character_ID) REFERENCES Characters(ID) ON DELETE CASCADE,
+    FOREIGN KEY (Lore_ID) REFERENCES Lore_Entries(ID) ON DELETE CASCADE
+);
+
 -- CHAPTER_LOCATIONS: Links chapters to the locations where the scene takes place.
 CREATE TABLE IF NOT EXISTS Chapter_Locations (
     Chapter_ID              INTEGER NOT NULL,
@@ -130,20 +161,50 @@ CREATE TABLE IF NOT EXISTS Chapter_Locations (
 -- 3. Supporting Tables
 -- -----------------------------------------------------------------------------
 
+-- RELATIONSHIP_TYPES: Customizable types of relationships and their colors.
+CREATE TABLE IF NOT EXISTS Relationship_Types (
+    ID                      INTEGER PRIMARY KEY,
+    Type_Name               TEXT NOT NULL UNIQUE,       -- e.g. 'Allies', 'Rivals', 'Siblings', etc.
+    Short_Label             TEXT NOT NULL,              -- Short label for display on the graph edge (e.g., 'Rival')
+    Default_Color           TEXT NOT NULL,              -- e.g., '#00FF00', a hex code for UI
+    Is_Directed             INTEGER NOT NULL DEFAULT 0,  -- 0 for mutual, 1 for directed
+    Line_Style              TEXT NOT NULL DEFAULT 'Solid' -- for dashed/dotted lines
+);
+
 -- RELATIONSHIPS: Tracks defined relationships between two characters.
-CREATE TABLE IF NOT EXISTS Relationships (
+CREATE TABLE IF NOT EXISTS Character_Relationships (
     ID                      INTEGER PRIMARY KEY,
     Character_A_ID          INTEGER NOT NULL,
     Character_B_ID          INTEGER NOT NULL,
-    Type                    TEXT,               -- e.g., "Rivalry", "Family", "Mentor/Student"
+    Type_ID                 INTEGER NOT NULL,   -- e.g., "Rivalry", "Family", "Mentor/Student"
+    Lore_ID                 INTEGER,   -- Links relationship to a contextual Lore Entry
     Description             TEXT,
-    Strength_Score          INTEGER,            -- Score from 1-10
+    Intensity               INTEGER DEFAULT 5,  -- Numberical Score (1, 10) for line thickness
+    Start_Chapter_ID        INTEGER,            -- When the relationship began
+    End_Chapter_ID          INTEGER ,           -- When the relationship ended 
 
     -- Constraint: Characters A and B must be distinct
-    CHECK (Character_A_ID != Character_B_ID),
+    CHECK (Character_A_ID != Character_B_ID)
+    UNIQUE(Character_A_ID, Character_B_ID),
 
     FOREIGN KEY (Character_A_ID) REFERENCES Characters(ID) ON DELETE CASCADE,
-    FOREIGN KEY (Character_B_ID) REFERENCES Characters(ID) ON DELETE CASCADE
+    FOREIGN KEY (Character_B_ID) REFERENCES Characters(ID) ON DELETE CASCADE,
+    FOREIGN KEY (Type_ID) REFERENCES Relationship_Types(ID) ON DELETE RESTRICT,
+    FOREIGN KEY (Lore_ID) REFERENCES Lore_Entries(ID) ON DELETE SET NULL,
+    FOREIGN KEY (Start_Chapter_ID) REFERENCES Chapters(ID) ON DELETE SET NULL,
+    FOREIGN KEY (End_Chapter_ID) REFERENCES Chapters(ID) ON DELETE SET NULL
+);
+
+-- CHARACTER_NODE_POSITIONS: Stores the character's last known position on the graph.
+CREATE TABLE IF NOT EXISTS Character_Node_Positions (
+    Character_ID            INTEGER PRIMARY KEY,
+    X_Position              INTEGER NOT NULL,
+    Y_Position              INTEGER NOT NULL,
+    Node_Color              TEXT DEFAULT '#FFFFFF',
+    Node_Shape              TEXT DEFAULT 'Circle',
+    Is_Hidden               INTEGER DEFAULT 0, -- BOOLEAN
+
+    FOREIGN KEY (Character_ID) REFERENCES Characters(ID) ON DELETE CASCADE
 );
 
 -- VERSION_HISTORY: Records snapshots of chapter drafts.
@@ -164,8 +225,17 @@ CREATE TABLE IF NOT EXISTS Version_History (
 -- Indexes to improve lookup performance on foreign keys
 CREATE INDEX IF NOT EXISTS idx_chapters_precursor ON Chapters (Precursor_Chapter_ID);
 CREATE INDEX IF NOT EXISTS idx_version_chapter ON Version_History (Chapter_ID);
-CREATE INDEX IF NOT EXISTS idx_relationships_a ON Relationships (Character_A_ID);
-CREATE INDEX IF NOT EXISTS idx_relationships_b ON Relationships (Character_B_ID);
+
+-- Updated indexes for character relationships
+CREATE INDEX IF NOT EXISTS idx_relationships_a ON Character_Relationships (Character_A_ID);
+CREATE INDEX IF NOT EXISTS idx_relationships_b ON Character_Relationships (Character_B_ID);
+CREATE INDEX IF NOT EXISTS idx_relationships_type ON Character_Relationships (Type_ID);
+CREATE INDEX IF NOT EXISTS idx_relationships_lore ON Character_Relationships (Lore_ID);
+
+-- Node positions index
+CREATE INDEX IF NOT EXISTS idx_node_positions_char ON Character_Node_Positions (Character_ID);
+
+-- Existing indexes
 CREATE INDEX IF NOT EXISTS idx_chapter_tags_tag ON Chapter_Tags (Tag_ID);
 CREATE INDEX IF NOT EXISTS idx_lore_tags_tag ON Lore_Tags (Tag_ID);
 CREATE INDEX IF NOT EXISTS idx_lore_locations_location on LORE_Locations (Location_ID);

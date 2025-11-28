@@ -1,5 +1,7 @@
 {
     "theme": "Dark",
     "Autosave Mode": "Time-based",
-    "autosave_interval_minutes": 5
+    "autosave_interval_minutes": 5,
+    "default_font_size": 12,
+    "default_font": "Segoe UI"
 }
