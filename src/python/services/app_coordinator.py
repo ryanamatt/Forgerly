@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from ui.views.chapter_editor import ChapterEditor
     from ui.views.lore_editor import LoreEditor
+    from ui.views.character_editor import CharacterEditor
 
 class AppCoordinator(QObject):
     """
@@ -24,9 +25,11 @@ class AppCoordinator(QObject):
     # --- Signals for Editor Panel Updates ---
     chapter_loaded = pyqtSignal(int, str, list)      # id, content_html, tags
     lore_loaded = pyqtSignal(int, str, str, str, list) # id, title, category, content_html, tags
+    char_loaded = pyqtSignal(int, str, str, str)
     
     # --- Signals for Outline Manager Updates (UI IN) ---
     lore_title_updated_in_outline = pyqtSignal(int, str)
+    char_name_updated_in_ouline = pyqtSignal(int, str)
 
     def __init__(self, db_connector: DBConnector) -> None:
         super().__init__()
@@ -47,6 +50,7 @@ class AppCoordinator(QObject):
         self.editors = {}
         # Keep for signal
         self.lore_editor = None
+        self.character_editor = None
 
     # --- Save / Dirty Check Logic (Core Business Logic) ---
 
@@ -62,6 +66,10 @@ class AppCoordinator(QObject):
             self.lore_editor: LoreEditor = self.editors[ViewType.LORE]
             # Connect the specific signal
             self.lore_editor.lore_title_changed.connect(self.lore_title_updated_in_outline)
+
+        if ViewType.CHARACTER in self.editors:
+            self.character_editor: CharacterEditor = self.editors[ViewType.CHARACTER]
+            self.character_editor.char_name_changed.connect(self.char_name_updated_in_ouline)
 
     def set_current_view(self, view_type: ViewType) -> None:
         """Called by MainWindow when the view is explicitly switched."""
@@ -86,11 +94,10 @@ class AppCoordinator(QObject):
         if not editor_panel or not editor_panel.is_dirty():
             return True # Editor is clean
         
-        item_type = 'Chapter' if self.current_view == ViewType.CHAPTER else 'Lore Entry'
         save_reply = QMessageBox.question(
             parent, # Use parent for dialog centering
             "Unsaved Changes",
-            f"The current {item_type} has unsaved changes. Do you want to save before continuing?",
+            f"The current item has unsaved changes. Do you want to save before continuing?",
             QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Save
         )
@@ -117,10 +124,13 @@ class AppCoordinator(QObject):
             case ViewType.LORE:
                 return self._save_lore_entry_content(item_id, parent)
             
+            case ViewType.CHARACTER:
+                return self._save_character_content(item_id, parent)
+            
             case _:
                 return False
             
-    def _save_chapter_content(self, chapter_id: int, parent) -> bool:
+    def _save_chapter_content(self, chapter_id: int, parent=None) -> bool:
         """Saves the current chapter content and tags to the database"""
         editor: ChapterEditor = self.editors[ViewType.CHAPTER]
         content = editor.get_html_content()
@@ -136,7 +146,7 @@ class AppCoordinator(QObject):
             QMessageBox.critical(parent, "Save Failed", f"Failed to save Chapter ID {chapter_id}.")
             return False
 
-    def _save_lore_entry_content(self, lore_id: int, parent) -> bool:
+    def _save_lore_entry_content(self, lore_id: int, parent=None) -> bool:
         """Saves the current lore content and tags to the database"""
         editor: LoreEditor = self.lore_editor
         data = editor.get_data()
@@ -156,6 +166,26 @@ class AppCoordinator(QObject):
             return True
         else:
             QMessageBox.critical(parent, "Save Failed", f"Failed to save Lore Entry ID {lore_id}.")
+            return False
+        
+    def _save_character_content(self, char_id: int, parent=None) -> bool:
+        """Saves the current Character content"""
+        editor: CharacterEditor = self.character_editor
+
+        data = editor.get_data()
+
+        name = data['name']
+        description = data['description']
+        status = data['status']
+
+        content_saved = self.char_repo.update_character(char_id, name, description, status)
+
+        if content_saved:
+            editor.load_character(char_id, name, description, status)
+            editor.mark_saved()
+            return True
+        else:
+            QMessageBox.critical(parent, "Save Failed", f"Failed to save Character ID {char_id}.")
             return False
         
     # --- Load Content Logic (Called by Outline Managers) ---
@@ -206,6 +236,26 @@ class AppCoordinator(QObject):
         # 4. Emit signal to the LoreEditor
         self.lore_loaded.emit(lore_id, title, category, content, tag_names)
 
+    def load_character(self, char_id: int) -> None:
+        """Loads character data and emits a signal to update the editor."""
+        # 1. Update Coordinator State
+        self.current_item_id = char_id
+        self.current_view = ViewType.CHARACTER
+
+        # 2. Load Lore Details
+        char_details = self.char_repo.get_character_details(char_id)
+        
+        if char_details is None:
+            # Emit empty content to disable editor
+            self.char_loaded.emit(char_id, "", "", "")
+            return
+        
+        name = char_details['Name']
+        description = char_details['Description']
+        status = char_details['Status']
+
+        self.char_loaded.emit(char_id, name, description, status)
+
     # --- Cross-Update Logic ---
 
     def update_lore_outline_title(self, lore_id: int, new_title: str) -> None:
@@ -215,6 +265,14 @@ class AppCoordinator(QObject):
         and the save logic handles persisting the new title to the DB.
         """
         self.lore_title_updated_in_outline.emit(lore_id, new_title)
+
+    def update_character_outline_title(self, char_id: int, new_name: str) -> None:
+        """
+        Receives name change from CharacterEditor and relays it to the CharacterOutlineManager.
+        Note: The editor is responsible for setting the item as dirty,
+        and the save logic handles persisting the new title to the DB.
+        """
+        self.char_name_updated_in_ouline.emit(char_id, new_name)
 
     # --- Export Logic Helper (For use by the new StoryExporter class) ---
     

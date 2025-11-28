@@ -14,7 +14,7 @@ CHARACTER_ID_ROLE = Qt.ItemDataRole.UserRole + 1
 # Role to identify the root item (which is not a chapter)
 ROOT_ITEM_ROLE = Qt.ItemDataRole.UserRole + 2
 
-class CharacterOutlineManager(QTreeWidget):
+class CharacterOutlineManager(QWidget):
     """
     A custom QTreeWidget dedicated to displaying the hierarchical outline 
     of Characters and other narrative elements.
@@ -31,7 +31,7 @@ class CharacterOutlineManager(QTreeWidget):
         self.project_root_item = None
 
         # --- Setup main Layout ---
-        main_layout = QVBoxLayout()
+        main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         # Create the Search Bar
@@ -67,7 +67,7 @@ class CharacterOutlineManager(QTreeWidget):
 
         self.tree_widget.clear()
 
-        self.project_root_item = QTreeWidgetItem(self, ['World Characters'])
+        self.project_root_item = QTreeWidgetItem(self.tree_widget, ['World Characters'])
         self.project_root_item.setData(0, ROOT_ITEM_ROLE, True)
         self.project_root_item.setFlags(self.project_root_item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
         self.project_root_item.setFlags(self.project_root_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
@@ -85,7 +85,21 @@ class CharacterOutlineManager(QTreeWidget):
 
     def _handle_search_input(self, query: str) -> None:
         """Handles the search for the character"""
-        pass
+        clean_query = query.strip()
+
+        if clean_query and self.char_repo:
+            search_results = self.char_repo.search_characters(clean_query)
+            if search_results:
+                self.load_outline(search_results)
+            else:
+                self.tree_widget.clear()
+                no_result_item = QTreeWidgetItem(self.tree_widget, ["No search results found."])
+                no_result_item.setData(0, CHARACTER_ID_ROLE, -1)
+                self.tree_widget.expandAll()
+
+        # Search is cleared, revert to full outline
+        elif not clean_query:
+            self.load_outline()
 
     def _handle_selection_change(self) -> None:
         """Emits a signal with the selected Character  ID when the selection changes."""
