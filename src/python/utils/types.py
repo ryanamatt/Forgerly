@@ -34,6 +34,7 @@ class LoreEntryDict(TypedDict):
     Title: str
     Content: str
     Category: str
+    Parent_Lore_ID: int | None
 
 # TypedDict for a lore search result (Used by search_lore_entries)
 class LoreSearchResultDict(TypedDict):

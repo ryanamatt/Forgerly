@@ -4,3 +4,4 @@
 class ViewType:
     CHAPTER = 1
     LORE = 2
+    CHARACTER = 3

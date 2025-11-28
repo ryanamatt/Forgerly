@@ -2,7 +2,7 @@
 
 from PyQt6.QtWidgets import (
     QMainWindow, QSplitter, QMessageBox, QFileDialog, QDialog,
-    QWidget, QVBoxLayout
+    QWidget, QVBoxLayout, QStackedWidget
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCloseEvent, QAction, QTextDocument, QIcon
@@ -13,6 +13,8 @@ from ui.views.chapter_outline_manager import ChapterOutlineManager
 from ui.views.chapter_editor import ChapterEditor
 from ui.views.lore_outline_manager import LoreOutlineManager
 from ui.views.lore_editor import LoreEditor
+from ui.views.character_outline_manager import CharacterOutlineManager
+from ui.views.character_editor import CharacterEditor
 from ui.dialogs.settings_dialog import SettingsDialog
 
 from db_connector import DBConnector
@@ -74,7 +76,8 @@ class MainWindow(QMainWindow):
         # NEW: Link editors to the coordinator using a dictionary map for scalability
         editor_map = {
             ViewType.CHAPTER: self.chapter_editor_panel,
-            ViewType.LORE: self.lore_editor_panel
+            ViewType.LORE: self.lore_editor_panel,
+            ViewType.CHARACTER: self.character_editor_panel
         }
         self.coordinator.set_editors(editor_map)
 
@@ -127,21 +130,24 @@ class MainWindow(QMainWindow):
         # Update MainWindow State (for local use)
         self.current_view = view
         
+        # Determine the index for the QStackedWidgets
+        view_index = -1
         match self.current_view:
             case ViewType.CHAPTER:
-                self.chapter_outline_manager.show()
-                self.chapter_editor_panel.show()
-                self.lore_outline_manager.hide()
-                self.lore_editor_panel.hide()
-
+                view_index = self._chapter_index # Should be 0
             case ViewType.LORE:
-                self.chapter_outline_manager.hide()
-                self.chapter_editor_panel.hide()
-                self.lore_outline_manager.show()
-                self.lore_editor_panel.show()
+                view_index = self._lore_index    # Should be 1
+            case ViewType.CHARACTER:
+                view_index = self._character_index # Should be 2
+        
+        # Switch the QStackedWidgets to the correct panel index
+        if view_index != -1:
+            self.outline_stack.setCurrentIndex(view_index)
+            self.editor_stack.setCurrentIndex(view_index)
 
         self.view_lore_action.setChecked(ViewType.LORE == self.current_view)
         self.view_chapter_action.setChecked(ViewType.CHAPTER == self.current_view)
+        self.view_character_action.setChecked(ViewType.CHARACTER == self.current_view)
         
         # 4. Disable the newly visible editor until an item is selected
         editor = self.coordinator.get_current_editor()
@@ -159,26 +165,32 @@ class MainWindow(QMainWindow):
         # Note: Outline Managers now only handle C/U/D, the Coordinator handles R/Update.
         self.chapter_repo = self.coordinator.chapter_repo
         self.lore_repo = self.coordinator.lore_repo
+        self.char_repo = self.coordinator.char_repo
         
         # 2. Instantiate Main Components
         self.chapter_outline_manager = ChapterOutlineManager(chapter_repository=self.chapter_repo)
         self.chapter_editor_panel = ChapterEditor()
         self.lore_outline_manager = LoreOutlineManager(lore_repository=self.lore_repo)
         self.lore_editor_panel = LoreEditor()
+        self.character_outline_manager = CharacterOutlineManager(character_repository=self.char_repo)
+        self.character_editor_panel = CharacterEditor()
 
         # 3. Left Panel: Outline Stack
-        self.outline_stack = QWidget()
-        outline_layout = QVBoxLayout(self.outline_stack)
-        outline_layout.setContentsMargins(0, 0, 0, 0)
-        outline_layout.addWidget(self.chapter_outline_manager)
-        outline_layout.addWidget(self.lore_outline_manager)
+        self.outline_stack = QStackedWidget()
+        self.outline_stack.addWidget(self.chapter_outline_manager)
+        self.outline_stack.addWidget(self.lore_outline_manager)
+        self.outline_stack.addWidget(self.character_outline_manager)
         
         # 4. Right Panel: Editor Stack
-        self.editor_stack = QWidget()
-        editor_layout = QVBoxLayout(self.editor_stack)
-        editor_layout.setContentsMargins(0, 0, 0, 0)
-        editor_layout.addWidget(self.chapter_editor_panel)
-        editor_layout.addWidget(self.lore_editor_panel)
+        self.editor_stack = QStackedWidget()
+        self.editor_stack.addWidget(self.chapter_editor_panel)
+        self.editor_stack.addWidget(self.lore_editor_panel)
+        self.editor_stack.addWidget(self.character_editor_panel)
+
+        # Store the indices for the new QStackedWidget
+        self._chapter_index = 0
+        self._lore_index = 1
+        self._character_index = 2
 
         # 5. Main Splitter
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -192,6 +204,7 @@ class MainWindow(QMainWindow):
         # 6. Load Initial Data
         self.chapter_outline_manager.load_outline()
         self.lore_outline_manager.load_outline()
+        self.character_outline_manager.load_outline()
 
     def _setup_menu_bar(self) -> None:
         """Sets up the File, View, and Help menus."""
@@ -207,6 +220,10 @@ class MainWindow(QMainWindow):
         new_lore_action = QAction("New Lore Entry", self)
         new_lore_action.triggered.connect(self.lore_repo.create_lore_entry)
         file_menu.addAction(new_lore_action)
+
+        new_character_action = QAction("New Character", self)
+        new_character_action.triggered.connect(self.char_repo.create_character)
+        file_menu.addAction(new_character_action)
         
         file_menu.addSeparator()
 
@@ -249,6 +266,12 @@ class MainWindow(QMainWindow):
         self.view_lore_action.triggered.connect(lambda: self._switch_to_view(ViewType.LORE))
         view_menu.addAction(self.view_lore_action)
 
+        self.view_character_action = QAction("Character Outline", self)
+        self.view_character_action.setCheckable(True)
+        self.view_character_action.setChecked(self.current_view == ViewType.CHARACTER)
+        self.view_character_action.triggered.connect(lambda: self._switch_to_view(ViewType.CHARACTER))
+        view_menu.addAction(self.view_character_action)
+
         # --- Help Menu ---
         help_menu = menu_bar.addMenu("&Help")
         about_action = QAction("&About", self)
@@ -277,19 +300,23 @@ class MainWindow(QMainWindow):
         # The outline manager now signals the coordinator to load data
         self.chapter_outline_manager.chapter_selected.connect(self.coordinator.load_chapter)
         self.lore_outline_manager.lore_selected.connect(self.coordinator.load_lore)
+        self.character_outline_manager.char_selected.connect(self.coordinator.load_character)
         
         # Pre-change signal now checks for dirty state via the coordinator
         # The outlines emit pre_change, and the main window delegates the action
         self.chapter_outline_manager.pre_chapter_change.connect(self._check_save_before_change)
         self.lore_outline_manager.pre_lore_change.connect(self._check_save_before_change)
+        self.character_outline_manager.pre_char_change.connect(self._check_save_before_change)
         
         # --- Coordinator (Coordinator signal OUT -> Editor/UI slot IN) ---
         # The coordinator signals the editors when data is ready
         self.coordinator.chapter_loaded.connect(self._handle_chapter_loaded)
         self.coordinator.lore_loaded.connect(self._handle_lore_loaded)
+        self.coordinator.char_loaded.connect(self._handle_character_loaded)
         
         # The coordinator signals the outline to update title (relaying editor signal)
         self.coordinator.lore_title_updated_in_outline.connect(self._update_lore_outline_title)
+        self.coordinator.char_name_updated_in_ouline.connect(self._update_character_outline_name)
 
     # -------------------------------------------------------------------------
     # Logic Delegation / NEW Handlers
@@ -352,6 +379,31 @@ class MainWindow(QMainWindow):
                 self.lore_outline_manager.blockSignals(True)
                 item.setText(0, new_title)
                 self.lore_outline_manager.blockSignals(False)
+
+    def _handle_character_loaded(self, char_id: int, name: str, description: str, status: str) -> None:
+        """Receives loaded character data from coordinator and updates the editor/status."""
+        self.current_item_id = char_id
+
+        if not name:
+            self.character_editor_panel.set_enabled(False)
+            self.statusBar().showMessage(f"Error loading Character ID {char_id}.")
+            return
+        
+        self.character_editor_panel.load_character(char_id, name, description, status)
+        self.character_editor_panel.set_enabled(True)
+        self.character_editor_panel.mark_saved()
+        self.statusBar().showMessage(f"Lore Entry ID {char_id} selected and loaded.")
+
+    def _update_character_outline_name(self, char_id: int, new_name: str) -> None:
+        """Updates the name in the CharacterOutlineManager when the editor name changes (relayed by coordinator)."""
+        if self.current_view == ViewType.CHARACTER:
+            # Note: Outline Manager must have a helper method to find the item by ID
+            item = self.character_outline_manager.find_character_item_by_id(char_id)
+            if item and item.text(0) != new_name:
+                # Block signals to prevent _handle_item_renamed from firing back to the repo
+                self.character_outline_manager.blockSignals(True)
+                item.setText(0, new_name)
+                self.character_outline_manager.blockSignals(False)
     
     # -------------------------------------------------------------------------
     # I/O Handlers (Export/Settings)

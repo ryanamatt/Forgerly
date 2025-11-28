@@ -1,0 +1,28 @@
+1. Implement CharacterEditor (Implement it with Tabs)
+2. Create Relationship Map of Characters
+3. Create Tabs For Chapter Editing, Lore Editing so I can quicker switch between chapters or lore_entries better
+4. Real-Time Chapters Statistics (Word Count, Character Count, Read Time (Setting for Words PER minute))
+4. Allow for Lore_Entries to contain other Lore_Entries as sub-items
+5. Fast Switching between Editors using a Linked List like windows does with Alt+Tab
+6. Come up with what a Narrative Forge Project Folder should look like
+7. Create a Start Menu where user can create new project or open a project (Automatically Opens to last existing project if exists)
+8. Implement Autosave
+9. Implement UNDO/REDO
+10. Drag-And_Drop Lore_Entries including making sub-items and parent items
+11. Drag-And-Drop Chapter REORDER
+12. Inter-Entry Linking (Text in Chapter that exsits as Lore_Entries, Characters, etc. can be click
+on and open that charactacters editor and/or display a small window of info about that item.)
+13. Implement Locations Somehow
+14. Project Wide Statistics
+
+MUST DO BEFORE INITIAL RELEASE but not needed right now
+More Customization Options
+Add better exporting to more types (DOCX, PDF, etc.), and page size 
+Version Control (Use C++)
+Easy Switching between Multiple Projects (Recent Projects, etc.)
+
+Neat Things to Add in Future
+Add SpellChecker
+Allow User to import stuff
+Chronological Timeline View
+Typewriter Scrolling Mode
