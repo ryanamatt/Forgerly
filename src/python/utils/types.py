@@ -1,9 +1,9 @@
 # src/python/utils/types.py
 
-from typing import TypedDict, List, Tuple, Any
+from typing import TypedDict, List, Tuple, Dict, Any
 
 # Type Alias for a list of generic dictionary results (used frequently for SELECT * or partial data)
-DBRow = dict[str, Any]
+DBRow = Dict[str, Any]
 DBRowList = List[DBRow]
 
 # --- Chapter Repository Types ---

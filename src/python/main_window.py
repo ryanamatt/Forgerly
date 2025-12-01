@@ -15,6 +15,8 @@ from ui.views.lore_outline_manager import LoreOutlineManager
 from ui.views.lore_editor import LoreEditor
 from ui.views.character_outline_manager import CharacterOutlineManager
 from ui.views.character_editor import CharacterEditor
+from ui.views.relationship_outline_manager import RelationshipOutlineManager
+from ui.views.relationship_editor import RelationshipEditor
 from ui.dialogs.settings_dialog import SettingsDialog
 
 from db_connector import DBConnector
@@ -67,7 +69,7 @@ class MainWindow(QMainWindow):
 
         # State tracking now primarily managed by Coordinator, but keep a pointer to the ID for convenience
         self.current_item_id = 0 
-        self.current_view = ViewType.CHAPTER
+        self.current_view = ViewType.CHAPTER_EDITOR
 
         self._create_view_shortcut()
 
@@ -75,18 +77,20 @@ class MainWindow(QMainWindow):
         
         # NEW: Link editors to the coordinator using a dictionary map for scalability
         editor_map = {
-            ViewType.CHAPTER: self.chapter_editor_panel,
-            ViewType.LORE: self.lore_editor_panel,
-            ViewType.CHARACTER: self.character_editor_panel
+            ViewType.CHAPTER_EDITOR: self.chapter_editor_panel,
+            ViewType.LORE_EDITOR: self.lore_editor_panel,
+            ViewType.CHARACTER_EDITOR: self.character_editor_panel,
+            ViewType.RELATIONSHIP_GRAPH: self.relationship_editor_panel
         }
         self.coordinator.set_editors(editor_map)
+        self.coordinator.connect_signals()
 
         self._setup_menu_bar()
 
         self._connect_components()
 
         # Initially set the view to Chapters
-        self._switch_to_view(ViewType.CHAPTER)
+        self._switch_to_view(ViewType.CHAPTER_EDITOR)
 
     # -------------------------------------------------------------------------
     # System Events
@@ -116,7 +120,7 @@ class MainWindow(QMainWindow):
 
     def _toggle_view(self) -> None:
         """Toggles between the Chapter and Lore view."""
-        new_view = ViewType.LORE if self.current_view == ViewType.CHAPTER else ViewType.CHAPTER
+        new_view = ViewType.LORE_EDITOR if self.current_view == ViewType.CHAPTER_EDITOR else ViewType.CHAPTER_EDITOR
         self._switch_to_view(new_view)
 
     def _switch_to_view(self, view: ViewType) -> None:
@@ -133,26 +137,34 @@ class MainWindow(QMainWindow):
         # Determine the index for the QStackedWidgets
         view_index = -1
         match self.current_view:
-            case ViewType.CHAPTER:
+            case ViewType.CHAPTER_EDITOR:
                 view_index = self._chapter_index # Should be 0
-            case ViewType.LORE:
+            case ViewType.LORE_EDITOR:
                 view_index = self._lore_index    # Should be 1
-            case ViewType.CHARACTER:
+            case ViewType.CHARACTER_EDITOR:
                 view_index = self._character_index # Should be 2
+            case ViewType.RELATIONSHIP_GRAPH:
+                view_index = self._relationship_index # Should be 3
         
         # Switch the QStackedWidgets to the correct panel index
         if view_index != -1:
             self.outline_stack.setCurrentIndex(view_index)
             self.editor_stack.setCurrentIndex(view_index)
 
-        self.view_lore_action.setChecked(ViewType.LORE == self.current_view)
-        self.view_chapter_action.setChecked(ViewType.CHAPTER == self.current_view)
-        self.view_character_action.setChecked(ViewType.CHARACTER == self.current_view)
+        self.view_lore_action.setChecked(ViewType.LORE_EDITOR == self.current_view)
+        self.view_chapter_action.setChecked(ViewType.CHAPTER_EDITOR == self.current_view)
+        self.view_character_action.setChecked(ViewType.CHARACTER_EDITOR == self.current_view)
+        self.view_relationship_action.setChecked(ViewType.RELATIONSHIP_GRAPH == self.current_view)
         
         # 4. Disable the newly visible editor until an item is selected
         editor = self.coordinator.get_current_editor()
         if editor:
-            editor.set_enabled(False)
+            # We don't disable the relationship editor, as it loads its own content
+            if self.current_view != ViewType.RELATIONSHIP_GRAPH:
+                editor.set_enabled(False)
+            # If it's the graph view, trigger a load (also handled in set_current_view)
+            else:
+                self.relationship_editor_panel.request_load_data.emit()
 
     # -------------------------------------------------------------------------
     # UI Setup
@@ -165,7 +177,8 @@ class MainWindow(QMainWindow):
         # Note: Outline Managers now only handle C/U/D, the Coordinator handles R/Update.
         self.chapter_repo = self.coordinator.chapter_repo
         self.lore_repo = self.coordinator.lore_repo
-        self.char_repo = self.coordinator.char_repo
+        self.char_repo = self.coordinator.character_repo
+        self.relationship_repo = self.coordinator.relationship_repo
         
         # 2. Instantiate Main Components
         self.chapter_outline_manager = ChapterOutlineManager(chapter_repository=self.chapter_repo)
@@ -174,23 +187,28 @@ class MainWindow(QMainWindow):
         self.lore_editor_panel = LoreEditor()
         self.character_outline_manager = CharacterOutlineManager(character_repository=self.char_repo)
         self.character_editor_panel = CharacterEditor()
+        self.relationship_outline_manager = RelationshipOutlineManager(relationship_repository=self.relationship_repo)
+        self.relationship_editor_panel = RelationshipEditor(coordinator=self.coordinator)
 
         # 3. Left Panel: Outline Stack
         self.outline_stack = QStackedWidget()
         self.outline_stack.addWidget(self.chapter_outline_manager)
         self.outline_stack.addWidget(self.lore_outline_manager)
         self.outline_stack.addWidget(self.character_outline_manager)
+        self.outline_stack.addWidget(self.relationship_outline_manager)
         
         # 4. Right Panel: Editor Stack
         self.editor_stack = QStackedWidget()
         self.editor_stack.addWidget(self.chapter_editor_panel)
         self.editor_stack.addWidget(self.lore_editor_panel)
         self.editor_stack.addWidget(self.character_editor_panel)
+        self.editor_stack.addWidget(self.relationship_editor_panel)
 
         # Store the indices for the new QStackedWidget
         self._chapter_index = 0
         self._lore_index = 1
         self._character_index = 2
+        self._relationship_index = 3
 
         # 5. Main Splitter
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -205,6 +223,9 @@ class MainWindow(QMainWindow):
         self.chapter_outline_manager.load_outline()
         self.lore_outline_manager.load_outline()
         self.character_outline_manager.load_outline()
+
+        # Initialize relationship editor's signals
+        self.relationship_editor_panel.set_coordinator_signals(self.coordinator)
 
     def _setup_menu_bar(self) -> None:
         """Sets up the File, View, and Help menus."""
@@ -254,23 +275,35 @@ class MainWindow(QMainWindow):
         # --- View Menu ---
         view_menu = menu_bar.addMenu("&View")
 
+        # Chapter Outline View Action
         self.view_chapter_action = QAction("Chapter Outline", self)
         self.view_chapter_action.setCheckable(True)
-        self.view_chapter_action.setChecked(self.current_view == ViewType.CHAPTER)
-        self.view_chapter_action.triggered.connect(lambda: self._switch_to_view(ViewType.CHAPTER))
+        self.view_chapter_action.setChecked(self.current_view == ViewType.CHAPTER_EDITOR)
+        self.view_chapter_action.triggered.connect(lambda: self._switch_to_view(ViewType.CHAPTER_EDITOR))
         view_menu.addAction(self.view_chapter_action)
 
+        # Lore Outline View Action
         self.view_lore_action = QAction("Lore Outline", self)
         self.view_lore_action.setCheckable(True)
-        self.view_lore_action.setChecked(self.current_view == ViewType.LORE)
-        self.view_lore_action.triggered.connect(lambda: self._switch_to_view(ViewType.LORE))
+        self.view_lore_action.setChecked(self.current_view == ViewType.LORE_EDITOR)
+        self.view_lore_action.triggered.connect(lambda: self._switch_to_view(ViewType.LORE_EDITOR))
         view_menu.addAction(self.view_lore_action)
 
+        # Character Outline View Action
         self.view_character_action = QAction("Character Outline", self)
         self.view_character_action.setCheckable(True)
-        self.view_character_action.setChecked(self.current_view == ViewType.CHARACTER)
-        self.view_character_action.triggered.connect(lambda: self._switch_to_view(ViewType.CHARACTER))
+        self.view_character_action.setChecked(self.current_view == ViewType.CHARACTER_EDITOR)
+        self.view_character_action.triggered.connect(lambda: self._switch_to_view(ViewType.CHARACTER_EDITOR))
         view_menu.addAction(self.view_character_action)
+
+        view_menu.addSeparator()
+
+        # Relationship Graph View Action
+        self.view_relationship_action = QAction("Relationship Graph", self)
+        self.view_relationship_action.setCheckable(True)
+        self.view_relationship_action.setChecked(self.current_view == ViewType.RELATIONSHIP_GRAPH)
+        self.view_relationship_action.triggered.connect(lambda: self._switch_to_view(ViewType.RELATIONSHIP_GRAPH))
+        view_menu.addAction(self.view_relationship_action)
 
         # --- Help Menu ---
         help_menu = menu_bar.addMenu("&Help")
@@ -313,13 +346,16 @@ class MainWindow(QMainWindow):
         self.coordinator.chapter_loaded.connect(self._handle_chapter_loaded)
         self.coordinator.lore_loaded.connect(self._handle_lore_loaded)
         self.coordinator.char_loaded.connect(self._handle_character_loaded)
+        self.coordinator.graph_data_loaded.connect(self.relationship_editor_panel.load_graph)
         
         # The coordinator signals the outline to update title (relaying editor signal)
         self.coordinator.lore_title_updated_in_outline.connect(self._update_lore_outline_title)
         self.coordinator.char_name_updated_in_ouline.connect(self._update_character_outline_name)
 
+        self.relationship_outline_manager.relationship_types_updated.connect(self.coordinator.reload_relationship_graph_data)
+
     # -------------------------------------------------------------------------
-    # Logic Delegation / NEW Handlers
+    # Logic Delegation / Handlers
     # -------------------------------------------------------------------------
 
     def _check_save_before_change(self) -> bool:
@@ -335,7 +371,7 @@ class MainWindow(QMainWindow):
         view = self.coordinator.current_view
         
         if self.coordinator.save_current_item(item_id, view, parent=self):
-            item_type = 'Chapter' if view == ViewType.CHAPTER else 'Lore Entry'
+            item_type = 'Chapter' if view == ViewType.CHAPTER_EDITOR else 'Lore Entry'
             self.statusBar().showMessage(f"{item_type} ID {item_id} saved successfully.", 3000)
         # Note: Error messages are handled by the Coordinator via QMessageBox.
 
@@ -371,7 +407,7 @@ class MainWindow(QMainWindow):
 
     def _update_lore_outline_title(self, lore_id: int, new_title: str) -> None:
         """Updates the title in the LoreOutlineManager when the editor title changes (relayed by coordinator)."""
-        if self.current_view == ViewType.LORE:
+        if self.current_view == ViewType.LORE_EDITOR:
             # Note: Outline Manager must have a helper method to find the item by ID
             item = self.lore_outline_manager.find_lore_item_by_id(lore_id)
             if item and item.text(0) != new_title:
@@ -396,7 +432,7 @@ class MainWindow(QMainWindow):
 
     def _update_character_outline_name(self, char_id: int, new_name: str) -> None:
         """Updates the name in the CharacterOutlineManager when the editor name changes (relayed by coordinator)."""
-        if self.current_view == ViewType.CHARACTER:
+        if self.current_view == ViewType.CHARACTER_EDITOR:
             # Note: Outline Manager must have a helper method to find the item by ID
             item = self.character_outline_manager.find_character_item_by_id(char_id)
             if item and item.text(0) != new_name:
