@@ -1,4 +1,3 @@
-1. Create Relationship Map of Characters
 2. Create Tabs For Chapter Editing, Lore Editing, Character Editing so I can quicker switch between chapters or lore_entries better
 3. Real-Time Chapters Statistics (Word Count, Character Count, Read Time (Setting for Words PER minute))
 4. Allow for Lore_Entries to contain other Lore_Entries as sub-items

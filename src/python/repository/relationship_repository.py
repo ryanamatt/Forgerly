@@ -53,18 +53,18 @@ class RelationshipRepository:
         return self.db._execute_query(query, fetch_all=True)
     
     def create_relationship(self, char_a_id: int, char_b_id: int, type_id: int, lore_id: int | None = None,
-                            description: str = "", intensity: int = 5, start_chapter_id: int | None = None, 
+                            description: str = "", intensity: int = 50, start_chapter_id: int | None = None, 
                             end_chapter_id: int | None = None) -> int | None:
         """
         Creates a new character relationship using the Relationship Type ID and returns its ID.
         """
         query = """
         INSERT INTO Character_Relationships
-        (Character_A_ID, Character_B_ID, Type_ID, Lore_ID, Description, Intensity, Start_Chapter_ID. End_Chapter_ID)
+        (Character_A_ID, Character_B_ID, Type_ID, Lore_ID, Description, Intensity, Start_Chapter_ID, End_Chapter_ID)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         """
         params = (char_a_id, char_b_id, type_id, lore_id, description, intensity, start_chapter_id, end_chapter_id)
-        self.db._execute_commit(query, params, fetch_id=True)
+        return self.db._execute_commit(query, params, fetch_id=True)
 
     def delete_relationship(self, relationship_id: int) -> bool:
         """Deletes a relationship and returns its True if successfull, False otherwise"""
@@ -107,9 +107,9 @@ class RelationshipRepository:
             Is_Hidden
         FROM Character_Node_Positions;
         """
-        self.db._execute_query(query, fetch_all=True)
+        return self.db._execute_query(query, fetch_all=True)
 
-    def save_node_attributes(self, character_id: int, x_pos: int, y_pos: int, 
+    def save_node_attributes(self, character_id: int, x_pos: float, y_pos: float, 
                            node_color: str, node_shape: str, is_hidden: int) -> bool:
         """
         Saves or updates the position and visual attributes of a character node.
@@ -134,7 +134,16 @@ class RelationshipRepository:
         FROM Relationship_Types
         ORDER BY Type_Name ASC;
         """
-        self.db._execute_query(query, fetch_all=True)
+        return self.db._execute_query(query, fetch_all=True)
+    
+    def get_relationship_type_details(self, type_id: int) -> DBRow | None:
+        """Retrives the full details for a specfic relationship type given ID."""
+        query = """
+        SELECT ID, Type_Name, Short_Label, Default_Color, Is_Directed, Line_Style
+        FROM Relationship_Types
+        WHERE ID = ?;
+        """
+        return self.db._execute_query(query, (type_id,), fetch_one=True)
 
     def create_relationship_type(self, type_name: str, short_label: str = "", default_color: str = "", is_directed: int = 0, line_style: str = "Solid") -> int | None:
         """Creates a new relationship type and returns its id if successfully, otherwise returns None"""
@@ -143,10 +152,10 @@ class RelationshipRepository:
         (Type_Name, Short_Label, Default_Color, Is_Directed, Line_Style)
         VALUES (?, ?, ?, ?, ?);
         """
-        params = (TypeError, short_label, default_color, is_directed, line_style)
-        self.db._execute_commit(query, params)
+        params = (type_name, short_label, default_color, is_directed, line_style)
+        return self.db._execute_commit(query, params)
 
-    def update_relationship_type(self, type_id: int, type_name: str, short_label: str, default_color: str, is_directed, line_style: str) -> bool:
+    def update_relationship_type(self, type_id: int, type_name: str, short_label: str, default_color: str, is_directed: int, line_style: str) -> bool:
         """Updates an existing relationship type. Returns True if successfull, otherwise False"""
         query = """
         UPDATE Relationship_Types SET
@@ -158,9 +167,9 @@ class RelationshipRepository:
         WHERE ID = ?;
         """
         params = (type_name, short_label, default_color, is_directed, line_style, type_id)
-        self.db._execute_commit(query, params)
+        return self.db._execute_commit(query, params)
 
     def delete_relationship_type(self, type_id: int) -> bool:
         """Deletes a relationship type based on its ID. Returns True if successful, otherwise False"""
         query = "DELETE FROM Relationship_Types WHERE ID = ?;"
-        self.db._execute_commit(query, (type_id,))
+        return self.db._execute_commit(query, (type_id,))

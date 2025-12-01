@@ -179,7 +179,7 @@ CREATE TABLE IF NOT EXISTS Character_Relationships (
     Type_ID                 INTEGER NOT NULL,   -- e.g., "Rivalry", "Family", "Mentor/Student"
     Lore_ID                 INTEGER,   -- Links relationship to a contextual Lore Entry
     Description             TEXT,
-    Intensity               INTEGER DEFAULT 5,  -- Numberical Score (1, 10) for line thickness
+    Intensity               INTEGER DEFAULT 50,  -- Numberical Score (1, 100) for line thickness
     Start_Chapter_ID        INTEGER,            -- When the relationship began
     End_Chapter_ID          INTEGER ,           -- When the relationship ended 
 
@@ -198,8 +198,8 @@ CREATE TABLE IF NOT EXISTS Character_Relationships (
 -- CHARACTER_NODE_POSITIONS: Stores the character's last known position on the graph.
 CREATE TABLE IF NOT EXISTS Character_Node_Positions (
     Character_ID            INTEGER PRIMARY KEY,
-    X_Position              INTEGER NOT NULL,
-    Y_Position              INTEGER NOT NULL,
+    X_Position              FLOAT NOT NULL,
+    Y_Position              FLOAT NOT NULL,
     Node_Color              TEXT DEFAULT '#FFFFFF',
     Node_Shape              TEXT DEFAULT 'Circle',
     Is_Hidden               INTEGER DEFAULT 0, -- BOOLEAN

@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 
 # --- Configuration ---
-VERSION_FILE_PATH = Path("src/python/_version.py")
+VERSION_FILE_PATH = Path("src/python/utils/_version.py")
 VERSION_VARIABLE_NAME = "__version__"
 # Regex to find the version string
 VERSION_REGEX = r'^{0}\s*=\s*["\'](?P<version>[\d\.]+)(?P<prerelease>.*?)["\']$'.format(VERSION_VARIABLE_NAME)
