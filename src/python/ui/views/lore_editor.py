@@ -7,8 +7,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Any
 
-from ui.widgets.tag_widget import TagManagerWidget
-from ui.widgets.rich_text_editor import RichTextEditor
+from ...ui.widgets.tag_widget import TagManagerWidget
+from ...ui.widgets.rich_text_editor import RichTextEditor
 
 class LoreEditor(QWidget):
     """

@@ -9,7 +9,7 @@ from PyQt6.QtGui import QColor
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from repository.relationship_repository import RelationshipRepository
+    from ...repository.relationship_repository import RelationshipRepository
 
 # Define the role for storing the custom data (Relationship Type ID)
 RELATIONSHIP_TYPE_ID_ROLE = Qt.ItemDataRole.UserRole + 1

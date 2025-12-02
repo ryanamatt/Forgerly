@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 
-from repository.lore_repository import LoreRepository
+from ...repository.lore_repository import LoreRepository
 
 # Define the roles for the custom data we want to store in the QTreeWidget
 # This makes it easy to retrieve the Lore Entry ID associated with a clicked item.

@@ -9,25 +9,25 @@ from PyQt6.QtGui import QCloseEvent, QAction, QTextDocument, QIcon
 import os
 import ctypes
 
-from ui.views.chapter_outline_manager import ChapterOutlineManager
-from ui.views.chapter_editor import ChapterEditor
-from ui.views.lore_outline_manager import LoreOutlineManager
-from ui.views.lore_editor import LoreEditor
-from ui.views.character_outline_manager import CharacterOutlineManager
-from ui.views.character_editor import CharacterEditor
-from ui.views.relationship_outline_manager import RelationshipOutlineManager
-from ui.views.relationship_editor import RelationshipEditor
-from ui.dialogs.settings_dialog import SettingsDialog
+from .ui.views.chapter_outline_manager import ChapterOutlineManager
+from .ui.views.chapter_editor import ChapterEditor
+from .ui.views.lore_outline_manager import LoreOutlineManager
+from .ui.views.lore_editor import LoreEditor
+from .ui.views.character_outline_manager import CharacterOutlineManager
+from .ui.views.character_editor import CharacterEditor
+from .ui.views.relationship_outline_manager import RelationshipOutlineManager
+from .ui.views.relationship_editor import RelationshipEditor
+from .ui.dialogs.settings_dialog import SettingsDialog
 
-from db_connector import DBConnector
+from .db_connector import DBConnector
 
-from services.settings_manager import SettingsManager
-from services.app_coordinator import AppCoordinator
-from services.story_exporter import StoryExporter
+from .services.settings_manager import SettingsManager
+from .services.app_coordinator import AppCoordinator
+from .services.story_exporter import StoryExporter
 
-from utils._version import __version__
-from utils.theme_utils import apply_theme
-from utils.constants import ViewType
+from .utils._version import __version__
+from .utils.theme_utils import apply_theme
+from .utils.constants import ViewType
 
 class MainWindow(QMainWindow):
     """

@@ -3,21 +3,21 @@
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QMessageBox
 
-from db_connector import DBConnector
-from repository.chapter_repository import ChapterRepository
-from repository.lore_repository import LoreRepository
-from repository.tag_repository import TagRepository
-from repository.character_repository import CharacterRepository
-from repository.relationship_repository import RelationshipRepository
+from ..db_connector import DBConnector
+from ..repository.chapter_repository import ChapterRepository
+from ..repository.lore_repository import LoreRepository
+from ..repository.tag_repository import TagRepository
+from ..repository.character_repository import CharacterRepository
+from ..repository.relationship_repository import RelationshipRepository
 
-from utils.constants import ViewType
+from ..utils.constants import ViewType
 
 from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
-    from ui.views.chapter_editor import ChapterEditor
-    from ui.views.lore_editor import LoreEditor
-    from ui.views.character_editor import CharacterEditor
-    from ui.views.relationship_editor import RelationshipEditor
+    from ..ui.views.chapter_editor import ChapterEditor
+    from ..ui.views.lore_editor import LoreEditor
+    from ..ui.views.character_editor import CharacterEditor
+    from ..ui.views.relationship_editor import RelationshipEditor
 
 class AppCoordinator(QObject):
     """

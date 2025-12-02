@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Any
 
-from ui.widgets.rich_text_editor import RichTextEditor
+from ...ui.widgets.rich_text_editor import RichTextEditor
 
 class CharacterEditor(QWidget):
     """

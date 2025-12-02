@@ -1,9 +1,9 @@
 # src/python/repository/character_repository
 
-from utils.types import DBRowList
+from ..utils.types import DBRowList
 from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
-    from db_connector import DBConnector
+    from ..db_connector import DBConnector
 
 class CharacterRepository:
     """

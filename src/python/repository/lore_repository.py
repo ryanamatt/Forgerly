@@ -1,9 +1,9 @@
 # src/python/lore_repository.py
 
-from utils.types import LoreEntryDict, LoreSearchResultDict, DBRowList
+from ..utils.types import LoreEntryDict, LoreSearchResultDict, DBRowList
 from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
-    from db_connector import DBConnector
+    from ..db_connector import DBConnector
 
 class LoreRepository:
     """

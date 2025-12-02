@@ -1,9 +1,9 @@
 # src/python/repository/relationship_repository.py
 
-from utils.types import DBRow, DBRowList
+from ..utils.types import DBRow, DBRowList
 from typing import Any, TYPE_CHECKING
 if TYPE_CHECKING:
-    from db_connector import DBConnector
+    from ..db_connector import DBConnector
 
 class RelationshipRepository:
     """

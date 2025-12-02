@@ -1,9 +1,9 @@
 # src/python/chapter_repository.py
 
-from utils.types import ChapterContentDict, ChapterBasicDict
+from ..utils.types import ChapterContentDict, ChapterBasicDict
 from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
-    from db_connector import DBConnector
+    from ..db_connector import DBConnector
 
 class ChapterRepository:
     """

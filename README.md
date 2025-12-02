@@ -2,13 +2,15 @@
 
 ## Requirements
 
-Python 3.14
+Python 3.14.0
 
-See requirements.txt for all libraries
+PyQt6 6.10.0
 
 ## Run
 
-python src/python/main.py
+pip install -r requirements.txt
+
+python -m src.python.main
 
 ## DB Diagram Link
 

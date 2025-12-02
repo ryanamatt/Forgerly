@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 
-from repository.character_repository import CharacterRepository
+from ...repository.character_repository import CharacterRepository
 
 # Define the roles for the custom data we want to store in the QTreeWidget
 # This makes it easy to retrieve the Chapter ID associated with a clicked item.

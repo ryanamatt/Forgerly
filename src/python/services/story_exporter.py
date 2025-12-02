@@ -5,7 +5,7 @@ from PyQt6.QtGui import QTextDocument
 
 # The StoryExporter needs access to the AppCoordinator's method 
 # to fetch all the necessary chapter data.
-from services.app_coordinator import AppCoordinator
+from ..services.app_coordinator import AppCoordinator
 
 class StoryExporter:
     """
