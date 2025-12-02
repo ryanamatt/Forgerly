@@ -13,14 +13,8 @@ class Exporter(ABC):
     def __init__(self, coordinator: AppCoordinator) -> None:
         self.coordinator = coordinator
 
-        self.chapters_export_formats = [
-            '.html',
-            '.md',
-            '.txt'
-        ]
-
     @abstractmethod
-    def export(self, parent: QWidget) -> bool:
+    def export(self, parent: QWidget, selected_ids: list[int] = []) -> bool:
         return
     
     @abstractmethod

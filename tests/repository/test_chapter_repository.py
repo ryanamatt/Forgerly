@@ -108,3 +108,89 @@ def test_delete_chapter(chapter_repo: ChapterRepository):
     # 3. Verify deletion
     assert success is True
     assert chapter_repo.get_chapter_title(chapter_id) is None
+
+def test_get_all_chapters_for_export_all(chapter_repo: ChapterRepository):
+    """
+    Tests retrieval of all chapters for export (no ID filter) and ensures correct ordering.
+    NOTE: Assuming no Tags are returned, as no JOIN is implemented in the current repo logic.
+    """
+    # Setup
+    c2_id = chapter_repo.create_chapter("Chapter Two", 2)
+    c1_id = chapter_repo.create_chapter("Chapter One", 1)
+    c3_id = chapter_repo.create_chapter("Chapter Three", 3)
+    
+    # Act
+    chapters = chapter_repo.get_all_chapters_for_export()
+    
+    # Assert
+    assert len(chapters) == 3
+    # Check ordering by Sort_Order
+    assert chapters[0]['ID'] == c1_id
+    assert chapters[0]['Title'] == "Chapter One"
+    assert chapters[2]['ID'] == c3_id
+    
+    # Check required fields are present (simplified for this test)
+    assert 'Text_Content' in chapters[0]
+    assert chapters[0]['Text_Content'] == "<p></p>"
+    assert 'Sort_Order' in chapters[0]
+
+def test_get_all_chapters_for_export_filtered(chapter_repo: ChapterRepository):
+    """Tests retrieval of a specific subset of chapters using ID filtering."""
+    # Setup
+    c1_id = chapter_repo.create_chapter("Chapter Alpha", 10)
+    c2_id = chapter_repo.create_chapter("Chapter Beta", 20)
+    c3_id = chapter_repo.create_chapter("Chapter Gamma", 30)
+    
+    # Act: Filter for Beta and Alpha, but request Beta first (should still return Alpha first due to Sort_Order)
+    chapters = chapter_repo.get_all_chapters_for_export(chapter_ids=[c2_id, c1_id])
+    
+    # Assert
+    assert len(chapters) == 2
+    
+    # Check that only the requested chapters are present, and they are still ordered by Sort_Order (10, then 20)
+    assert chapters[0]['ID'] == c1_id
+    assert chapters[0]['Sort_Order'] == 10
+    assert chapters[1]['ID'] == c2_id
+    assert chapters[1]['Sort_Order'] == 20
+    
+    # Ensure Chapter Gamma (c3_id) was excluded
+    assert c3_id not in [c['ID'] for c in chapters]
+
+# --- Test for reorder_chapters ---
+
+def test_reorder_chapters_success(chapter_repo: ChapterRepository):
+    """Tests reordering of chapters using the transaction-based update."""
+    # Setup: Create chapters with initial order 1, 2, 3
+    c1_id = chapter_repo.create_chapter("Chap One", 1)
+    c2_id = chapter_repo.create_chapter("Chap Two", 2)
+    c3_id = chapter_repo.create_chapter("Chap Three", 3)
+
+    # 1. Verify initial order
+    initial_chapters = chapter_repo.get_all_chapters()
+    assert initial_chapters[0]['ID'] == c1_id
+    assert initial_chapters[2]['ID'] == c3_id
+
+    # Define the new desired order: 3, 1, 2 (new Sort_Order 1, 2, 3 respectively)
+    reorder_operations = [
+        (c3_id, 1), # Chapter 3 moves to Sort_Order 1
+        (c1_id, 2), # Chapter 1 moves to Sort_Order 2
+        (c2_id, 3), # Chapter 2 moves to Sort_Order 3
+    ]
+    
+    # Act: Reorder
+    success = chapter_repo.reorder_chapters(reorder_operations)
+    
+    # Assert
+    assert success is True
+    
+    # Verify the new order
+    reordered_chapters = chapter_repo.get_all_chapters()
+    
+    assert len(reordered_chapters) == 3
+    # Check the new sequence: c3_id -> c1_id -> c2_id
+    assert reordered_chapters[0]['ID'] == c3_id
+    assert reordered_chapters[0]['Sort_Order'] == 1
+    assert reordered_chapters[1]['ID'] == c1_id
+    assert reordered_chapters[1]['Sort_Order'] == 2
+    assert reordered_chapters[2]['ID'] == c2_id
+    assert reordered_chapters[2]['Sort_Order'] == 3

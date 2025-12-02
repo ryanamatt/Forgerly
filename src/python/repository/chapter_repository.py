@@ -71,3 +71,58 @@ class ChapterRepository:
         """Updates the Chapter title by Chapter ID"""
         query = "UPDATE Chapters SET Title = ? WHERE ID = ?;"
         return self.db._execute_commit(query, (title, chapter_id))
+    
+    def get_all_chapters_for_export(self, chapter_ids: list[int] = None) -> list[dict]:
+        """
+        Retrieves chapter details (ID, Title, Content, Sort_Order) for export purposes,
+        optionally filtered by a list of IDs.
+        """
+        query = """
+        SELECT ID, Title, Text_Content, Sort_Order
+        FROM Chapters
+        """
+        params = ()
+
+        # 1. Modify the query if specific IDs are requested
+        if chapter_ids is not None and chapter_ids:
+            # Ensure IDs are unique and sorted for consistent query execution
+            unique_ids = sorted(list(set(chapter_ids))) 
+            
+            # Create placeholders for the IN clause (e.g., ?, ?, ?)
+            placeholders = ', '.join(['?'] * len(unique_ids))
+            
+            query += f" WHERE ID IN ({placeholders})"
+            # The IDs become the parameters for the query
+            params = tuple(unique_ids)
+
+        # 2. Add final ordering clause
+        query += " ORDER BY Sort_Order ASC;"
+
+        # 3. Execute the query using the DBConnector helper method
+        results = self.db._execute_query(query, params, fetch_all=True)
+
+        return results if results else []
+
+        return results if results else []
+    
+    def reorder_chapters(self, chapter_updates: list[tuple[int, int]]) -> bool:
+        """
+        Updates the Sort_Order for multiple chapters in a single, atomic transaction.
+
+        Args:
+            chapter_updates: A list of tuples, where each tuple is
+                             (chapter_id, new_sort_order).
+
+        Returns:
+            True if all updates succeed and the transaction commits, False otherwise.
+        """
+        query = "UPDATE Chapters SET Sort_Order = ? WHERE ID = ?;"
+        
+        # Each operation is a tuple: (sql_query_string, parameters_tuple)
+        operations = []
+        for chapter_id, new_sort_order in chapter_updates:
+            # parameters are (new_sort_order, chapter_id) to match the SQL template
+            operations.append((query, (new_sort_order, chapter_id)))
+
+        # Execute all operations in a single transaction
+        return self.db._execute_transaction(operations)

@@ -1,17 +1,52 @@
-# Narrative Forge
+# ✍️ Narrative Forge
 
-## Requirements
+Narrative Forge is a comprehensive desktop application designed to assist **authors, storytellers, and worldbuilders** in organizing and developing their fictional universes. Built using **Python** and **PyQt6**, it provides dedicated tools for managing chapters, characters, lore, and the relationships between them.
 
-Python 3.14.0
+---
 
-PyQt6 6.10.0
+## 🛠️ Requirements
 
-## Run
+* **Python:** 3.14.0
+* **GUI Framework:** PyQt6 6.10.0
 
-pip install -r requirements.txt
+---
 
-python -m src.python.main
+## ✨ Key Features
 
-## DB Diagram Link
+The application provides specialized views and editors to manage all aspects of your story:
 
-[Database LINK](https://dbdiagram.io/d/NarrativeForge-692603ec7d9416ddff179d8c)
+* **Chapter Management:** Outline and edit chapters.
+* **Character Profiles:** Create and manage detailed character profiles.
+* **Lore/Worldbuilding Editor:** Document and organize your world's history, locations, and other lore elements.
+* **Relationship Mapping:** Define and track the connections and relationships between characters and lore.
+* **Tagging System:** Apply tags to various entities for easy organization and filtering.
+* **Data Export:** Export your story data into a shareable format (e.g., Markdown or text).
+* **Theming:** Supports custom themes, including **Dark**, **Light**, and **Green** styles.
+
+---
+
+## 🚀 Run
+
+Follow these steps to set up and run the application:
+
+### Installation
+
+1.**Clone the Repository** (if not already done).
+2.**Install Dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+### Execution
+
+Run the application directly from the main module:
+    ```bash
+    python -m src.python.main
+    ```
+
+
+## Database
+
+This application uses an SQLite Database to manager a project.
+
+See Schema in docs/EntityRelationshipDiagram or Click [Here](https://dbdiagram.io/d/NarrativeForge-692603ec7d9416ddff179d8c)

@@ -6,3 +6,38 @@ class ViewType:
     LORE_EDITOR = 2
     CHARACTER_EDITOR = 3
     RELATIONSHIP_GRAPH = 4
+
+# A set of supported file extensions
+class FileFormats:
+    """Defines the supported file formats for Import/Export operations."""
+
+    # Text/Reading Formats
+    HTML = ".html"
+    MARKDOWN = ".md"
+    PLAIN_TEXT = ".txt"
+    EPUB = ".epub"
+    PDF = ".pdf"
+
+    # Structured Data/Backup Formats
+    JSON = ".json"
+    YAML = ".yaml"
+
+    # List of all Structured Formats
+    STRUCTURED_FORMATS = [JSON, YAML]
+
+    # List of all human-readable/presentation formats
+    PRESENTATION_FORMATS = [HTML, MARKDOWN, PLAIN_TEXT, EPUB]
+
+    # List of all Suppored Formats
+    ALL = STRUCTURED_FORMATS + PRESENTATION_FORMATS
+
+# Helper function for generating PyQt file filter strings
+def generate_file_filter(formats: list[str]) -> str:
+    """Generates a QFileDialog filter string from a list of extensions."""
+    filters = []
+    for ext in formats:
+        # Example: "HTML Documents (*.html)"
+        name = ext.strip('.').upper()
+        filters.append(f"{name} Documents (*{ext})")
+    
+    return ";;".join(filters)

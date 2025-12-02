@@ -18,6 +18,7 @@ from .ui.views.character_editor import CharacterEditor
 from .ui.views.relationship_outline_manager import RelationshipOutlineManager
 from .ui.views.relationship_editor import RelationshipEditor
 from .ui.dialogs.settings_dialog import SettingsDialog
+from .ui.dialogs.exporter_dialog import ExporterDialog, ExportType
 
 from .db_connector import DBConnector
 
@@ -450,17 +451,53 @@ class MainWindow(QMainWindow):
 
     def _export(self) -> None:
         """
-        Handles the export action by delegating the entire process to the 
-        StoryExporter after checking for unsaved changes.
+        Handles the export action by opening the ExporterDialog to let the user 
+        choose what to export and then delegating the process.
         """
         # 1. Check for unsaved changes before exporting
         if not self.coordinator.check_and_save_dirty(parent=self):
             return
         
-        # 2. Pass control to the StoryExporter
-        if self.story_exporter.export(parent=self):
-            self.statusBar().showMessage("Story exported successfully.", 5000)
+        # 2. Open the new ExporterDialog
+        dialog = ExporterDialog(parent=self)
         
+        # Connect the signal from the dialog to a slot in the main window
+        dialog.export_requested.connect(self._perform_export)
+
+        dialog.exec()
+        # Dialog is closed and the signal is handled by _perform_export if accepted
+        
+    def _perform_export(self, export_type: str, selected_ids: list) -> None:
+        """
+        Delegates the export task based on the type selected in the dialog.
+        
+        Args:
+            export_type (str): The type of content to export (e.g., 'Story (All Chapters)').
+            selected_ids (list): A list of integer IDs for selected items (empty for full story).
+        """
+        success = False
+        
+        # You will expand this logic when you introduce other specific exporters
+        match export_type:
+            case ExportType.STORY | ExportType.CHAPTERS:
+                if export_type == ExportType.STORY:
+                    success = self.story_exporter.export(parent=self)
+                else:
+                    if selected_ids:
+                        success = self.story_exporter.export(parent=self, selected_ids=selected_ids)
+                    else:
+                        QMessageBox.warning(self, "Export Error", "No chapters were selected for export.")
+            
+            case ExportType.LORE:
+                QMessageBox.warning(self, "Not Implemented", "Exporting selected Lore Entries is not yet implemented.")
+            case ExportType.CHARACTERS:
+                QMessageBox.warning(self, "Not Implemented", "Exporting selected Characters is not yet implemented.")
+            case _:
+                QMessageBox.critical(self, "Export Error", f"Unknown export type: {export_type}")
+                
+        
+        if success:
+            self.statusBar().showMessage(f"{export_type} exported successfully.", 5000)
 
     def _open_settings_dialog(self) -> None:
         """Handles opening the settings dialog and applying changes."""
