@@ -44,7 +44,7 @@ class CharacterRepository:
 
     def delete_character(self, char_id) -> bool:
         """Deletes a character and returns its success"""
-        query = "DELETE Characters WHERE ID = ?;"
+        query = "DELETE FROM Characters WHERE ID = ?;"
         return self.db._execute_commit(query, (char_id,))
     
     def get_character_name(self, char_id) -> str | None:
@@ -56,7 +56,7 @@ class CharacterRepository:
     def search_characters(self, user_query: str) -> list[dict] | None:
         """
         Accepts a keyword query and performs a hybrid search:
-        1. FTS on Name, Status (ranked results).
+        1. Search on Name, Status (ranked results).
         2. Merges and deduplicates the results, prioritizing FTS rank.
         """
 
@@ -68,12 +68,12 @@ class CharacterRepository:
         like_pattern = f'%{clean_query}%'
 
         query = """
-        SELECT DISTINCT C.ID, C.Name, C.Status
-        FROM Characters AS C
+        SELECT DISTINCT ID, Name, Status
+        FROM Characters
         WHERE
-            C.Name LIKE ? OR
-            LE.Status LIKE ? OR
-        ORDER BY C.Name ASC;
+            Name LIKE ? OR
+            Status LIKE ?
+        ORDER BY Name ASC;
         """
-        params = (like_pattern, like_pattern, like_pattern, like_pattern)
+        params = (like_pattern, like_pattern)
         return self.db._execute_query(query, params, fetch_all=True)

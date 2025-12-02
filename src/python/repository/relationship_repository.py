@@ -69,7 +69,7 @@ class RelationshipRepository:
     def delete_relationship(self, relationship_id: int) -> bool:
         """Deletes a relationship and returns its True if successfull, False otherwise"""
         query = "DELETE FROM Character_Relationships WHERE ID = ?;"
-        self.db._execute_commit(query, (relationship_id,))
+        return self.db._execute_commit(query, (relationship_id,))
 
     def update_relationship_details(self, relationship_id: int, type_id: int, description: str, 
                                     intensity: int, lore_id: int | None, start_chapter_id: int | None, 
@@ -85,8 +85,8 @@ class RelationshipRepository:
             End_Chapter_ID = ?
         WHERE ID = ?;
         """
-        params = (type_id, lore_id, description, intensity, start_chapter_id, end_chapter_id, relationship_id)
-        self.db._execute_commit(query, params)
+        params = (type_id, description, intensity, lore_id, start_chapter_id, end_chapter_id, relationship_id)
+        return self.db._execute_commit(query, params)
 
     # =========================================================================
     # Character Node Positions and UI Attributes
@@ -121,7 +121,7 @@ class RelationshipRepository:
         VALUES (?, ?, ?, ?, ?, ?);
         """
         params = (character_id, x_pos, y_pos, node_color, node_shape, is_hidden)
-        self.db._execute_commit(query, params)
+        return self.db._execute_commit(query, params)
 
     # =========================================================================
     # Relationship Types (Configuration)
@@ -153,7 +153,7 @@ class RelationshipRepository:
         VALUES (?, ?, ?, ?, ?);
         """
         params = (type_name, short_label, default_color, is_directed, line_style)
-        return self.db._execute_commit(query, params)
+        return self.db._execute_commit(query, params, fetch_id=True)
 
     def update_relationship_type(self, type_id: int, type_name: str, short_label: str, default_color: str, is_directed: int, line_style: str) -> bool:
         """Updates an existing relationship type. Returns True if successfull, otherwise False"""

@@ -92,7 +92,7 @@ class TagRepository:
         for tag_name in tag_names:
             tag_id = self._create_tag(tag_name)
             if tag_id is not None:
-                insert_query = "INSERT OR IGNORE INTO Chapter_Tags (Chapter_ID, Tag_ID) VALUES (?, ?)"
+                insert_query = "INSERT OR IGNORE INTO Lore_Tags (Lore_ID, Tag_ID) VALUES (?, ?)"
                 operations.append((insert_query, (lore_id, tag_id)))
         
         return self.db._execute_transaction(operations)
