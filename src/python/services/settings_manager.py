@@ -28,6 +28,7 @@ class SettingsManager:
             # If Default file is missing create it
             default_data = {
                 "theme": "Dark",
+                "window_size": "1200x800",
                 "autosave_interval_minutes": 5
             }
             try:

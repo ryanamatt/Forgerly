@@ -67,6 +67,9 @@ class MainWindow(QMainWindow):
         if (apply_theme(self, self.current_settings)):
             self.current_settings['theme'] = self.current_settings.get("theme", "Dark")
 
+        window_size = self.current_settings['window_size'].split('x')
+        self.setGeometry(100, 100, int(window_size[0]), int(window_size[1]))
+
         # State tracking now primarily managed by Coordinator, but keep a pointer to the ID for convenience
         self.current_item_id = 0 
         self.current_view = ViewType.CHAPTER_EDITOR
@@ -255,9 +258,9 @@ class MainWindow(QMainWindow):
 
         file_menu.addSeparator()
 
-        export_action = QAction("&Export Story...", self)
+        export_action = QAction("&Export...", self)
         export_action.setShortcut("Ctrl+E")
-        export_action.triggered.connect(self._export_story)
+        export_action.triggered.connect(self._export)
         file_menu.addAction(export_action)
         
         file_menu.addSeparator()
@@ -445,7 +448,7 @@ class MainWindow(QMainWindow):
     # I/O Handlers (Export/Settings)
     # -------------------------------------------------------------------------
 
-    def _export_story(self) -> None:
+    def _export(self) -> None:
         """
         Handles the export action by delegating the entire process to the 
         StoryExporter after checking for unsaved changes.
@@ -455,7 +458,7 @@ class MainWindow(QMainWindow):
             return
         
         # 2. Pass control to the StoryExporter
-        if self.story_exporter.export_story(parent=self):
+        if self.story_exporter.export(parent=self):
             self.statusBar().showMessage("Story exported successfully.", 5000)
         
 
@@ -480,5 +483,8 @@ class MainWindow(QMainWindow):
             # Check if theme application was successful
             if apply_theme(self, self.current_settings):
                 self.current_settings['theme'] = new_settings.get("theme", "Light")
+
+            window_size = self.current_settings['window_size'].split('x')
+            self.setGeometry(100, 100, int(window_size[0]), int(window_size[1]))
             
             self.statusBar().showMessage(f"Settings saved and applied. Theme: {self.current_settings['theme']}.", 5000)
