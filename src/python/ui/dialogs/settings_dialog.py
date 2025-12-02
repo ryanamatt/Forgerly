@@ -16,7 +16,7 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
 
         self.setWindowTitle("Application Settings")
-        self.setGeometry(200, 200, 400, 200)
+        self.setGeometry(200, 200, 600, 400)
 
         self.settings_manager = settings_manager
         self._new_settings = current_settings.copy()
@@ -26,9 +26,38 @@ class SettingsDialog(QDialog):
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
 
+        # --- Window Group Box ---
+        window_group = QGroupBox("Window Settings")
+        window_layout = QVBoxLayout(window_group)
+
+        window_size_label = QLabel("Select Window Size")
+        self.window_size_combo = QComboBox()
+
+        available_sizes = ['1200x800', '800x600']
+        self.window_size_combo.addItems(available_sizes)
+
+        current_window_size = self._new_settings.get('window_size', '1200x800')
+        index = self.window_size_combo.findText(current_window_size)
+        if index != -1:
+            self.window_size_combo.setCurrentIndex(index)
+        else:
+            self.window_size_combo.setCurrentIndex(0)
+
+        window_layout.addWidget(window_size_label)
+        window_layout.addWidget(self.window_size_combo)
+
+        # Set the combo box to the current theme
+        index = self.window_size_combo.findText(current_window_size)
+        if index != -1:
+            self.window_size_combo.setCurrentIndex(index)
+        else:
+            self.window_size_combo.setCurrentIndex(0)
+
+        main_layout.addWidget(window_group)
+
         # --- Appearance Group Box (Themes) ---
         appearance_group = QGroupBox("Appearance")
-        group_layout = QVBoxLayout(appearance_group)
+        themes_layout = QVBoxLayout(appearance_group)
 
         # Theme Selection
         theme_label = QLabel("Select Theme:")
@@ -46,8 +75,8 @@ class SettingsDialog(QDialog):
         else:
             self.theme_combo.setCurrentIndex(0)
 
-        group_layout.addWidget(theme_label)
-        group_layout.addWidget(self.theme_combo)
+        themes_layout.addWidget(theme_label)
+        themes_layout.addWidget(self.theme_combo)
 
         main_layout.addWidget(appearance_group)
 
@@ -74,6 +103,7 @@ class SettingsDialog(QDialog):
 
     def _on_accept(self):
         """Called when the OK button is pressed. Saves the selected settings."""
+        self.selected_window_size = self.window_size_combo.currentText()
         self.selected_theme = self.theme_combo.currentText()
         self.accept()
 
@@ -106,7 +136,7 @@ class SettingsDialog(QDialog):
         """Called when the OK button is pressed. Saves the selected settings to internal state."""
         # Update the internal settings dictionary with current UI values
         self._new_settings['theme'] = self.theme_combo.currentText()
-        # Update other settings here as you expand the dialog
+        self._new_settings['window_size'] = self.window_size_combo.currentText()
         
         self.accept()
 
