@@ -426,15 +426,27 @@ class AppCoordinator(QObject):
         """
         self.char_name_updated_in_ouline.emit(char_id, new_name)
 
-    # --- Export Logic Helper (For use by the new StoryExporter class) ---
+    # --- Export Logic Helper (For use by the new Exporter classes) ---
     
     def get_chapter_data_for_export(self, chapter_ids: list[int] = []):
         """
         Fetches all chapter data required for a full or partial story export.
         
         Args:
-            chapter_ids: A list of IDs to fetch. If None, all chapters are fetched. # <--- NEW ARG
+            chapter_ids: A list of IDs to fetch. If None, all chapters are fetched.
         
         Returns:
         """
         return self.chapter_repo.get_all_chapters_for_export(chapter_ids)
+    
+    def get_character_data_for_export(self, character_ids: list[int] = []):
+        """
+        Fetches all chapter data required for all or some characters export.
+        
+        Args:
+            character_ids: A list of IDs to fetch. If None, all characters are fetched.
+        
+        Returns:
+        """
+
+        return self.character_repo.get_all_characters_for_export(character_ids)

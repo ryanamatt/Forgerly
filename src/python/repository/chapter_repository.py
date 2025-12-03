@@ -102,8 +102,6 @@ class ChapterRepository:
         results = self.db._execute_query(query, params, fetch_all=True)
 
         return results if results else []
-
-        return results if results else []
     
     def reorder_chapters(self, chapter_updates: list[tuple[int, int]]) -> bool:
         """

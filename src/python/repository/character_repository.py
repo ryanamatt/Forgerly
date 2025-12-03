@@ -77,3 +77,34 @@ class CharacterRepository:
         """
         params = (like_pattern, like_pattern)
         return self.db._execute_query(query, params, fetch_all=True)
+    
+    def get_all_characters_for_export(self, character_ids: list[int] = []) -> list[dict]:
+        """
+        Retrieves characters details for export purposes,
+        optionally filtered by a list of IDs.
+        """
+        query = """
+        SELECT ID, Name, Description, Status, Age, Date_Of_Birth, Pronouns,
+        Sexual_Orientation, Gender_Identity, Ethnicity_Background, Occupation_School,
+        Hometown_City, Physical_Description
+        FROM Characters
+        """
+        params = ()
+
+        # 1. Modify the query if specific IDs are requested
+        if character_ids is not None and character_ids:
+            # Ensure IDs are unique and sorted for consistent query execution
+            unique_ids = sorted(list(set(character_ids))) 
+            
+            # Create placeholders for the IN clause (e.g., ?, ?, ?)
+            placeholders = ', '.join(['?'] * len(unique_ids))
+            
+            query += f" WHERE ID IN ({placeholders})"
+            # The IDs become the parameters for the query
+            params = tuple(unique_ids)
+
+        # 2. Add final ordering clause
+        query += " ORDER BY Name ASC;"
+
+        results = self.db._execute_query(query, params, fetch_all=True)
+        return results if results else []
