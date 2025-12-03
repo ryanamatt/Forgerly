@@ -25,6 +25,7 @@ from .db_connector import DBConnector
 from .services.settings_manager import SettingsManager
 from .services.app_coordinator import AppCoordinator
 from .services.story_exporter import StoryExporter
+from .services.character_exporter import CharacterExporter
 
 from .utils._version import __version__
 from .utils.theme_utils import apply_theme
@@ -44,6 +45,9 @@ class MainWindow(QMainWindow):
         appID = f"narrative-forge.{__version__}"
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(appID)
 
+        # Temporary Project Title will need to be changed to actual users project title
+        self.project_title = "Project Title"
+
         self.setWindowTitle(f"The Narrative Forge v{__version__}")
         self.setGeometry(100, 100, 1200, 800)
         self.setWindowIcon(QIcon(os.path.join('assets', 'logo.ico')))
@@ -60,7 +64,8 @@ class MainWindow(QMainWindow):
         # Coordinator now manages all repositories and business logic
         self.coordinator = AppCoordinator(self.db_connector) 
 
-        self.story_exporter = StoryExporter(self.coordinator)
+        self.story_exporter = StoryExporter(self.coordinator, self.project_title)
+        self.character_exporter = CharacterExporter(self.coordinator, self.project_title)
 
         # --- Settings and Theme Management ---
         self.settings_manager = SettingsManager()
@@ -490,8 +495,13 @@ class MainWindow(QMainWindow):
             
             case ExportType.LORE:
                 QMessageBox.warning(self, "Not Implemented", "Exporting selected Lore Entries is not yet implemented.")
+
             case ExportType.CHARACTERS:
-                QMessageBox.warning(self, "Not Implemented", "Exporting selected Characters is not yet implemented.")
+                if selected_ids:
+                    success = self.character_exporter.export(parent=self, selected_ids=selected_ids)
+                else:
+                        QMessageBox.warning(self, "Export Error", "No Characters were selected for export.")
+
             case _:
                 QMessageBox.critical(self, "Export Error", f"Unknown export type: {export_type}")
                 

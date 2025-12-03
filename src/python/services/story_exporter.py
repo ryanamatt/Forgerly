@@ -13,17 +13,11 @@ if TYPE_CHECKING:
 
 class StoryExporter(Exporter):
     """
-    Handles the presentation and file writing logic for exporting the entire story.
+    Handles the presentation and file writing logic for exporting the entire story and story parts.
     It fetches data from the AppCoordinator but operates independently of the main UI.
     """
-    def __init__(self, coordinator: AppCoordinator) -> None:
-        self.coordinator = coordinator
-
-        self.chapters_export_formats = [
-            '.html',
-            '.md',
-            '.txt'
-        ]
+    def __init__(self, coordinator: AppCoordinator, project_title: str) -> None:
+        super().__init__(coordinator=coordinator, project_title=project_title)
 
     def export(self, parent: QWidget, selected_ids: list[int] = []) -> bool:
         """
@@ -48,14 +42,20 @@ class StoryExporter(Exporter):
             return False
 
         # Determine the export format
-        if "html" in selected_filter.lower():
+        if 'html' in selected_filter.lower():
             file_format = "html"
-        elif "md" in selected_filter.lower():
+        elif 'md' in selected_filter.lower():
             file_format = "markdown"
         elif 'txt' in selected_filter.lower():
             file_format = 'txt'
+        elif 'epub' in selected_filter.lower():
+            file_format = 'epub'
+        elif 'pdf' in selected_filter.lower():
+            file_format = 'pdf'
         elif 'json' in selected_filter.lower():
             file_format = 'json'
+        elif 'yaml' in selected_filter.lower():
+            file_format = 'yaml'
         else: # Default is html
             file_format = "html"
 
@@ -77,13 +77,23 @@ class StoryExporter(Exporter):
             return False
 
     def _write_file(self, file_path: str, file_format: str, chapters_data: list[dict], parent) -> None:
-        """Handles the actual file writing based on the selected format."""
+        """
+        Handles the actual file writing based on the selected format.
+        
+        Args:
+            file_path: A string that is the file_path to the desired file to write to
+            file_format: The file format that is being written in
+            chapters_data: The chapters data that is being written.
+        """
         
         writer_map = {
             "html": self._write_html,
             "markdown": self._write_markdown,
-            "text": self._write_plain_text,
-            'json': self._write_json
+            "txt": self._write_plain_text,
+            "epub": self._write_epub,
+            "pdf": self._write_pdf,
+            "json": self._write_json,
+            "yaml": self._write_yaml
         }
 
         writer_function = writer_map.get(file_format)
@@ -104,7 +114,15 @@ class StoryExporter(Exporter):
             return False
         
     def _get_document_text(self, html_content: str) -> str:
-        """Helper to safely convert HTML content to plain text"""
+        """
+        Helper to safely convert HTML content to plain text
+        
+        Args:
+            html_content: The string of HTML content being turned into regular text.
+
+        Returns:
+            The plain text.
+        """
         doc = QTextDocument()
         doc.setHtml(html_content)
         return doc.toPlainText()
@@ -119,7 +137,7 @@ class StoryExporter(Exporter):
         """
         
         # HTML Header/Preamble
-        f.write("<!DOCTYPE html><html><head><title>Exported Story</title>")
+        f.write(f"<!DOCTYPE html><html><head><title>{self.project_title}</title>")
         f.write("<meta charset='UTF-8'>")
         f.write("<style>body{font-family: Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto;} h1{color: #333; border-bottom: 2px solid #ccc; padding-bottom: 5px;} h2{color: #555;}</style>")
         f.write("</head><body>\n")
@@ -144,6 +162,7 @@ class StoryExporter(Exporter):
             f: The open file object (TextIO).
             chapters_data: A list of dictionaries containing chapter data.
         """
+        f.write(f"# {self.project_title}\n\n")
         for chapter in chapters_data:
             title = chapter.get('Title', 'Untitled Chapter')
             content = chapter.get('Text_Content', '')
@@ -160,6 +179,7 @@ class StoryExporter(Exporter):
             f: The open file object (TextIO).
             chapters_data: A list of dictionaries containing chapter data.
         """
+        f.write(f"{self.project_title}\n\n")
         for chapter in chapters_data:
             title = chapter.get('Title', 'Untitled Chapter')
             content = chapter.get('Text_Content', '')
@@ -167,6 +187,12 @@ class StoryExporter(Exporter):
             f.write(f'{title}\n')
             f.write(self._get_document_text(content))
             f.write('\n\n')
+
+    def _write_epub(self, f: TextIO, chapters_data: list[dict]) -> None:
+        pass
+
+    def _write_pdf(self, f: TextIO, chapters_data: list[dict]) -> None:
+        pass
 
     def _write_json(self, f: TextIO, chapters_data: list[dict]) -> None:
         """
@@ -176,10 +202,8 @@ class StoryExporter(Exporter):
             f: The open file object (TextIO).
             chapters_data: A list of dictionaries containing chapter data.
         """
-        export_data = {
-            "export_type": "story",
-            "format_version": 1,
-            "chapters": chapters_data
-        }
+        chapters = {self.project_title: chapters_data}
+        json.dump(chapters, f, indent=4)
 
-        json.dump(export_data, f, indent=4)
+    def _write_yaml(self, f: TextIO, chapters_data: list[dict]) -> None:
+        pass

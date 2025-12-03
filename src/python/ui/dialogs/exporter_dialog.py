@@ -124,7 +124,7 @@ class ExporterDialog(QDialog):
         else:
             # TODO: In the final version, this will fetch selected IDs from the active selector
             # For now, let's pretend a few IDs are selected for testing non-Story flow
-            self.selected_item_ids = [1, 2, 5] 
+            self.selected_item_ids = [1, 2, 3] 
             QMessageBox.information(self, "WIP", f"Selected {self.selected_export_type} with IDs: {self.selected_item_ids}. Exporting is still pending implementation of item selection.", QMessageBox.StandardButton.Ok)
 
 
