@@ -13,14 +13,26 @@ from .basic_text_editor import BasicTextEditor
 
 class RichTextEditor(BasicTextEditor):
     """
-    A Custom QWidget containing a QTextEdit and a formatiing toolbar
-    Handles the rich text formating Action
+    A Custom QWidget containing a QTextEdit and a formatting toolbar.
+
+    Inherits from :py:class:`~.BasicTextEditor` and extends it by adding
+    rich text formatting capabilities via a :py:class:`PyQt6.QtWidgets.QToolBar`.
+
+    This class handles all rich text formatting actions such as font selection,
+    size, bold, italic, underline, color, highlighting, lists, alignment, and
+    indentation. It also dynamically updates the toolbar controls
+    based on the current cursor position or selection.
+
+    :ivar toolbar: The formatting toolbar containing all controls and actions.
+    :vartype toolbar: :py:class:`PyQt6.QtWidgets.QToolBar`
+    :ivar editor: The core text editor component inherited from BasicTextEditor.
+    :vartype editor: :py:class:`PyQt6.QtWidgets.QTextEdit`
     """
 
-    def __init__(self, parent =None) -> None:
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-        # Map display names to their corresponding QTestFormat block level
+        # Map display names to their corresponding QTextFormat block level
         self._block_style_map = {
             "Paragraph": 0,
             "Heading 1": 1,
@@ -175,7 +187,12 @@ class RichTextEditor(BasicTextEditor):
     # --- Formatting Handlers ---
 
     def _select_block_style(self, style_name: str) -> None:
-        """Applies a block-level style (e.g., Heading or Paragraph)."""
+        """
+        Applies a block-level style (e.g., Heading or Paragraph).
+        
+        :param style_name: The name of the heading style
+        :type style_name: str
+        """
         level_value = self._block_style_map.get(style_name)
         
         cursor = self.editor.textCursor()
@@ -188,7 +205,13 @@ class RichTextEditor(BasicTextEditor):
         self._set_dirty()
 
     def _select_font(self, font: QFont) -> None:
-        """Applies the selected font family to the selected text."""
+        """
+        Applies the selected font family to the selected text 
+        or cursor if no selected text.
+        
+        :param font: The selected font to change the text to.
+        :type font: :py:class:`PyQt6.QtGui.QFont`
+        """
         # Use mergeCharFormat to ensure only the font family is changed
         char_format = QTextCharFormat()
         char_format.setFontFamily(font.family())
@@ -196,7 +219,12 @@ class RichTextEditor(BasicTextEditor):
         self._set_dirty()
 
     def _select_font_size(self, size_str: str) -> None:
-        """Applies the selected font size to the selected text."""
+        """
+        Applies the selected font size to the selected text.
+        
+        :param size_str: The font size that is selected
+        :type size_str: str
+        """
         try:
             # Clean and convert the string input from the QComboBox
             size = int(size_str.strip())
@@ -247,7 +275,10 @@ class RichTextEditor(BasicTextEditor):
             self._set_dirty()
 
     def _select_highlight_color(self) -> None:
-        """Opens a color dialog to select the background (highlight) color."""
+        """
+        Opens a color dialog to select the background (highlight) color
+        and marks the editor as dirty.
+        """
         # Get the current color to use as the default in the dialog
         current_format = self.editor.textCursor().charFormat()
         initial_color = current_format.background().color()
@@ -262,7 +293,12 @@ class RichTextEditor(BasicTextEditor):
          
 
     def _toggle_list(self, list_style: QTextListFormat.Style) -> None:
-        """Toggles the current paragraph(s) into a list format."""
+        """
+        Toggles the current paragraph(s) into a list format in the editor.
+        
+        :param list_style: The style of list that is selected (order or unordered).
+        :type list_style: :py:class:'PyQt6.QtGui.QTextListFormat.Style'
+        """
         cursor = self.editor.textCursor()
         
         # Check if we are already in the desired list style
@@ -299,12 +335,23 @@ class RichTextEditor(BasicTextEditor):
         self.list_number_action.setChecked(is_numbered)
 
     def _align_text(self, alignment: Qt.AlignmentFlag) -> None:
-        """Sets the alignment of the current text block(s) and marks content as dirty."""
+        """
+        Sets the alignment of the current text block(s) and marks content as dirty.
+        
+        :param alignment: The alignment flag that sets the editor to the correct alignment
+        :type alignment: :py:class:'PyQt6.QtCore.Qt.AlignmentFlag'
+        """
         self.editor.setAlignment(alignment)
         self._set_dirty()
 
     def _adjust_indent(self, direction: int) -> None:
-        """Increases or decreases the indentation of the current text block(s) and marks content as dirty."""
+        """
+        Increases or decreases the indentation of the current text block(s) and marks content as dirty.
+        
+        :param direction: The direction the indent is moving (increasing/decreasing).
+                  Positive moves right (increase), negative moves left (decrease).
+        :type int: Positive move to right, negative move to left
+        """
         # Get the current cursor
         cursor = self.editor.textCursor()
         

@@ -7,14 +7,24 @@ from PyQt6.QtCore import pyqtSignal
 
 class BasicTextEditor(QWidget):
     """
-    A base QWidget containing a QTextEdit and managing the 'dirty' (unsaved changes) state.
-    A Basic Text Editor for saving and writing text.
+    A composite :py:class:`PyQt6.QtWidgets.QWidget` that serves as a basic
+    text editing widget.
+
+    The Widget contains a text editing editor with basic signals for saving
+    content and notifying whethe the editor is dirty. This class also contains 
+    public access functions to get the text contained in the editor.
     """
     # Signal to notify listeners (like ChapterEditor/LoreEditor) of content changes
     content_changed = pyqtSignal()
     selection_changed = pyqtSignal()
 
     def __init__(self, parent=None) -> None:
+        """
+        Initializes the BasicTextEditor and connects its signals
+
+        :param parent: The parent widget. Defaults to ``None``.
+        :type parent: :py:class:`PyQt6.QtWidgets.QWidget`
+        """
         super().__init__(parent)
 
         # State tracking for unsaved changes
@@ -43,7 +53,11 @@ class BasicTextEditor(QWidget):
             self._is_dirty = True
 
     def is_dirty(self) -> bool:
-        """Returns True if the content has been modified since the last save/load."""
+        """
+        Returns True if the content has been modified since the last save/load.
+
+        :rtype: bool
+        """
         return self._is_dirty
 
     def mark_saved(self) -> None:
@@ -54,13 +68,21 @@ class BasicTextEditor(QWidget):
     # --- Public Accessors for Content ---
 
     def get_html_content(self) -> str:
-        """Returns the editor's content as Rich Text HTML."""
+        """
+        Returns the editor's content as Rich Text HTML.
+        
+        :rtype: str
+        """
         return self.editor.toHtml()
 
     def set_html_content(self, html_content: str) -> None:
         """
         Sets the editor's content from Rich Text HTML and marks the content as clean.
+        
         The textChanged signal is temporarily blocked to prevent setting the dirty flag.
+
+        :param html_content: The html content that is being set in the editor
+        :type html_content: str
         """
         # Block signals to prevent _set_dirty from firing during load
         self.editor.blockSignals(True) 

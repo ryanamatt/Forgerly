@@ -29,7 +29,6 @@ class SettingsManager:
             default_data = {
                 "theme": "Dark",
                 "window_size": "1200x800",
-                "autosave_interval_minutes": 5,
                 "outline_width_pixels": 300,
                 "window_width": 1200,
                 "window_height": 800,

@@ -3,14 +3,12 @@
 from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, 
     QPushButton, QLabel, QSizePolicy, QLayout, 
-    QApplication, QMainWindow
 )
 from PyQt6.QtCore import Qt, QSize, pyqtSignal, QRect, QPoint
-import sys
 
 class QFlowLayout(QLayout):
     """
-    A layout that arranges items ina flow, wrapping to the next line
+    A layout that arranges items in a flow, wrapping to the next line
     when the row is full. This is essential for a dynamic tag list
     """
     def __init__(self, parent=None, margin=0, spacing=-1):
@@ -130,7 +128,7 @@ class TagLabel(QWidget):
                 margin: 0px; 
                 border: none;
                 font-weight: bold;
-                color: #555555;
+                color: #a80f0f;
             }
             QPushButton:hover {
                 color: #A00000;
