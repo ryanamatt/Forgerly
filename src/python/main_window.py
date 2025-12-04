@@ -9,6 +9,7 @@ from PyQt6.QtGui import QCloseEvent, QAction, QResizeEvent, QMoveEvent, QIcon
 import os
 import ctypes
 
+from .ui.menu.main_menu_bar import MainMenuBar
 from .ui.views.chapter_outline_manager import ChapterOutlineManager
 from .ui.views.chapter_editor import ChapterEditor
 from .ui.views.lore_outline_manager import LoreOutlineManager
@@ -75,7 +76,6 @@ class MainWindow(QMainWindow):
         self._apply_settings(self.current_settings)
 
         # State tracking now primarily managed by Coordinator, but keep a pointer to the ID for convenience
-        self.current_item_id = 0 
         self.current_view = ViewType.CHAPTER_EDITOR
 
         self._create_view_shortcut()
@@ -92,7 +92,12 @@ class MainWindow(QMainWindow):
         self.coordinator.set_editors(editor_map)
         self.coordinator.connect_signals()
 
-        self._setup_menu_bar()
+        self.main_menu_bar = MainMenuBar(
+            current_view=self.current_view,
+            app_version=__version__,
+            parent=self
+        )
+        self.setMenuBar(self.main_menu_bar)
 
         self._connect_components()
 
@@ -176,10 +181,7 @@ class MainWindow(QMainWindow):
             self.outline_stack.setCurrentIndex(view_index)
             self.editor_stack.setCurrentIndex(view_index)
 
-        self.view_lore_action.setChecked(ViewType.LORE_EDITOR == self.current_view)
-        self.view_chapter_action.setChecked(ViewType.CHAPTER_EDITOR == self.current_view)
-        self.view_character_action.setChecked(ViewType.CHARACTER_EDITOR == self.current_view)
-        self.view_relationship_action.setChecked(ViewType.RELATIONSHIP_GRAPH == self.current_view)
+        self.main_menu_bar.update_view_checkmarks(self.current_view)
         
         # 4. Disable the newly visible editor until an item is selected
         editor = self.coordinator.get_current_editor()
@@ -254,101 +256,6 @@ class MainWindow(QMainWindow):
         # Initialize relationship editor's signals
         self.relationship_editor_panel.set_coordinator_signals(self.coordinator)
 
-    def _setup_menu_bar(self) -> None:
-        """Sets up the File, View, and Help menus."""
-        menu_bar = self.menuBar()
-
-        # --- File Menu ---
-        file_menu = menu_bar.addMenu("&File")
-
-        new_chapter_action = QAction("New Chapter", self)
-        new_chapter_action.triggered.connect(self.chapter_repo.create_chapter)
-        file_menu.addAction(new_chapter_action)
-
-        new_lore_action = QAction("New Lore Entry", self)
-        new_lore_action.triggered.connect(self.lore_repo.create_lore_entry)
-        file_menu.addAction(new_lore_action)
-
-        new_character_action = QAction("New Character", self)
-        new_character_action.triggered.connect(self.char_repo.create_character)
-        file_menu.addAction(new_character_action)
-        
-        file_menu.addSeparator()
-
-        save_action = QAction("&Save Content", self)
-        save_action.setShortcut("Ctrl+S")
-        save_action.triggered.connect(self._save_current_item_wrapper) 
-        file_menu.addAction(save_action)
-
-        file_menu.addSeparator()
-
-        export_action = QAction("&Export...", self)
-        export_action.setShortcut("Ctrl+E")
-        export_action.triggered.connect(self._export)
-        file_menu.addAction(export_action)
-        
-        file_menu.addSeparator()
-
-        settings_action = QAction("&Settings", self)
-        settings_action.setShortcut("Ctrl+,")
-        settings_action.triggered.connect(self._open_settings_dialog)
-        file_menu.addAction(settings_action)
-
-        exit_action = QAction("E&xit", self)
-        exit_action.setShortcut("Ctrl+Q")
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
-
-        # --- View Menu ---
-        view_menu = menu_bar.addMenu("&View")
-
-        # Chapter Outline View Action
-        self.view_chapter_action = QAction("Chapter Outline", self)
-        self.view_chapter_action.setCheckable(True)
-        self.view_chapter_action.setChecked(self.current_view == ViewType.CHAPTER_EDITOR)
-        self.view_chapter_action.triggered.connect(lambda: self._switch_to_view(ViewType.CHAPTER_EDITOR))
-        view_menu.addAction(self.view_chapter_action)
-
-        # Lore Outline View Action
-        self.view_lore_action = QAction("Lore Outline", self)
-        self.view_lore_action.setCheckable(True)
-        self.view_lore_action.setChecked(self.current_view == ViewType.LORE_EDITOR)
-        self.view_lore_action.triggered.connect(lambda: self._switch_to_view(ViewType.LORE_EDITOR))
-        view_menu.addAction(self.view_lore_action)
-
-        # Character Outline View Action
-        self.view_character_action = QAction("Character Outline", self)
-        self.view_character_action.setCheckable(True)
-        self.view_character_action.setChecked(self.current_view == ViewType.CHARACTER_EDITOR)
-        self.view_character_action.triggered.connect(lambda: self._switch_to_view(ViewType.CHARACTER_EDITOR))
-        view_menu.addAction(self.view_character_action)
-
-        view_menu.addSeparator()
-
-        # Relationship Graph View Action
-        self.view_relationship_action = QAction("Relationship Graph", self)
-        self.view_relationship_action.setCheckable(True)
-        self.view_relationship_action.setChecked(self.current_view == ViewType.RELATIONSHIP_GRAPH)
-        self.view_relationship_action.triggered.connect(lambda: self._switch_to_view(ViewType.RELATIONSHIP_GRAPH))
-        view_menu.addAction(self.view_relationship_action)
-
-        # --- Help Menu ---
-        help_menu = menu_bar.addMenu("&Help")
-        about_action = QAction("&About", self)
-        about_action.triggered.connect(self._show_about_dialog)
-        help_menu.addAction(about_action)
-
-    def _show_about_dialog(self) -> None:
-        """Displays the application's About dialog."""
-        QMessageBox.about(
-            self,
-            f"About The Narrative Forge v{__version__}",
-            f"<h2>The Narrative Forge</h2>"
-            f"<p>Version: {__version__}</p>"
-            f"<p>A writing application designed for worldbuilders and novel writers.</p>"
-            f"<p>Built with Python and PyQt6.</p>"
-        )
-
     # -------------------------------------------------------------------------
     # Signal Connections
     # -------------------------------------------------------------------------
@@ -367,6 +274,18 @@ class MainWindow(QMainWindow):
         self.chapter_outline_manager.pre_chapter_change.connect(self._check_save_before_change)
         self.lore_outline_manager.pre_lore_change.connect(self._check_save_before_change)
         self.character_outline_manager.pre_char_change.connect(self._check_save_before_change)
+
+        # --- MainMenuBar Connections (Menu signal OUT -> MainWindow slot IN) ---
+        self.main_menu_bar.new_chapter_requested.connect(self.chapter_repo.create_chapter)
+        self.main_menu_bar.new_lore_requested.connect(self.lore_repo.create_lore_entry)
+        self.main_menu_bar.new_character_requested.connect(self.char_repo.create_character)
+
+        self.main_menu_bar.save_requested.connect(self._save_current_item_wrapper)
+        self.main_menu_bar.export_requested.connect(self._export)
+        self.main_menu_bar.settings_requested.connect(self._open_settings_dialog)
+
+        # Connect the view switching signal from the menu bar
+        self.main_menu_bar.view_switch_requested.connect(self._switch_to_view)
         
         # --- Coordinator (Coordinator signal OUT -> Editor/UI slot IN) ---
         # The coordinator signals the editors when data is ready
@@ -404,8 +323,7 @@ class MainWindow(QMainWindow):
 
     def _handle_chapter_loaded(self, chapter_id: int, content: str, tag_names: list) -> None:
         """Receives loaded chapter data from coordinator and updates the editor/status."""
-        self.current_item_id = chapter_id # Update local ID cache
-        
+
         if "Error Loading Chapter" in content:
             self.chapter_editor_panel.set_html_content(content)
             self.chapter_editor_panel.set_enabled(False)
@@ -419,7 +337,6 @@ class MainWindow(QMainWindow):
 
     def _handle_lore_loaded(self, lore_id: int, title: str, category: str, content: str, tag_names: list) -> None:
         """Receives loaded lore data from coordinator and updates the editor/status."""
-        self.current_item_id = lore_id # Update local ID cache
         
         if not title: # Check if loading failed
             self.lore_editor_panel.set_enabled(False)
@@ -437,7 +354,7 @@ class MainWindow(QMainWindow):
         if self.current_view == ViewType.LORE_EDITOR:
             # Note: Outline Manager must have a helper method to find the item by ID
             item = self.lore_outline_manager.find_lore_item_by_id(lore_id)
-            if item and item.text(0) != new_title:
+            if item:
                 # Block signals to prevent _handle_item_renamed from firing back to the repo
                 self.lore_outline_manager.blockSignals(True)
                 item.setText(0, new_title)
@@ -445,7 +362,6 @@ class MainWindow(QMainWindow):
 
     def _handle_character_loaded(self, char_id: int, name: str, description: str, status: str) -> None:
         """Receives loaded character data from coordinator and updates the editor/status."""
-        self.current_item_id = char_id
 
         if not name:
             self.character_editor_panel.set_enabled(False)
@@ -455,14 +371,13 @@ class MainWindow(QMainWindow):
         self.character_editor_panel.load_character(char_id, name, description, status)
         self.character_editor_panel.set_enabled(True)
         self.character_editor_panel.mark_saved()
-        self.statusBar().showMessage(f"Lore Entry ID {char_id} selected and loaded.")
+        self.statusBar().showMessage(f"Character ID {char_id} selected and loaded.")
 
     def _update_character_outline_name(self, char_id: int, new_name: str) -> None:
         """Updates the name in the CharacterOutlineManager when the editor name changes (relayed by coordinator)."""
         if self.current_view == ViewType.CHARACTER_EDITOR:
-            # Note: Outline Manager must have a helper method to find the item by ID
             item = self.character_outline_manager.find_character_item_by_id(char_id)
-            if item and item.text(0) != new_name:
+            if item:
                 # Block signals to prevent _handle_item_renamed from firing back to the repo
                 self.character_outline_manager.blockSignals(True)
                 item.setText(0, new_name)
@@ -515,7 +430,7 @@ class MainWindow(QMainWindow):
                 if selected_ids:
                     success = self.lore_exporter.export(parent=self, selected_ids=selected_ids)
                 else:
-                    QMessageBox.warning(self, "Export Error", "No Characters were selected for export.")
+                    QMessageBox.warning(self, "Export Error", "No Lore Entries were selected for export.")
 
             case ExportType.CHARACTERS:
                 if selected_ids:
