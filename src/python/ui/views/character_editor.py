@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Any
 
-from ...ui.widgets.rich_text_editor import RichTextEditor
+from ...ui.widgets.basic_text_editor import BasicTextEditor
 
 class CharacterEditor(QWidget):
     """
@@ -28,7 +28,7 @@ class CharacterEditor(QWidget):
         super().__init__(parent)
 
         # --- Sub-components (Description) ---
-        self.rich_text_editor = RichTextEditor()
+        self.basic_text_editor = BasicTextEditor()
 
         # --- Character-Specific Components (Name and Status) ---
         self.name_input = QLineEdit()
@@ -60,7 +60,7 @@ class CharacterEditor(QWidget):
         description_group = QGroupBox("Description & Biography")
         description_layout = QVBoxLayout(description_group)
         description_layout.setContentsMargins(10, 10, 10, 10)
-        description_layout.addWidget(self.rich_text_editor)
+        description_layout.addWidget(self.basic_text_editor)
         
         # 3. Overall Layout (Vertical)
         main_layout = QVBoxLayout(self)
@@ -72,7 +72,7 @@ class CharacterEditor(QWidget):
         
         # --- Connections ---
         # Any change to these components should flag the item as dirty
-        self.rich_text_editor.content_changed.connect(self._set_dirty)
+        self.basic_text_editor.content_changed.connect(self._set_dirty)
         self.name_input.textChanged.connect(self._set_dirty)
         self.status_combo.currentTextChanged.connect(self._set_dirty)
         
@@ -105,7 +105,7 @@ class CharacterEditor(QWidget):
         self.status_combo.setCurrentIndex(index)
         self.status_combo.blockSignals(False)
         
-        self.rich_text_editor.set_html_content(description)
+        self.basic_text_editor.set_html_content(description)
         
         # 2. Save initial state for dirty check
         self._initial_name = name
@@ -120,7 +120,7 @@ class CharacterEditor(QWidget):
         return {
             'id': self.current_char_id,
             'name': self.name_input.text().strip(),
-            'description': self.rich_text_editor.get_html_content(),
+            'description': self.basic_text_editor.get_html_content(),
             'status': self.status_combo.currentText().strip()
         }
         
@@ -136,13 +136,13 @@ class CharacterEditor(QWidget):
         
         return (name_changed or 
                 status_changed or
-                self.rich_text_editor.is_dirty())
+                self.basic_text_editor.is_dirty())
 
     def mark_saved(self) -> None:
         """
         Marks all nested components as clean and resets initial state trackers.
         """
-        self.rich_text_editor.mark_saved()
+        self.basic_text_editor.mark_saved()
         
         # Recapture the current state as the new saved state
         self._initial_name = self.name_input.text().strip()
@@ -152,7 +152,7 @@ class CharacterEditor(QWidget):
         """Enables/disables the entire editor panel."""
         self.name_input.setEnabled(enabled)
         self.status_combo.setEnabled(enabled)
-        self.rich_text_editor.setEnabled(enabled)
+        self.basic_text_editor.setEnabled(enabled)
         
     # --- Data Retrieval Methods ---
     
@@ -165,8 +165,8 @@ class CharacterEditor(QWidget):
         return self.status_combo.currentText().strip()
 
     def get_description_content(self) -> str:
-        """Returns the current rich text description content (HTML)."""
-        return self.rich_text_editor.get_html_content()
+        """Returns the current basic text description content (HTML)."""
+        return self.basic_text_editor.get_html_content()
     
     # =========================================================================
     # INTERNAL HANDLERS

@@ -1,0 +1,68 @@
+# src/python/base_text_editor.py (suggested file name)
+
+from PyQt6.QtWidgets import (
+    QTextEdit, QWidget, QVBoxLayout,
+)
+from PyQt6.QtCore import pyqtSignal
+
+class BasicTextEditor(QWidget):
+    """
+    A base QWidget containing a QTextEdit and managing the 'dirty' (unsaved changes) state.
+    """
+    # Signal to notify listeners (like ChapterEditor/LoreEditor) of content changes
+    content_changed = pyqtSignal()
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+
+        # State tracking for unsaved changes
+        self._is_dirty = False
+        self._last_saved_content = ""
+
+        # Core component
+        self.editor = QTextEdit()
+        self.editor.setPlaceholderText("Start writing here")
+        
+        # Layout setup (similar to your original RichTextEditor setup)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(self.editor)
+
+        # Connect signals for dirty flag and content change notification
+        self.editor.textChanged.connect(self._set_dirty)
+        self.editor.textChanged.connect(self.content_changed.emit)
+
+    # --- Dirty Flag Management ---
+
+    def _set_dirty(self) -> None:
+        """Sets the dirty flag when the text content changes."""
+        if not self._is_dirty:
+            self._is_dirty = True
+
+    def is_dirty(self) -> bool:
+        """Returns True if the content has been modified since the last save/load."""
+        return self._is_dirty
+
+    def mark_saved(self) -> None:
+        """Clears the dirty flag and updates the last saved content."""
+        self._is_dirty = False
+        self._last_saved_content = self.editor.toHtml()
+
+    # --- Public Accessors for Content ---
+
+    def get_html_content(self) -> str:
+        """Returns the editor's content as Rich Text HTML."""
+        return self.editor.toHtml()
+
+    def set_html_content(self, html_content: str) -> None:
+        """
+        Sets the editor's content from Rich Text HTML and marks the content as clean.
+        The textChanged signal is temporarily blocked to prevent setting the dirty flag.
+        """
+        # Block signals to prevent _set_dirty from firing during load
+        self.editor.blockSignals(True) 
+        self.editor.setHtml(html_content)
+        self.editor.blockSignals(False) 
+        
+        # Manually reset the dirty state after a successful load
+        self.mark_saved()

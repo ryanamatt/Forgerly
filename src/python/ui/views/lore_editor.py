@@ -8,7 +8,7 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Any
 
 from ...ui.widgets.tag_widget import TagManagerWidget
-from ...ui.widgets.rich_text_editor import RichTextEditor
+from ...ui.widgets.basic_text_editor import BasicTextEditor
 
 class LoreEditor(QWidget):
     """
@@ -26,7 +26,7 @@ class LoreEditor(QWidget):
         super().__init__(parent)
         
         # --- Sub-components ---
-        self.rich_text_editor = RichTextEditor()
+        self.basic_text_editor = BasicTextEditor()
         self.tag_manager = TagManagerWidget()
 
         # --- Lore-Specific Components (Title and Category) ---
@@ -67,13 +67,13 @@ class LoreEditor(QWidget):
         metadata_layout.addWidget(tag_group)
         
         content_splitter.addWidget(metadata_container)
-        content_splitter.addWidget(self.rich_text_editor)
+        content_splitter.addWidget(self.basic_text_editor)
         
         content_splitter.setSizes([300, 700]) 
         main_layout.addWidget(content_splitter)
         
         # --- Connections: All changes trigger a dirtiness state check ---
-        self.rich_text_editor.content_changed.connect(self._set_dirty)
+        self.basic_text_editor.content_changed.connect(self._set_dirty)
         self.tag_manager.tags_changed.connect(self._set_dirty)
         self.title_input.textChanged.connect(self._set_dirty)
         self.category_combo.currentIndexChanged.connect(self._set_dirty)
@@ -103,7 +103,7 @@ class LoreEditor(QWidget):
         else:
             self.category_combo.setCurrentIndex(index)
             
-        self.rich_text_editor.set_html_content(content)
+        self.basic_text_editor.set_html_content(content)
         self.tag_manager.set_tags(tag_names)
         
         # Store initial state for dirtiness check
@@ -118,7 +118,7 @@ class LoreEditor(QWidget):
             'id': self.current_lore_id,
             'title': self.title_input.text().strip(),
             'category': self.category_combo.currentText().strip(),
-            'content': self.rich_text_editor.get_html_content(),
+            'content': self.basic_text_editor.get_html_content(),
             'tags': self.tag_manager.get_tags()
         }
         
@@ -132,19 +132,19 @@ class LoreEditor(QWidget):
         
         return (title_changed or 
                 category_changed or
-                self.rich_text_editor.is_dirty() or 
+                self.basic_text_editor.is_dirty() or 
                 self.tag_manager.is_dirty())
 
     def mark_saved(self) -> None:
         """Marks all nested components as clean."""
-        self.rich_text_editor.mark_saved()
+        self.basic_text_editor.mark_saved()
         self.tag_manager.mark_saved()
         
     def set_enabled(self, enabled: bool) -> None:
         """Enables/disables the entire editor panel."""
         self.title_input.setEnabled(enabled)
         self.category_combo.setEnabled(enabled)
-        self.rich_text_editor.setEnabled(enabled)
+        self.basic_text_editor.setEnabled(enabled)
         self.tag_manager.setEnabled(enabled)
         
     # =========================================================================
