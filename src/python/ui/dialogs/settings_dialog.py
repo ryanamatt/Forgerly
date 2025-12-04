@@ -3,7 +3,7 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QGroupBox, QComboBox, 
     QLabel, QDialogButtonBox, QHBoxLayout, QPushButton,
-    QMessageBox
+    QMessageBox, QSpinBox
 )
 
 from ...services.settings_manager import SettingsManager
@@ -33,7 +33,15 @@ class SettingsDialog(QDialog):
         window_size_label = QLabel("Select Window Size")
         self.window_size_combo = QComboBox()
 
-        available_sizes = ['1200x800', '800x600']
+        available_sizes = [
+            '1200x800',  # Standard Default
+            '1440x900',  # Large Laptop/Desktop
+            '1600x1000', # High Resolution
+            '1920x1080', # Full HD
+            '800x600',   # Small
+            '1024x768'   # Tablet/Older monitor
+        ]
+
         self.window_size_combo.addItems(available_sizes)
 
         current_window_size = self._new_settings.get('window_size', '1200x800')
@@ -53,7 +61,35 @@ class SettingsDialog(QDialog):
         else:
             self.window_size_combo.setCurrentIndex(0)
 
-        main_layout.addWidget(window_group)
+        # Control for Outline Width
+        outline_width_label = QLabel("Default Outline Width (px)")
+        self.outline_width_spinbox = QSpinBox()
+        self.outline_width_spinbox.setRange(200, 800) # Set reasonable bounds
+        self.outline_width_spinbox.setSingleStep(10)
+        
+        current_outline_width = self._new_settings.get('outline_width_pixels', 300)
+        self.outline_width_spinbox.setValue(current_outline_width)
+
+        window_layout.addWidget(outline_width_label)
+        window_layout.addWidget(self.outline_width_spinbox)
+
+        # --- Statistics Group Box ---
+        stats_group = QGroupBox("Chapter Statistics Settings")
+        stats_layout = QVBoxLayout(stats_group)
+
+        # WPM Setting
+        wpm_layout = QHBoxLayout()
+        wpm_label = QLabel("Word Per Minute (WPM) for Read Time:")
+        self.wpm_spinBox = QSpinBox()
+        self.wpm_spinBox.setRange(50, 500)
+
+        current_wpm = self._new_settings.get('words_per_minute', 250)
+        self.wpm_spinBox.setValue(current_wpm)
+
+        wpm_layout.addWidget(wpm_label)
+        wpm_layout.addWidget(self.wpm_spinBox)
+        wpm_layout.addStretch()
+        stats_layout.addLayout(wpm_layout)
 
         # --- Appearance Group Box (Themes) ---
         appearance_group = QGroupBox("Appearance")
@@ -78,7 +114,10 @@ class SettingsDialog(QDialog):
         themes_layout.addWidget(theme_label)
         themes_layout.addWidget(self.theme_combo)
 
+        # --- Add to Main Layout ---
+        main_layout.addWidget(window_group)
         main_layout.addWidget(appearance_group)
+        main_layout.addWidget(stats_group)
 
         # --- Standard OK/Cancel Buttons and Revert ---
         
@@ -103,8 +142,12 @@ class SettingsDialog(QDialog):
 
     def _on_accept(self):
         """Called when the OK button is pressed. Saves the selected settings."""
-        self.selected_window_size = self.window_size_combo.currentText()
-        self.selected_theme = self.theme_combo.currentText()
+        # Update the internal settings dictionary with current UI values
+        self._new_settings['theme'] = self.theme_combo.currentText()
+        self._new_settings['window_size'] = self.window_size_combo.currentText()
+        self._new_settings['outline_width_pixels'] = self.outline_width_spinbox.value()
+        self._new_settings['words_per_minute'] = self.wpm_spinBox.value()
+        
         self.accept()
 
     def _revert_to_defaults(self):
@@ -131,14 +174,6 @@ class SettingsDialog(QDialog):
                 self.theme_combo.setCurrentIndex(index)
                 
             QMessageBox.information(self, "Reverted", "Settings reverted to defaults. Click OK to apply these changes.")
-            
-    def _on_accept(self):
-        """Called when the OK button is pressed. Saves the selected settings to internal state."""
-        # Update the internal settings dictionary with current UI values
-        self._new_settings['theme'] = self.theme_combo.currentText()
-        self._new_settings['window_size'] = self.window_size_combo.currentText()
-        
-        self.accept()
 
     def get_new_settings(self) -> dict:
         """Returns the settings dictionary intended to be saved and applied."""

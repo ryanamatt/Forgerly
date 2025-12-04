@@ -11,6 +11,7 @@ class BasicTextEditor(QWidget):
     """
     # Signal to notify listeners (like ChapterEditor/LoreEditor) of content changes
     content_changed = pyqtSignal()
+    selection_changed = pyqtSignal()
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -31,6 +32,7 @@ class BasicTextEditor(QWidget):
         # Connect signals for dirty flag and content change notification
         self.editor.textChanged.connect(self._set_dirty)
         self.editor.textChanged.connect(self.content_changed.emit)
+        self.editor.selectionChanged.connect(self.selection_changed.emit)
 
     # --- Dirty Flag Management ---
 
@@ -66,3 +68,11 @@ class BasicTextEditor(QWidget):
         
         # Manually reset the dirty state after a successful load
         self.mark_saved()
+
+    def get_plain_text(self) -> str:
+        """Returns the editor's content as plain text."""
+        return self.editor.toPlainText()
+    
+    def get_selected_text(self) -> str:
+        """Returns the currently selected plain text."""
+        return self.editor.textCursor().selectedText()

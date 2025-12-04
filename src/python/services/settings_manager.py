@@ -11,12 +11,12 @@ class SettingsManager:
     """
 
     # Define files paths
-    _CONFIGE_DIR = 'config'
-    _DEFAULT_FILE = os.path.join(_CONFIGE_DIR, 'default_settings.json')
-    _USER_FILE = os.path.join(_CONFIGE_DIR, 'user_settings.json')
+    _CONFIG_DIR = 'config'
+    _DEFAULT_FILE = os.path.join(_CONFIG_DIR, 'default_settings.json')
+    _USER_FILE = os.path.join(_CONFIG_DIR, 'user_settings.json')
 
     def __init__(self) -> None:
-        os.makedirs(self._CONFIGE_DIR, exist_ok=True)
+        os.makedirs(self._CONFIG_DIR, exist_ok=True)
         self._ensure_default_settings()
 
     def _ensure_default_settings(self) -> None:
@@ -29,7 +29,12 @@ class SettingsManager:
             default_data = {
                 "theme": "Dark",
                 "window_size": "1200x800",
-                "autosave_interval_minutes": 5
+                "autosave_interval_minutes": 5,
+                "outline_width_pixels": 300,
+                "window_width": 1200,
+                "window_height": 800,
+                "window_pos_x": 100,
+                "window_pos_y": 100
             }
             try:
                 with open(self._DEFAULT_FILE,'w') as f:

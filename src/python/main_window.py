@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QStackedWidget
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QCloseEvent, QAction, QTextDocument, QIcon
+from PyQt6.QtGui import QCloseEvent, QAction, QResizeEvent, QMoveEvent, QIcon
 import os
 import ctypes
 
@@ -72,11 +72,7 @@ class MainWindow(QMainWindow):
         # --- Settings and Theme Management ---
         self.settings_manager = SettingsManager()
         self.current_settings = self.settings_manager.load_settings()
-        if (apply_theme(self, self.current_settings)):
-            self.current_settings['theme'] = self.current_settings.get("theme", "Dark")
-
-        window_size = self.current_settings['window_size'].split('x')
-        self.setGeometry(100, 100, int(window_size[0]), int(window_size[1]))
+        self._apply_settings(self.current_settings)
 
         # State tracking now primarily managed by Coordinator, but keep a pointer to the ID for convenience
         self.current_item_id = 0 
@@ -113,10 +109,28 @@ class MainWindow(QMainWindow):
         if not self.coordinator.check_and_save_dirty(parent=self):
             event.ignore()
             return
+        
+        self._save_geometry_to_settings()
+
+        if self.main_splitter:
+            current_sizes = self.main_splitter.sizes()
+            outline_width = current_sizes[0]
+            self.current_settings['outline_width_pixels'] = outline_width
+            self.settings_manager.save_settings(self.current_settings)
 
         if self.db_connector:
             self.db_connector.close()
         super().closeEvent(event)
+
+    def resizeEvent(self, event: QResizeEvent):
+        """Called when the window is resized. Saves new dimensions."""
+        super().resizeEvent(event)
+        self._save_geometry_to_settings()
+
+    def moveEvent(self, event: QMoveEvent):
+        """Called when the window is moved. Saves new position."""
+        super().moveEvent(event)
+        self._save_geometry_to_settings()
 
     # -------------------------------------------------------------------------
     # View Management
@@ -193,7 +207,7 @@ class MainWindow(QMainWindow):
         
         # 2. Instantiate Main Components
         self.chapter_outline_manager = ChapterOutlineManager(chapter_repository=self.chapter_repo)
-        self.chapter_editor_panel = ChapterEditor()
+        self.chapter_editor_panel = ChapterEditor(self.current_settings)
         self.lore_outline_manager = LoreOutlineManager(lore_repository=self.lore_repo)
         self.lore_editor_panel = LoreEditor()
         self.character_outline_manager = CharacterOutlineManager(character_repository=self.char_repo)
@@ -225,7 +239,9 @@ class MainWindow(QMainWindow):
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.main_splitter.addWidget(self.outline_stack)
         self.main_splitter.addWidget(self.editor_stack)
-        self.main_splitter.setSizes([300, 900])  # Initial width distribution
+
+        outline_width = self.current_settings.get('outline_width_pixels', 300)
+        self.main_splitter.setSizes([outline_width, self.width() - outline_width])  # Initial width distribution
         self.main_splitter.setStretchFactor(1, 1) # Editor side stretches
 
         self.setCentralWidget(self.main_splitter)
@@ -526,17 +542,58 @@ class MainWindow(QMainWindow):
         if dialog.exec() == QDialog.DialogCode.Accepted:
             new_settings = dialog.get_new_settings()
             
-            # 1. Save the new settings to the user file
             self.settings_manager.save_settings(new_settings)
             
-            # 2. Apply the new settings
-            self.current_settings = new_settings
-            
-            # Check if theme application was successful
-            if apply_theme(self, self.current_settings):
-                self.current_settings['theme'] = new_settings.get("theme", "Light")
-
-            window_size = self.current_settings['window_size'].split('x')
-            self.setGeometry(100, 100, int(window_size[0]), int(window_size[1]))
+            self._apply_settings(new_settings)
             
             self.statusBar().showMessage(f"Settings saved and applied. Theme: {self.current_settings['theme']}.", 5000)
+
+    def _apply_settings(self, new_settings: dict) -> None:
+        """
+        Applies the loaded or newly changed settings to the application window
+
+        Args:
+            A dictionary of the new settings e.g {window_size: 800x600}
+        """
+        old_wpm = self.current_settings.get('words_per_minute', 250)
+        new_wpm = new_settings.get('words_per_minute', 250)
+
+        if old_wpm != new_wpm:
+            # Update the ChapterEditor with the new WPM setting
+            self.chapter_editor_panel.set_wpm(new_wpm)
+
+        self.current_settings = new_settings
+
+        # Check if theme application was successful
+        if apply_theme(self, self.current_settings):
+            self.current_settings['theme'] = self.current_settings.get("theme", "Dark") 
+
+        window_width = self.current_settings.get('window_width')
+        window_height = self.current_settings.get('window_height')
+        window_pos_x = self.current_settings.get('window_pos_x', 100) # Use saved position, fallback to 100
+        window_pos_y = self.current_settings.get('window_pos_y', 100) # Use saved position, fallback to 100
+
+        if window_width and window_height:
+            # Use the dynamically saved geometry (from manual resize/move)
+            self.setGeometry(window_pos_x, window_pos_y, window_width, window_height)
+        else:
+            # Fallback to the preset size string (e.g., '1200x800')
+            window_size_str = self.current_settings['window_size']
+            w, h = map(int, window_size_str.split('x'))
+            self.setGeometry(window_pos_x, window_pos_y, w, h)
+
+    def _save_geometry_to_settings(self):
+        """
+        Helper method to save the current window dimensions and position
+        to the settings manager.
+        """
+        # Get the geometry of the non-frame window (content area)
+        rect = self.geometry()
+
+        self.current_settings['window_width'] = rect.width()
+        self.current_settings['window_height'] = rect.height()
+        self.current_settings['window_pos_x'] = rect.x()
+        self.current_settings['window_pos_y'] = rect.y()
+
+        # Persist the updated settings immediately
+        self.settings_manager.save_settings(self.current_settings)

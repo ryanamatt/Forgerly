@@ -1,12 +1,40 @@
 # Chapter Editor Composite Widget: src/python/ui/chapter_editor.py
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QGroupBox, QSplitter
+    QWidget, QVBoxLayout, QLabel, QGroupBox, QSplitter, QHBoxLayout
 )
 from PyQt6.QtCore import Qt
 
 from ...ui.widgets.tag_widget import TagManagerWidget
 from ...ui.widgets.rich_text_editor import RichTextEditor
+
+def calculate_word_count(text: str) -> int:
+    """Calculates the word count of the plain text content."""
+    # Use split() without arguments to handle various whitespace separators
+    words = text.split()
+    return len(words)
+
+def calculate_character_count(text: str, include_spaces: bool = True) -> int:
+    """Calculates the character count."""
+    if include_spaces:
+        return len(text)
+    else:
+        return len("".join(text.split())) # Counts characters excluding all whitespace
+
+def calculate_read_time(word_count: int, wpm: int = 250) -> str:
+    """Calculates the estimated read time and formats it as 'X min'."""
+    if wpm <= 0 or word_count == 0:
+        return "0 min"
+    
+    # Calculate time in minutes (round up to nearest whole minute)
+    minutes = (word_count + wpm - 1) // wpm # Integer division equivalent of ceil(word_count / wpm)
+    
+    # Handle hours/minutes if needed, but for simplicity, stick to minutes
+    if minutes == 0:
+        # If words > 0 but time is less than 1 min, show '<1 min'
+        return "<1 min" if word_count > 0 else "0 min"
+    
+    return f"{minutes} min"
 
 class ChapterEditor(QWidget):
     """
@@ -17,57 +45,97 @@ class ChapterEditor(QWidget):
     MainWindow to load and save all chapter data (content and tags).
     """
     
-    def __init__(self, parent=None) -> None:
+    def __init__(self, current_settings, parent=None) -> None:
         super().__init__(parent)
+        self.wpm = current_settings['words_per_minute']
 
         # --- Sub-components ---
         self.rich_text_editor = RichTextEditor()
         self.tag_manager = TagManagerWidget()
+        
+        # --- Statistics Labels (New Components) ---
+        self.word_count_label = QLabel("Words: 0")
+        self.char_count_label = QLabel("Chars: 0")
+        self.read_time_label = QLabel(f"Read Time: 0 min (WPM: {self.wpm})")
 
         # --- Layout ---
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
 
-        # 1. Tagging Group Box
-        # Using a QGroupBox to clearly separate the tagging area
+        # 1. Tagging Group Box (Existing Code)
         tag_group = QGroupBox("Chapter Tags (Genres, Themes, POVs)")
         tag_layout = QVBoxLayout(tag_group)
-        tag_layout.setContentsMargins(10, 15, 10, 10)
+        tag_layout.setContentsMargins(10, 20, 10, 10)
         tag_layout.addWidget(self.tag_manager)
         
-        # 2. Rich Text Editor
-        # Title/Separator for the main writing area
-        content_label = QLabel("— Manuscript Content —")
-        content_label.setStyleSheet("font-weight: bold; padding: 5px 0 5px 0;")
-        content_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # 2. Editor and Stats (Modified Layout)
         
-        # Create a vertical QSplitter for Tag Group and Editor
-        content_splitter = QSplitter(Qt.Orientation.Vertical)
-
-        # Create a container widget for the content label and the rich text editor
-        content_container = QWidget()
-        content_layout = QVBoxLayout(content_container)
-        content_layout.setContentsMargins(0, 0, 0, 0) # Use 0 margins to control spacing externally
-        content_layout.setSpacing(0) 
-
-        content_layout.addWidget(content_label)
-        content_layout.addWidget(self.rich_text_editor)
-
-        content_splitter.addWidget(tag_group)
-        content_splitter.addWidget(content_container)
-
-        # Set the initial ratio of the splitter (e.g., 1:8 ratio for Tag Group to Editor)
-        content_splitter.setSizes([100, 800]) 
+        # Statistics Bar at the bottom of the editor
+        stats_bar = QWidget()
+        stats_layout = QHBoxLayout(stats_bar)
+        stats_layout.setContentsMargins(0, 0, 0, 0)
+        stats_layout.addWidget(self.word_count_label)
+        stats_layout.addWidget(self.char_count_label)
+        stats_layout.addWidget(self.read_time_label)
+        stats_layout.addStretch() # Push stats to the left
         
-        main_layout.addWidget(content_splitter)
-
-        # --- Connections ---
-        # Any change in the tags *also* makes the chapter dirty
-        self.tag_manager.tags_changed.connect(self._handle_tag_change)
+        # Combine the editor and the stats bar
+        editor_group = QWidget()
+        editor_vbox = QVBoxLayout(editor_group)
+        editor_vbox.setContentsMargins(0, 0, 0, 0)
+        editor_vbox.addWidget(stats_bar)
+        editor_vbox.addWidget(self.rich_text_editor)
         
-        # The RichTextEditor already connects its textChanged signal to its internal dirty flag, 
-        # so we only need to handle the TagManager change here.
+        editor_splitter = QSplitter(Qt.Orientation.Vertical)
+        editor_splitter.addWidget(tag_group) # Use the new group containing stats bar
+        editor_splitter.addWidget(editor_group)
+        editor_splitter.setSizes([100, 900]) 
+
+        # Add the splitter to the main layout
+        main_layout.addWidget(editor_splitter)
+
+        # --- Signal Connections ---
+        self.rich_text_editor.content_changed.connect(self._update_stats_display)
+        self.rich_text_editor.selection_changed.connect(self._update_stats_display)
+
+    def _update_stats_display(self) -> None:
+        """
+        Calculates and updates the real-time statistics labels based on 
+        the selected text or the full content if no text is selected.
+        """
+        # 1. Check for selected text first
+        selected_text = self.rich_text_editor.get_selected_text()
+        
+        if selected_text:
+            # Stats for SELECTED text
+            source_text = selected_text
+            label_prefix = "Selected"
+        else:
+            # Stats for FULL document
+            source_text = self.rich_text_editor.get_plain_text()
+            label_prefix = "Total"
+
+        # 2. Calculate statistics
+        word_count = calculate_word_count(source_text)
+        char_count_with_spaces = calculate_character_count(source_text, include_spaces=True)
+        read_time_str = calculate_read_time(word_count, self.wpm)
+
+        # 3. Update UI Labels with dynamic prefix
+        self.word_count_label.setText(f"{label_prefix} Words: {word_count:,}")
+        self.char_count_label.setText(f"{label_prefix} Chars: {char_count_with_spaces:,}")
+        self.read_time_label.setText(f"Read Time: {read_time_str} (WPM: {self.wpm})")
+
+    def set_wpm(self, new_wpm: int) -> None:
+        """Updates the WPM setting and recalculates the statistics display.
+        
+        Args:
+            new_wpm: The new wpm int number to set wpm to.
+        """
+        if new_wpm <= 0:
+            new_wpm = 250
+        self.wpm = new_wpm
+        self._update_stats_display
 
     def _handle_tag_change(self):
         """Sets the rich text editor's dirty flag when tags are modified."""
@@ -96,6 +164,7 @@ class ChapterEditor(QWidget):
     def set_html_content(self, html_content: str) -> None:
         """Sets the rich text content."""
         self.rich_text_editor.set_html_content(html_content)
+        self._update_stats_display()
 
     # --- Tagging Passthrough Methods (TagManagerWidget) ---
     
