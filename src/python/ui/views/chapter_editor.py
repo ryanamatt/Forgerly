@@ -9,20 +9,52 @@ from ...ui.widgets.tag_widget import TagManagerWidget
 from ...ui.widgets.rich_text_editor import RichTextEditor
 
 def calculate_word_count(text: str) -> int:
-    """Calculates the word count of the plain text content."""
+    """
+    Calculates the word count of the plain text content.
+
+    Words are counted by splitting the text using various whitespace separators.
+
+    :param text: The plain text content string.
+    :type text: str
+    :returns: The calculated number of words.
+    :rtype: int
+    """
     # Use split() without arguments to handle various whitespace separators
     words = text.split()
     return len(words)
 
 def calculate_character_count(text: str, include_spaces: bool = True) -> int:
-    """Calculates the character count."""
+    """
+    Calculates the character count of the plain text content.
+
+    :param text: The plain text content string.
+    :type text: str
+    :param include_spaces: If ``True`` (default), spaces and all other whitespace 
+                           characters are included in the count. If ``False``, 
+                           all whitespace is excluded.
+    :type include_spaces: bool
+    :returns: The calculated number of characters.
+    :rtype: int
+    """
     if include_spaces:
         return len(text)
     else:
         return len("".join(text.split())) # Counts characters excluding all whitespace
 
 def calculate_read_time(word_count: int, wpm: int = 250) -> str:
-    """Calculates the estimated read time and formats it as 'X min'."""
+    """
+    Calculates the estimated read time based on word count and words-per-minute (WPM).
+
+    The time is rounded up to the nearest whole minute and formatted as 'X min'.
+    Uses a default WPM of 250 if not specified.
+
+    :param word_count: The total number of words in the text.
+    :type word_count: int
+    :param wpm: The assumed reading speed in words per minute. Must be greater than 0.
+    :type wpm: int
+    :returns: A formatted string for the estimated read time (e.g., '5 min', '<1 min', '0 min').
+    :rtype: str
+    """
     if wpm <= 0 or word_count == 0:
         return "0 min"
     
@@ -38,14 +70,36 @@ def calculate_read_time(word_count: int, wpm: int = 250) -> str:
 
 class ChapterEditor(QWidget):
     """
-    A composite QWidget that serves as the main editing panel for a chapter.
-    It combines the RichTextEditor for content and the TagManagerWidget for metadata.
-    
-    This component manages the state and provides a single interface for the 
-    MainWindow to load and save all chapter data (content and tags).
+    A composite :py:class:`PyQt6.QtWidgets.QWidget` that serves as the main 
+    editing panel for a chapter.
+
+    It combines a :py:class:`~.RichTextEditor` for content and a 
+    :py:class:`~.TagManagerWidget` for metadata. This widget manages the 
+    state (dirty flags) and provides a single interface for the MainWindow 
+    to load and save all chapter data (content, tags, and statistics).
+
+    The editor displays real-time statistics (word count, character count, 
+    and estimated read time) for either the **full document** or the 
+    **currently selected text**.
+
+    :ivar rich_text_editor: The rich text editor component.
+    :vartype rich_text_editor: RichTextEditor
+    :ivar tag_manager: The tag management component.
+    :vartype tag_manager: TagManagerWidget
+    :ivar wpm: The words-per-minute setting used for read time calculation.
+    :vartype wpm: int
     """
     
     def __init__(self, current_settings, parent=None) -> None:
+        """
+        Initializes the ChapterEditor with sub-components and layout.
+
+        :param current_settings: A dictionary containing initial application settings, 
+                                 including 'words_per_minute'.
+        :type current_settings: dict
+        :param parent: The parent widget. Defaults to ``None``.
+        :type parent: :py:class:`PyQt6.QtWidgets.QWidget`
+        """
         super().__init__(parent)
         self.wpm = current_settings['words_per_minute']
 
@@ -103,6 +157,9 @@ class ChapterEditor(QWidget):
         """
         Calculates and updates the real-time statistics labels based on 
         the selected text or the full content if no text is selected.
+
+        This method is connected to the :py:attr:`~.RichTextEditor.content_changed`
+        and :py:attr:`~.RichTextEditor.selection_changed` signals.
         """
         # 1. Check for selected text first
         selected_text = self.rich_text_editor.get_selected_text()
@@ -127,10 +184,11 @@ class ChapterEditor(QWidget):
         self.read_time_label.setText(f"Read Time: {read_time_str} (WPM: {self.wpm})")
 
     def set_wpm(self, new_wpm: int) -> None:
-        """Updates the WPM setting and recalculates the statistics display.
+        """
+        Updates the WPM setting and recalculates the statistics display.
         
-        Args:
-            new_wpm: The new wpm int number to set wpm to.
+        :param new_wpm: The new WPM number to set. Will default to 250 if <= 0.
+        :type new_wpm: int
         """
         if new_wpm <= 0:
             new_wpm = 250
@@ -138,42 +196,81 @@ class ChapterEditor(QWidget):
         self._update_stats_display
 
     def _handle_tag_change(self):
-        """Sets the rich text editor's dirty flag when tags are modified."""
+        """
+        Sets the rich text editor's dirty flag when tags are modified.
+
+        (Currently commented out as signal name is hypothetical)
+        """
         self.rich_text_editor._set_dirty()
         
     # --- Content Passthrough Methods (RichTextEditor) ---
     
     def is_dirty(self) -> bool:
-        """Checks if the content or the tags have unsaved changes."""
+        """
+        Checks if the content (RichTextEditor) or the tags (TagManagerWidget) 
+        have unsaved changes.
+
+        :returns: ``True`` if content or tags are modified, ``False`` otherwise.
+        :rtype: bool
+        """
         return self.rich_text_editor.is_dirty() or self.tag_manager.is_dirty()
 
     def mark_saved(self) -> None:
-        """Marks both content and tags as clean."""
+        """
+        Marks both the rich text content and the tags as clean (saved).
+        """
         self.rich_text_editor.mark_saved()
         self.tag_manager.mark_saved()
         
     def set_enabled(self, enabled: bool) -> None:
-        """Enables/disables the entire chapter editor panel."""
+        """
+        Enables or disables the entire chapter editor panel by setting the 
+        state of its main sub-components.
+
+        :param enabled: ``True`` to enable, ``False`` to disable.
+        :type enabled: bool
+        """
         self.rich_text_editor.setEnabled(enabled)
         self.tag_manager.setEnabled(enabled)
 
     def get_html_content(self) -> str:
-        """Returns the current rich text content."""
+        """
+        Returns the current rich text content as an HTML string.
+
+        :returns: The chapter content as HTML.
+        :rtype: str
+        """
         return self.rich_text_editor.get_html_content()
 
     def set_html_content(self, html_content: str) -> None:
-        """Sets the rich text content."""
+        """
+        Sets the rich text content and triggers a statistics update.
+
+        :param html_content: The HTML content string to load into the editor.
+        :type html_content: str
+        """
         self.rich_text_editor.set_html_content(html_content)
         self._update_stats_display()
 
     # --- Tagging Passthrough Methods (TagManagerWidget) ---
     
     def get_tags(self) -> list[str]:
-        """Returns the current list of tag names."""
+        """
+        Returns the current list of tag names entered in the tag manager.
+
+        :returns: A list of tag names (strings).
+        :rtype: list[str]
+        """
         return self.tag_manager.get_tags()
 
     def set_tags(self, tag_names: list[str]) -> None:
-        """Sets the tags when a chapter is loaded."""
-        # This function also clears the tag manager's dirty state internally
+        """
+        Sets the tags when a chapter is loaded.
+
+        This function also clears the tag manager's dirty state internally.
+
+        :param tag_names: A list of tag names (strings) to set.
+        :type tag_names: list[str]
+        """
         self.tag_manager.set_tags(tag_names)
 
