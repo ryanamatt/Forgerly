@@ -1,8 +1,7 @@
-# src/python/db_connector.py (The new, reduced Connection Manager)
+# src/python/db_connector.py
 
 import sqlite3
 import os
-import sys
 from typing import Any
 
 class DBConnector:

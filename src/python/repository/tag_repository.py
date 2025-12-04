@@ -1,7 +1,7 @@
 # src/python/tag_repository.py
 
 from ..utils.types import TagTuple, TagTupleList
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..db_connector import DBConnector
 

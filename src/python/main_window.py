@@ -1,4 +1,4 @@
-# Main Application Window: src/python/main_window.py
+# src/python/main_window.py
 
 from PyQt6.QtWidgets import (
     QMainWindow, QSplitter, QMessageBox, QDialog, QStackedWidget
@@ -19,7 +19,7 @@ from .ui.views.character_editor import CharacterEditor
 from .ui.views.relationship_outline_manager import RelationshipOutlineManager
 from .ui.views.relationship_editor import RelationshipEditor
 from .ui.dialogs.settings_dialog import SettingsDialog
-from .ui.dialogs.exporter_dialog import ExporterDialog, ExportType
+from .ui.dialogs.exporter_dialog import ExporterDialog
 
 from .db_connector import DBConnector
 
@@ -31,7 +31,7 @@ from .services.lore_exporter import LoreExporter
 
 from .utils._version import __version__
 from .utils.theme_utils import apply_theme
-from .utils.constants import ViewType
+from .utils.constants import ViewType, ExportType
 
 class MainWindow(QMainWindow):
     """

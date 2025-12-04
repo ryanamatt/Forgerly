@@ -1,4 +1,4 @@
-# src/python/basic_text_editor.py (suggested file name)
+# src/python/basic_text_editor.py
 
 from PyQt6.QtWidgets import (
     QTextEdit, QWidget, QVBoxLayout,

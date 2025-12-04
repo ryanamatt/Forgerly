@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QMessageBox, QFrame, QDialog, QFormLayout, QComboBox, QLineEdit,
     QSpinBox, QDialogButtonBox, QLabel
 )
-from PyQt6.QtCore import Qt, QPointF, pyqtSignal, QRectF, QObject, QLineF
+from PyQt6.QtCore import Qt, QPointF, pyqtSignal, QRectF, QObject
 from PyQt6.QtGui import QColor, QPen, QBrush, QFont
 import math
 from typing import Any, TYPE_CHECKING

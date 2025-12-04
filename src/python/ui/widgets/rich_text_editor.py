@@ -1,14 +1,13 @@
 # src/python/rich_text_editor.py
 
 from PyQt6.QtWidgets import (
-    QTextEdit, QToolBar, QWidget, QVBoxLayout, QStyle,
-    QFontComboBox, QComboBox, QColorDialog
+    QToolBar, QStyle, QFontComboBox, QComboBox, QColorDialog
 )
 from PyQt6.QtGui import (
     QAction, QTextCharFormat, QFont, QTextCursor, 
     QTextListFormat, QTextBlockFormat, QIcon, QBrush,
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QSize
+from PyQt6.QtCore import Qt, QSize
 
 from .basic_text_editor import BasicTextEditor
 

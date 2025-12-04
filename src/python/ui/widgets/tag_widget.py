@@ -1,4 +1,4 @@
-# Reusable Tagging UI Component: src/python/ui/tag_widget.py
+# src/python/ui/tag_widget.py
 
 from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, 
@@ -293,26 +293,3 @@ class TagManagerWidget(QWidget):
         # Restore signals and explicitly mark clean ---
         self.blockSignals(False) 
         self.mark_saved()
-
-# --- Test Execution ---
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    
-    main_window = QMainWindow()
-    main_window.setWindowTitle("TagManagerWidget Test")
-    main_window.setGeometry(100, 100, 400, 300)
-    
-    # Initialize with some dummy tags
-    initial_tags = ["Epic Fantasy", "First Contact", "Space Opera", "Political Thriller"]
-    tag_manager = TagManagerWidget(initial_tags=initial_tags)
-    
-    # Connect to the change signal to see updates in the console
-    def on_tags_changed(tags):
-        print(f"Tags changed! Current list: {tags}")
-
-    tag_manager.tags_changed.connect(on_tags_changed)
-
-    main_window.setCentralWidget(tag_manager)
-    main_window.show()
-    
-    sys.exit(app.exec())

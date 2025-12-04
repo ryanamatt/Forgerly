@@ -1,6 +1,5 @@
 # src/python/services/lore_exporter.py
 
-from ebooklib import epub
 from xhtml2pdf import pisa
 import json
 import yaml

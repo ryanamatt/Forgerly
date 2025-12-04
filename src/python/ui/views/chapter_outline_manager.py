@@ -1,4 +1,4 @@
-# Outline Manager Component: src/python/ui/outline_manager.py
+# src/python/ui/outline_manager.py
 
 from PyQt6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QHeaderView, QStyle, QMenu, QInputDialog, QMessageBox
