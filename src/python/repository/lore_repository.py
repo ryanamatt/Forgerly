@@ -90,3 +90,34 @@ class LoreRepository:
         """
         params = (like_pattern, like_pattern, like_pattern, like_pattern)
         return self.db._execute_query(query, params, fetch_all=True)
+    
+    def get_lore_entries_for_export(self, lore_ids: list[int] = None) -> list[dict]:
+        """
+        Retrieves Lore Entry details (ID, Title, Content, Sort_Order) for export purposes,
+        optionally filtered by a list of IDs.
+        """
+        query = """
+        SELECT ID, Title, Content, Category
+        FROM Lore_Entries
+        """
+        params = ()
+
+        # 1. Modify the query if specific IDs are requested
+        if lore_ids is not None and lore_ids:
+            # Ensure IDs are unique and sorted for consistent query execution
+            unique_ids = sorted(list(set(lore_ids))) 
+            
+            # Create placeholders for the IN clause (e.g., ?, ?, ?)
+            placeholders = ', '.join(['?'] * len(unique_ids))
+            
+            query += f" WHERE ID IN ({placeholders})"
+            # The IDs become the parameters for the query
+            params = tuple(unique_ids)
+
+        # 2. Add final ordering clause
+        query += " ORDER BY Title ASC;"
+
+        # 3. Execute the query using the DBConnector helper method
+        results = self.db._execute_query(query, params, fetch_all=True)
+
+        return results if results else []

@@ -26,10 +26,10 @@ class FileFormats:
     STRUCTURED_FORMATS = [JSON, YAML]
 
     # List of all human-readable/presentation formats
-    PRESENTATION_FORMATS = [HTML, MARKDOWN, PLAIN_TEXT, EPUB]
+    PRESENTATION_FORMATS = [HTML, MARKDOWN, PLAIN_TEXT, EPUB, PDF]
 
     # List of all Suppored Formats
-    ALL = STRUCTURED_FORMATS + PRESENTATION_FORMATS
+    ALL = PRESENTATION_FORMATS + STRUCTURED_FORMATS
 
 # Helper function for generating PyQt file filter strings
 def generate_file_filter(formats: list[str]) -> str:

@@ -26,6 +26,7 @@ from .services.settings_manager import SettingsManager
 from .services.app_coordinator import AppCoordinator
 from .services.story_exporter import StoryExporter
 from .services.character_exporter import CharacterExporter
+from .services.lore_exporter import LoreExporter
 
 from .utils._version import __version__
 from .utils.theme_utils import apply_theme
@@ -66,6 +67,7 @@ class MainWindow(QMainWindow):
 
         self.story_exporter = StoryExporter(self.coordinator, self.project_title)
         self.character_exporter = CharacterExporter(self.coordinator, self.project_title)
+        self.lore_exporter = LoreExporter(self.coordinator, self.project_title)
 
         # --- Settings and Theme Management ---
         self.settings_manager = SettingsManager()
@@ -464,7 +466,7 @@ class MainWindow(QMainWindow):
             return
         
         # 2. Open the new ExporterDialog
-        dialog = ExporterDialog(parent=self)
+        dialog = ExporterDialog(coordinator=self.coordinator, parent=self)
         
         # Connect the signal from the dialog to a slot in the main window
         dialog.export_requested.connect(self._perform_export)
@@ -494,7 +496,10 @@ class MainWindow(QMainWindow):
                         QMessageBox.warning(self, "Export Error", "No chapters were selected for export.")
             
             case ExportType.LORE:
-                QMessageBox.warning(self, "Not Implemented", "Exporting selected Lore Entries is not yet implemented.")
+                if selected_ids:
+                    success = self.lore_exporter.export(parent=self, selected_ids=selected_ids)
+                else:
+                    QMessageBox.warning(self, "Export Error", "No Characters were selected for export.")
 
             case ExportType.CHARACTERS:
                 if selected_ids:

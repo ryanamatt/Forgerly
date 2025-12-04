@@ -428,7 +428,7 @@ class AppCoordinator(QObject):
 
     # --- Export Logic Helper (For use by the new Exporter classes) ---
     
-    def get_chapter_data_for_export(self, chapter_ids: list[int] = []):
+    def get_chapter_data_for_export(self, chapter_ids: list[int] = []) -> list[int]:
         """
         Fetches all chapter data required for a full or partial story export.
         
@@ -439,7 +439,7 @@ class AppCoordinator(QObject):
         """
         return self.chapter_repo.get_all_chapters_for_export(chapter_ids)
     
-    def get_character_data_for_export(self, character_ids: list[int] = []):
+    def get_character_data_for_export(self, character_ids: list[int] = []) -> list[int]:
         """
         Fetches all chapter data required for all or some characters export.
         
@@ -450,3 +450,15 @@ class AppCoordinator(QObject):
         """
 
         return self.character_repo.get_all_characters_for_export(character_ids)
+    
+    def get_lore_data_for_export(self, lore_ids: list[int] = []) -> list[int]:
+        """
+        Fetches all chapter data required for all or some Lore_Entries export.
+        
+        Args:
+            lore_ids: A list of IDs to fetch. If None, all characters are fetched.
+        
+        Returns:
+        """
+
+        return self.lore_repo.get_lore_entries_for_export(lore_ids)

@@ -1,6 +1,10 @@
 # src/python/services/story_exporter.py
 
+from ebooklib import epub
+from xhtml2pdf import pisa
 import json
+import yaml
+
 from PyQt6.QtWidgets import QFileDialog, QMessageBox, QWidget
 from PyQt6.QtGui import QTextDocument
 
@@ -32,8 +36,7 @@ class StoryExporter(Exporter):
         """
         
         # 1. Prompt user for file path and format
-        self.file_formats = [FileFormats.HTML, FileFormats.MARKDOWN, FileFormats.PLAIN_TEXT, FileFormats.JSON]
-        file_filter = generate_file_filter(self.file_formats)
+        file_filter = generate_file_filter(FileFormats.ALL)
         file_path, selected_filter = QFileDialog.getSaveFileName(
             parent, "Export Story", "Story.html", file_filter
         )
@@ -101,8 +104,12 @@ class StoryExporter(Exporter):
         if not writer_function:
             raise ValueError(f"Unsupported file format: {file_format}")
         
+        is_binary = file_format in ["epub", "pdf"]
+        mode = 'wb' if is_binary else 'w'
+        encoding = None if is_binary else 'utf-8'
+        
         try:
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, mode, encoding=encoding) as f:
                 writer_function(f, chapters_data)
 
         except FileNotFoundError:
@@ -126,6 +133,54 @@ class StoryExporter(Exporter):
         doc = QTextDocument()
         doc.setHtml(html_content)
         return doc.toPlainText()
+    
+    def _generate_full_html_document(title: str, chapters: list[dict]) -> str:
+        """
+        Generates a full HTML document string for PDF generation, including styles
+        and character data.
+
+        Args:
+            characters: A list of dictionaries containing character data.
+
+        Returns:
+            The complete HTML document as a string.
+        """
+        # Simple, print-friendly CSS style
+        css_style = """
+        @page { size: A4; margin: 1in; }
+        body { font-family: sans-serif; line-height: 1.6; }
+        h1 { color: #333; border-bottom: 2px solid #ccc; padding-bottom: 5px; }
+        h2 { page-break-before: always; color: #555; }
+        .chapter-content { margin-bottom: 2em; }
+        """
+
+        body_content = f"<h1>{title}</h1>" # Project Title
+
+        for i, chapter in enumerate(chapters):
+            title = chapter.get('Title', 'Untitled Chapter')
+            content = chapter.get('Text_Content', '')
+            
+            # Add a page break before each chapter (except the first) for a clean PDF
+            page_break = "style='page-break-before: always;'" if i > 0 else ""
+            
+            body_content += f'<h2 {page_break}>{title}</h2>\n'
+            body_content += f'<div class="chapter-content">{content}</div>\n'
+            
+        # Full HTML structure
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>{title}</title>
+            <meta charset='UTF-8'>
+            <style>{css_style}</style>
+        </head>
+        <body>
+            {body_content}
+        </body>
+        </html>
+        """
+        return html
     
     def _write_html(self, f: TextIO, chapters_data: list[dict]) -> None:
         """
@@ -189,10 +244,64 @@ class StoryExporter(Exporter):
             f.write('\n\n')
 
     def _write_epub(self, f: TextIO, chapters_data: list[dict]) -> None:
-        pass
+        """
+        Writes the story data to the file object in EPUB format.
+
+        Args:
+            f: The open file object (TextIO).
+            chapters_data: A list of dictionaries containing chapter data.
+        """
+        book = epub.EpubBook()
+
+        book.set_identifier(f'story-exporter-{self.project_title.replace(" ", "-")}')
+        book.set_title(self.project_title)
+        book.set_language('en')
+        book.add_author("Story Exporter")
+
+        # Create EPUB chapters and contents
+        epub_chapters = []
+        for i, chapter_data in enumerate(chapters_data):
+            title = chapter_data.get('Title', f'Untitled Chapter {i+1}')
+            html_content = chapter_data.get('Text_Content', '')
+            
+            # The EPUB content must be valid XHTML
+            c = epub.EpubHtml(
+                title=title, 
+                file_name=f'chap_{i+1}.xhtml', 
+                lang='en'
+            )
+            
+            # Wrap content with standard body tags for valid EPUB content
+            c.content = f'<h1>{title}</h1>{html_content}'
+            
+            book.add_item(c)
+            epub_chapters.append(c)
+
+        # Define table of contents (TOC) and Spine
+        book.toc = tuple(epub_chapters)
+        book.spine = ['nav'] + epub_chapters
+        
+        # Add default NCX (table of contents) and Nav files
+        book.add_item(epub.EpubNcx())
+        book.add_item(epub.EpubNav())
+        
+        # Write the EPUB file to the binary stream 'f'
+        epub.write_epub(f, book, {})
 
     def _write_pdf(self, f: TextIO, chapters_data: list[dict]) -> None:
-        pass
+        """
+        Writes the story data to the file object in PDF format.
+
+        Args:
+            f: The open file object (TextIO).
+            chapters_data: A list of dictionaries containing chapter data.
+        """
+        html_string = self._generate_full_html_document(chapters_data)
+
+        pisa_status = pisa.CreatePDF(html_string, dest = f)
+
+        if pisa_status.err:
+            raise IOError("PDF Generation fialed using xhtml2pdf")
 
     def _write_json(self, f: TextIO, chapters_data: list[dict]) -> None:
         """
@@ -206,4 +315,15 @@ class StoryExporter(Exporter):
         json.dump(chapters, f, indent=4)
 
     def _write_yaml(self, f: TextIO, chapters_data: list[dict]) -> None:
-        pass
+        """
+        Writes the story data to the file object in YAML format.
+
+        Args:
+            f: The open file object (TextIO).
+            chapters_data: A list of dictionaries containing chapter data.
+        """
+        yaml_data = {
+            "project_title": self.project_title,
+            "chapters": chapters_data
+        }
+        yaml.dump(yaml_data, f, default_flow_style=False, allow_unicode=True)
