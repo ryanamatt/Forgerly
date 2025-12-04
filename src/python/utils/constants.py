@@ -7,6 +7,13 @@ class ViewType:
     CHARACTER_EDITOR = 3
     RELATIONSHIP_GRAPH = 4
 
+# All Types of content that can be exported
+class ExportType:
+    STORY = "Story (All Chapters)"
+    CHAPTERS = "Selected Chapters"
+    LORE = "Selected Lore Entries"
+    CHARACTERS = "Selected Characters"
+
 # A set of supported file extensions
 class FileFormats:
     """Defines the supported file formats for Import/Export operations."""

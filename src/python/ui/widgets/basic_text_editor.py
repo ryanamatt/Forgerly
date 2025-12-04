@@ -1,4 +1,4 @@
-# src/python/base_text_editor.py (suggested file name)
+# src/python/basic_text_editor.py (suggested file name)
 
 from PyQt6.QtWidgets import (
     QTextEdit, QWidget, QVBoxLayout,
@@ -8,6 +8,7 @@ from PyQt6.QtCore import pyqtSignal
 class BasicTextEditor(QWidget):
     """
     A base QWidget containing a QTextEdit and managing the 'dirty' (unsaved changes) state.
+    A Basic Text Editor for saving and writing text.
     """
     # Signal to notify listeners (like ChapterEditor/LoreEditor) of content changes
     content_changed = pyqtSignal()

@@ -17,15 +17,9 @@ class RichTextEditor(BasicTextEditor):
     A Custom QWidget containing a QTextEdit and a formatiing toolbar
     Handles the rich text formating Action
     """
-    # signal to notify listeners (like ChapterEditor/LoreEditor) of content changes
-    content_changed = pyqtSignal()
 
     def __init__(self, parent =None) -> None:
         super().__init__(parent)
-
-        # State tracking for unsaved changes
-        self._is_dirty = False
-        self._last_saved_content = ""
 
         # Map display names to their corresponding QTestFormat block level
         self._block_style_map = {
@@ -130,14 +124,12 @@ class RichTextEditor(BasicTextEditor):
         # UNORDERED LIST (Bullet Points)
         list_bullet_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_CustomBase) # Placeholder icon
         self.list_bullet_action = QAction(list_bullet_icon, "Bullet List", self)
-        self.list_bullet_action.setShortcut("Ctrl+Shft+8")
         self.list_bullet_action.triggered.connect(lambda: self._toggle_list(QTextListFormat.Style.ListDisc))
         self.toolbar.addAction(self.list_bullet_action)
 
         # ORDERED LIST (Numbers)
         list_number_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_CustomBase)
         self.list_number_action = QAction(list_number_icon, "Numbered List", self)
-        self.list_number_action.setShortcut("Ctrl+Shft+9")
         self.list_number_action.triggered.connect(lambda: self._toggle_list(QTextListFormat.Style.ListDecimal))
         self.toolbar.addAction(self.list_number_action)
 
@@ -183,11 +175,10 @@ class RichTextEditor(BasicTextEditor):
 
     # --- Formatting Handlers ---
 
-    def _select_block_style(self, style_name_index: int) -> None:
+    def _select_block_style(self, style_name: str) -> None:
         """Applies a block-level style (e.g., Heading or Paragraph)."""
-        level_value = self._block_style_map.get(style_name_index)
+        level_value = self._block_style_map.get(style_name)
         
-            
         cursor = self.editor.textCursor()
         block_format = cursor.blockFormat()
         
@@ -221,38 +212,26 @@ class RichTextEditor(BasicTextEditor):
             print(f"Invalid font size input: {size_str}")
     
     def _toggle_bold(self) -> None:
-        """Toggles bold formatting for the selected text."""
-        cursor = self.editor.textCursor()
-        if not cursor.hasSelection():
-            cursor.select(QTextCursor.SelectionType.WordUnderCursor)
-        
-        format = cursor.charFormat()
+        """Toggles bold formatting for the selected text."""        
+        format = self.editor.currentCharFormat()
         weight = QFont.Weight.Bold if format.fontWeight() != QFont.Weight.Bold else QFont.Weight.Normal
         format.setFontWeight(weight)
-        cursor.mergeCharFormat(format)
         self.editor.mergeCurrentCharFormat(format)
+        self._set_dirty()
         
     def _toggle_italic(self) -> None:
-        """Toggles italic formatting for the selected text."""
-        cursor = self.editor.textCursor()
-        if not cursor.hasSelection():
-            cursor.select(QTextCursor.SelectionType.WordUnderCursor)
-            
-        format = cursor.charFormat()
+        """Toggles italic formatting for the selected text."""            
+        format = self.editor.currentCharFormat()
         format.setFontItalic(not format.fontItalic())
-        cursor.mergeCharFormat(format)
         self.editor.mergeCurrentCharFormat(format)
+        self._set_dirty()
 
     def _toggle_underline(self) -> None:
         """Toggles underline formatting for the selected text."""
-        cursor = self.editor.textCursor()
-        if not cursor.hasSelection():
-            cursor.select(QTextCursor.SelectionType.WordUnderCursor)
-            
-        format = cursor.charFormat()
+        format = self.editor.currentCharFormat()
         format.setFontUnderline(not format.fontUnderline())
-        cursor.mergeCharFormat(format)
         self.editor.mergeCurrentCharFormat(format)
+        self._set_dirty()
 
     def _select_text_color(self) -> None:
         """Opens a color dialog to select the foreground (text) color"""
@@ -306,30 +285,19 @@ class RichTextEditor(BasicTextEditor):
         """
         format = self.editor.currentCharFormat()
         
-        # Update Bold button state
-        bold_action = self.toolbar.actions()[0] # Assuming position 0 is Bold
-        bold_action.setChecked(format.fontWeight() == QFont.Weight.Bold)
-        
-        # Update Italic button state
-        italic_action = self.toolbar.actions()[1] # Assuming position 1 is Italic
-        italic_action.setChecked(format.fontItalic())
-        
-        # Update Underline button state
-        underline_action = self.toolbar.actions()[2] # Assuming position 2 is Underline
-        underline_action.setChecked(format.fontUnderline())
-        
+        self.bold_action.setChecked(format.fontWeight() == QFont.Weight.Bold)
+        self.italic_action.setChecked(format.fontItalic())
+        self.underline_action.setChecked(format.fontUnderline())
+
         # Update List button states
         current_list = self.editor.textCursor().currentList()
-        if current_list is None: current_list = False
+        is_list = current_list is not None # Check if it's a list
 
-        list_bullet_action = self.toolbar.actions()[4] # Assuming position 4 is Bullet List (index 3 is the separator)
-        list_number_action = self.toolbar.actions()[5] # Assuming position 5 is Numbered List
+        is_bullet = is_list and current_list.format().style() == QTextListFormat.Style.ListDisc
+        is_numbered = is_list and current_list.format().style() == QTextListFormat.Style.ListDecimal
 
-        is_bullet = current_list and current_list.format().style() == QTextListFormat.Style.ListDisc
-        is_numbered = current_list and current_list.format().style() == QTextListFormat.Style.ListDecimal
-
-        list_bullet_action.setChecked(is_bullet)
-        list_number_action.setChecked(is_numbered)
+        self.list_bullet_action.setChecked(is_bullet)
+        self.list_number_action.setChecked(is_numbered)
 
     def _align_text(self, alignment: Qt.AlignmentFlag) -> None:
         """Sets the alignment of the current text block(s) and marks content as dirty."""
@@ -365,12 +333,27 @@ class RichTextEditor(BasicTextEditor):
 
         if cursor.hasSelection():
             # Apply a default, clean character format to the selection
-            clean_format = QTextCharFormat()
-            cursor.mergeCharFormat(clean_format)
+            clean_char_format = QTextCharFormat()
+            cursor.mergeCharFormat(clean_char_format)
             
         else:
-            pass
+            self.editor.setCurrentCharFormat(QTextCharFormat())
+
+        # Clear Block Formatting (heading, alignment, indentation)
+        clean_block_format = QTextBlockFormat()
+        clean_block_format.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        clean_block_format.setIndent(0)
+        clean_block_format.setHeadingLevel(0)
+
+        if not cursor.hasSelection():
+            cursor.select(QTextCursor.SelectionType.BlockUnderCursor)
+
+        # Use begin/endEditBlock for better merging
+        cursor.beginEditBlock()
+        cursor.setBlockFormat(clean_block_format)
+        cursor.endEditBlock()
             
+        self.editor.setTextCursor(cursor) 
         self._set_dirty()
 
     def _update_format_controls(self) -> None:

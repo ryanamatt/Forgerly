@@ -2,7 +2,7 @@
 
 import os
 from PyQt6.QtWidgets import QWidget
-from typing import TYPE_CHECKING, Dict, Any, List
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     HasStyleSheet = QWidget
@@ -12,7 +12,7 @@ else:
 # Define the directory where style files are stored
 STYLES_DIR = 'styles'
 
-def get_available_themes() -> List[str]:
+def get_available_themes() -> list[str]:
     """
     Scans the styles directory for .qss files and returns a list of theme names.
     The theme name is derived from the filename (e.g., 'dark.qss' -> 'Dark').

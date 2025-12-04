@@ -11,17 +11,13 @@ from PyQt6.QtWidgets import (
     QLabel, QDialogButtonBox, QHBoxLayout,
     QMessageBox, QWidget, QStackedWidget
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
+
+from ...utils.constants import ExportType
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from services.app_coordinator import AppCoordinator
-
-class ExportType:
-    STORY = "Story (All Chapters)"
-    CHAPTERS = "Selected Chapters"
-    LORE = "Selected Lore Entries"
-    CHARACTERS = "Selected Characters"
 
 class ExporterDialog(QDialog):
     """A small dialog window to manager exporting parts of the project"""

@@ -44,6 +44,23 @@ class LoreSearchResultDict(TypedDict):
     Category: str
     final_rank: int
 
+# --- Character Repository Types ---
+
+# TypedDict for the full details of a Character (Used by get_character_details)
+class CharacterDetailsDict(TypedDict):
+    """Represents a full Character row from the DB."""
+    ID: int
+    Name: str
+    Description: str # Assuming this is a rich text or long text field
+    Status: str      # e.g., 'Main', 'Supporting', 'Deceased'
+    
+# TypedDict for a character outline list item (Used by get_all_characters)
+class CharacterBasicDict(TypedDict):
+    """Represents a basic character row from the DB."""
+    ID: int
+    Name: str
+    Status: str # Status might be useful for icon/sorting in the outline
+
 # --- Tag Repository Types ---
 
 # Type Alias for the (ID, Name) tuple returned by tag repository methods

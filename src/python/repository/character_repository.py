@@ -1,7 +1,7 @@
 # src/python/repository/character_repository
 
-from ..utils.types import DBRowList
-from typing import TYPE_CHECKING, Any
+from ..utils.types import DBRowList, CharacterDetailsDict, CharacterBasicDict
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..db_connector import DBConnector
 
@@ -25,7 +25,7 @@ class CharacterRepository:
         """
         return self.db._execute_commit(query, (name, description, status), fetch_id=True)
     
-    def get_character_details(self, char_id) -> list[dict]:
+    def get_character_details(self, char_id) -> CharacterDetailsDict:
         """Retrieves the full details (Name, Description, Status) for a specific ID."""
         query = """
         SELECT ID, Name, Description, Status
@@ -53,7 +53,7 @@ class CharacterRepository:
         result = self.db._execute_query(query, (char_id,), fetch_one=True)
         return result['Name'] if result else None
     
-    def search_characters(self, user_query: str) -> list[dict] | None:
+    def search_characters(self, user_query: str) -> CharacterBasicDict | None:
         """
         Accepts a keyword query and performs a hybrid search:
         1. Search on Name, Status (ranked results).
@@ -78,7 +78,7 @@ class CharacterRepository:
         params = (like_pattern, like_pattern)
         return self.db._execute_query(query, params, fetch_all=True)
     
-    def get_all_characters_for_export(self, character_ids: list[int] = []) -> list[dict]:
+    def get_all_characters_for_export(self, character_ids: list[int] = []) -> CharacterDetailsDict:
         """
         Retrieves characters details for export purposes,
         optionally filtered by a list of IDs.

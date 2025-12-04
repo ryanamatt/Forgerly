@@ -1,12 +1,12 @@
 # Main Application Window: src/python/main_window.py
 
 from PyQt6.QtWidgets import (
-    QMainWindow, QSplitter, QMessageBox, QFileDialog, QDialog,
-    QWidget, QVBoxLayout, QStackedWidget
+    QMainWindow, QSplitter, QMessageBox, QDialog, QStackedWidget
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCloseEvent, QAction, QResizeEvent, QMoveEvent, QIcon
 import os
+import sys
 import ctypes
 
 from .ui.menu.main_menu_bar import MainMenuBar
@@ -43,9 +43,16 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
 
-        # This is a workaround to allow the taskbar to have the same icon as the window icon
-        appID = f"narrative-forge.{__version__}"
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(appID)
+        # need to know if macOS for differences
+        self.is_macos = sys.platform == 'darwin'
+
+        # This is a workaround to allow the taskbar to have the same icon as the window icon on windows
+        if sys.platform.startswith('win'):
+            try:
+                appID = f"narrative-forge.{__version__}"
+                ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(appID)
+            except AttributeError:
+                pass
 
         # Temporary Project Title will need to be changed to actual users project title
         self.project_title = "Project Title"
@@ -95,6 +102,7 @@ class MainWindow(QMainWindow):
         self.main_menu_bar = MainMenuBar(
             current_view=self.current_view,
             app_version=__version__,
+            is_macos=self.is_macos,
             parent=self
         )
         self.setMenuBar(self.main_menu_bar)

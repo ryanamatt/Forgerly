@@ -3,7 +3,7 @@
 from PyQt6.QtWidgets import QMenuBar, QMessageBox
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QIcon, QAction
-import os
+import sys
 from ...utils.constants import ViewType
 
 class MainMenuBar(QMenuBar):
@@ -23,10 +23,12 @@ class MainMenuBar(QMenuBar):
 
     view_switch_requested = pyqtSignal(int)
 
-    def __init__(self, current_view: ViewType, app_version: str, parent=None) -> None:
+    def __init__(self, current_view: ViewType, app_version: str, is_macos: bool, parent=None) -> None:
         super().__init__(parent=parent)
         self.current_view = current_view
         self.app_version = app_version
+
+        self._mod_key = "Meta" if is_macos else "Ctrl"
 
         self._setup_menus()
 
@@ -56,7 +58,7 @@ class MainMenuBar(QMenuBar):
 
         # Save Action
         save_action = QAction("&Save Content", self)
-        save_action.setShortcut("Ctrl+S")
+        save_action.setShortcut(f"{self._mod_key}+S")
         save_action.triggered.connect(self.save_requested.emit) 
         file_menu.addAction(save_action)
 
@@ -64,7 +66,7 @@ class MainMenuBar(QMenuBar):
 
         # Export Action
         export_action = QAction("&Export...", self)
-        export_action.setShortcut("Ctrl+E")
+        export_action.setShortcut(f"{self._mod_key}+E")
         export_action.triggered.connect(self.export_requested.emit)
         file_menu.addAction(export_action)
         
@@ -72,13 +74,13 @@ class MainMenuBar(QMenuBar):
 
         # Settings Action
         settings_action = QAction("&Settings", self)
-        settings_action.setShortcut("Ctrl+,")
+        settings_action.setShortcut(f"{self._mod_key}+,")
         settings_action.triggered.connect(self.settings_requested.emit)
         file_menu.addAction(settings_action)
 
         # Exit Action
         exit_action = QAction("E&xit", self)
-        exit_action.setShortcut("Ctrl+Q")
+        exit_action.setShortcut(f"{self._mod_key}+Q")
         exit_action.triggered.connect(self.parent().close) # Use parent() close for convenience
         file_menu.addAction(exit_action)
 
