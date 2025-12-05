@@ -17,22 +17,39 @@ if TYPE_CHECKING:
 
 class StoryExporter(Exporter):
     """
-    Handles the presentation and file writing logic for exporting the entire story and story parts.
-    It fetches data from the AppCoordinator but operates independently of the main UI.
+    Handles the presentation and file writing logic for exporting the entire story 
+    and selected story parts (Chapters).
+    
+    It is a concrete implementation of :py:class:`~app.services.exporter.Exporter` 
+    and supports exporting to multiple formats including html, md, txt, epub, PDF, JSON, and YAML.
     """
     def __init__(self, coordinator: AppCoordinator, project_title: str) -> None:
+        """
+        Initializes the :py:class:`.StoryExporter`.
+
+        :param coordinator: The application coordinator, used to access the chapter repository.
+        :type coordinator: :py:class:`~app.services.app_coordinator.AppCoordinator`
+        :param project_title: The current project's title, used for file naming and document metadata.
+        :type project_title: str
+        
+        :rtype: None
+        """
         super().__init__(coordinator=coordinator, project_title=project_title)
 
     def export(self, parent: QWidget, selected_ids: list[int] = []) -> bool:
         """
-        Main export method. Prompts user for location, fetches data, and writes the file.
+        The main public method to initiate the story export process.
         
-        Args:
-            parent: The QWidget parent (MainWindow) for centering dialogs.
-            selected_ids: A list of chapter IDs to export. If empty, all chapters are exported.
+        It guides the user through selecting a file path and format, fetches the 
+        chapter data, and calls the private file writing method.
+
+        :param parent: The parent Qt widget, used for modal dialogs like :py:class:`~PyQt6.QtWidgets.QFileDialog`.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
+        :param selected_ids: A list of chapter IDs to export. If empty, all chapters are exported.
+        :type selected_ids: list[int]
         
-        Returns:
-            True if export was successful, False otherwise.
+        :returns: True if the export was successful, False otherwise.
+        :rtype: bool
         """
         
         # 1. Prompt user for file path and format
@@ -81,12 +98,14 @@ class StoryExporter(Exporter):
 
     def _write_file(self, file_path: str, file_format: str, chapters_data: list[dict], parent) -> None:
         """
-        Handles the actual file writing based on the selected format.
+        Implementation of the abstract method from :py:class:`~app.services.exporter.Exporter`.
+
+        Based on the :py:attr:`.output_format` determined in :py:meth:`.export`, 
+        this method calls the appropriate format-specific writer method to save the 
+        :py:attr:`.chapters_data` to :py:attr:`.output_path`.
         
-        Args:
-            file_path: A string that is the file_path to the desired file to write to
-            file_format: The file format that is being written in
-            chapters_data: The chapters data that is being written.
+        :returns: True if the file write operation succeeded, False otherwise.
+        :rtype: bool
         """
         
         writer_map = {
@@ -124,11 +143,10 @@ class StoryExporter(Exporter):
         """
         Helper to safely convert HTML content to plain text
         
-        Args:
-            html_content: The string of HTML content being turned into regular text.
+        :param html_content: The html content to convert to plain text
+        :type html_content: str
 
-        Returns:
-            The plain text.
+        :rtype: str
         """
         doc = QTextDocument()
         doc.setHtml(html_content)
@@ -136,14 +154,14 @@ class StoryExporter(Exporter):
     
     def _generate_full_html_document(title: str, chapters: list[dict]) -> str:
         """
-        Generates a full HTML document string for PDF generation, including styles
-        and character data.
-
-        Args:
-            characters: A list of dictionaries containing character data.
-
-        Returns:
-            The complete HTML document as a string.
+        Generates a complete HTML string representing the entire book structure, 
+        including chapter titles and content, suitable for conversion to PDF.
+        
+        :param chapters_data: A list of dictionaries containing chapter data (title, content).
+        :type chapters_data: list[dict]
+        
+        :returns: The complete HTML document string.
+        :rtype: str
         """
         # Simple, print-friendly CSS style
         css_style = """
@@ -184,11 +202,14 @@ class StoryExporter(Exporter):
     
     def _write_html(self, f: TextIO, chapters_data: list[dict]) -> None:
         """
-        Writes the story data to the file object in HTML format.
+        Writes the story data to the file object in html format.
 
-        Args:
-            f: The open file object (TextIO).
-            chapters_data: A list of dictionaries containing chapter data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in text mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param chapters_data: A list of dictionaries containing chapter data.
+        :type chapters_data: list[dict]
+        
+        :rtype: None
         """
         
         # HTML Header/Preamble
@@ -211,11 +232,14 @@ class StoryExporter(Exporter):
 
     def _write_markdown(self, f: TextIO, chapters_data: list[dict]) -> None:
         """
-        Writes the story data to the file object in Markdown format.
+        Writes the story data to the file object in markdown format.
 
-        Args:
-            f: The open file object (TextIO).
-            chapters_data: A list of dictionaries containing chapter data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in text mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param chapters_data: A list of dictionaries containing chapter data.
+        :type chapters_data: list[dict]
+        
+        :rtype: None
         """
         f.write(f"# {self.project_title}\n\n")
         for chapter in chapters_data:
@@ -228,11 +252,14 @@ class StoryExporter(Exporter):
 
     def _write_plain_text(self, f: TextIO, chapters_data: list[dict]) -> None:
         """
-        Writes the story data to the file object in Plain Text format.
+        Writes the story data to the file object in text format.
 
-        Args:
-            f: The open file object (TextIO).
-            chapters_data: A list of dictionaries containing chapter data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in text mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param chapters_data: A list of dictionaries containing chapter data.
+        :type chapters_data: list[dict]
+        
+        :rtype: None
         """
         f.write(f"{self.project_title}\n\n")
         for chapter in chapters_data:
@@ -246,10 +273,15 @@ class StoryExporter(Exporter):
     def _write_epub(self, f: TextIO, chapters_data: list[dict]) -> None:
         """
         Writes the story data to the file object in EPUB format.
+        
+        This method relies on the `ebooklib` library to structure and write the EPUB file.
 
-        Args:
-            f: The open file object (TextIO).
-            chapters_data: A list of dictionaries containing chapter data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in binary mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param chapters_data: A list of dictionaries containing chapter data.
+        :type chapters_data: list[dict]
+        
+        :rtype: None
         """
         book = epub.EpubBook()
 
@@ -291,10 +323,17 @@ class StoryExporter(Exporter):
     def _write_pdf(self, f: TextIO, chapters_data: list[dict]) -> None:
         """
         Writes the story data to the file object in PDF format.
+        
+        This method relies on the `xhtml2pdf` library (`pisa`) to convert 
+        generated HTML content into a PDF document.
 
-        Args:
-            f: The open file object (TextIO).
-            chapters_data: A list of dictionaries containing chapter data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in binary mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param chapters_data: A list of dictionaries containing chapter data.
+        :type chapters_data: list[dict]
+
+        :raises IOError: If the PDF generation fails using `xhtml2pdf`.
+        :rtype: None
         """
         html_string = self._generate_full_html_document(chapters_data)
 
@@ -306,10 +345,16 @@ class StoryExporter(Exporter):
     def _write_json(self, f: TextIO, chapters_data: list[dict]) -> None:
         """
         Writes the story data to the file object in JSON format.
+        
+        The JSON structure includes the project title as the root key, containing 
+        the list of chapter data.
 
-        Args:
-            f: The open file object (TextIO).
-            chapters_data: A list of dictionaries containing chapter data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in text mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param chapters_data: A list of dictionaries containing chapter data.
+        :type chapters_data: list[dict]
+        
+        :rtype: None
         """
         chapters = {self.project_title: chapters_data}
         json.dump(chapters, f, indent=4)
@@ -317,10 +362,16 @@ class StoryExporter(Exporter):
     def _write_yaml(self, f: TextIO, chapters_data: list[dict]) -> None:
         """
         Writes the story data to the file object in YAML format.
+        
+        The YAML structure mirrors the JSON structure, using the project title as 
+        the root key for the chapter list.
 
-        Args:
-            f: The open file object (TextIO).
-            chapters_data: A list of dictionaries containing chapter data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in text mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param chapters_data: A list of dictionaries containing chapter data.
+        :type chapters_data: list[dict]
+        
+        :rtype: None
         """
         yaml_data = {
             "project_title": self.project_title,

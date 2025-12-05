@@ -16,23 +16,41 @@ if TYPE_CHECKING:
 
 class CharacterExporter(Exporter):
     """
-    Handles the presentation and file writing logic for exporting the entire characters library and characters parts.
-    It fetches data from the AppCoordinator but operates independently of the main UI.
+    Handles the presentation and file writing logic for exporting the entire characters 
+    and selected characters.
+    
+    It is a concrete implementation of :py:class:`~app.services.exporter.Exporter` 
+    and supports exporting to multiple formats including html, md, txt, PDF, JSON, and YAML.
     """
     def __init__(self, coordinator: AppCoordinator, project_title: str) -> None:
+        """
+        Initializes the :py:class:`.CharacterExporter`.
+
+        :param coordinator: The application coordinator, used to access the character repository.
+        :type coordinator: :py:class:`~app.services.app_coordinator.AppCoordinator`
+        :param project_title: The current project's title, used for file naming and document metadata.
+        :type project_title: str
+        
+        :rtype: None
+        """
         super().__init__(coordinator=coordinator, project_title=project_title)
 
     def export(self, parent: QWidget, selected_ids: list[int] = []) -> bool:
         """
-        Main export method. Prompts user for location, fetches data, and writes the file.
+        The main public method to initiate the character export process.
         
-        Args:
-            parent: The QWidget parent (MainWindow) for centering dialogs.
-            selected_ids: A list of character IDs to export. If empty, all characters are exported.
+        It guides the user through selecting a file path and format, fetches the 
+        character data, and calls the private file writing method.
+
+        :param parent: The parent Qt widget, used for modal dialogs like :py:class:`~PyQt6.QtWidgets.QFileDialog`.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
+        :param selected_ids: A list of character IDs to export. If empty, all characters are exported.
+        :type selected_ids: list[int]
         
-        Returns:
-            True if export was successful, False otherwise.
+        :returns: True if the export was successful, False otherwise.
+        :rtype: bool
         """
+        
         # 1. Prompt user for file path and format
         formats = FileFormats.ALL
         formats.remove(FileFormats.EPUB)
@@ -79,12 +97,14 @@ class CharacterExporter(Exporter):
 
     def _write_file(self, file_path: str, file_format: str, characters_data: list[dict], parent) -> None:
         """
-        Handles the actual file writing based on the selected format.
+        Implementation of the abstract method from :py:class:`~app.services.exporter.Exporter`.
+
+        Based on the :py:attr:`.output_format` determined in :py:meth:`.export`, 
+        this method calls the appropriate format-specific writer method to save the 
+        :py:attr:`.characters_data` to :py:attr:`.output_path`.
         
-        Args:
-            file_path: A string that is the file_path to the desired file to write to
-            file_format: The file format that is being written in
-            characters_data: The characters data that is being written.
+        :returns: True if the file write operation succeeded, False otherwise.
+        :rtype: bool
         """
         writer_map = {
             "html": self._write_html,
@@ -120,26 +140,25 @@ class CharacterExporter(Exporter):
         """
         Helper to safely convert HTML content to plain text
         
-        Args:
-            html_content: The string of HTML content being turned into regular text.
+        :param html_content: The html content to convert to plain text
+        :type html_content: str
 
-        Returns:
-            The plain text.
+        :rtype: str
         """
         doc = QTextDocument()
         doc.setHtml(html_content)
         return doc.toPlainText()
     
-    def _generate_full_html_document(self, characters: list[dict]) -> str:
+    def _generate_full_html_document(self, character_data: list[dict]) -> str:
         """
-        Generates a full HTML document string for PDF generation, including styles
-        and character data.
-
-        Args:
-            characters: A list of dictionaries containing character data.
-
-        Returns:
-            The complete HTML document as a string.
+        Generates a complete HTML string representing the entire characters_data, 
+        suitable for conversion to PDF.
+        
+        :param character_data: A list of dictionaries containing character data.
+        :type character_data: list[dict]
+        
+        :returns: The complete HTML document string.
+        :rtype: str
         """
         # Simple, print-friendly CSS style for PDF
         css_style = """
@@ -153,7 +172,7 @@ class CharacterExporter(Exporter):
 
         body_content = f"<h1>{self.project_title} Character Library</h1>"
 
-        for i, character in enumerate(characters):
+        for i, character in enumerate(character_data):
             name = character.get("Name", "Unnamed Character")
             description = character.get("Description", "No Description")
             # Extracting other fields (assuming they exist as per _write_html)
@@ -204,11 +223,14 @@ class CharacterExporter(Exporter):
     
     def _write_html(self, f: TextIO, characters_data: list[dict]) -> None:
         """
-        Writes the character data to the file object in HTML format.
+        Writes the character data to the file object in html format.
 
-        Args:
-            f: The open file object (TextIO).
-            characters_data: A list of dictionaries containing character data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in text mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param characters_data: A list of dictionaries containing character data.
+        :type characters_data: list[dict]
+        
+        :rtype: None
         """
 
         # HTML Header/Preamble
@@ -253,9 +275,12 @@ class CharacterExporter(Exporter):
         """
         Writes the character data to the file object in markdown format.
 
-        Args:
-            f: The open file object (TextIO).
-            characters_data: A list of dictionaries containing character data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in text mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param characters_data: A list of dictionaries containing character data.
+        :type characters_data: list[dict]
+        
+        :rtype: None
         """
         f.write(f"# {self.project_title}")
         for character in characters_data:
@@ -291,11 +316,14 @@ class CharacterExporter(Exporter):
 
     def _write_plain_text(self, f: TextIO, characters_data: list[dict]) -> None:
         """
-        Writes the character data to the file object in Plain Text format.
+        Writes the character data to the file object in text format.
 
-        Args:
-            f: The open file object (TextIO).
-            characters_data: A list of dictionaries containing character data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in text mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param characters_data: A list of dictionaries containing character data.
+        :type characters_data: list[dict]
+        
+        :rtype: None
         """
         f.write(f"# {self.project_title}\n\n")
         for character in characters_data:
@@ -330,10 +358,17 @@ class CharacterExporter(Exporter):
     def _write_pdf(self, f: TextIO, characters_data: list[dict]) -> None:
         """
         Writes the character data to the file object in PDF format.
+        
+        This method relies on the `xhtml2pdf` library (`pisa`) to convert 
+        generated HTML content into a PDF document.
 
-        Args:
-            f: The open file object (TextIO).
-            characters_data: A list of dictionaries containing character data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in binary mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param characters_data: A list of dictionaries containing character data.
+        :type characters_data: list[dict]
+
+        :raises IOError: If the PDF generation fails using `xhtml2pdf`.
+        :rtype: None
         """
         html_string = self._generate_full_html_document(characters_data)
 
@@ -345,10 +380,16 @@ class CharacterExporter(Exporter):
     def _write_json(self, f: TextIO, characters_data: list[dict]) -> None:
         """
         Writes the character data to the file object in JSON format.
+        
+        The JSON structure includes the project title as the root key, containing 
+        the list of character data.
 
-        Args:
-            f: The open file object (TextIO).
-            characters_data: A list of dictionaries containing character data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in text mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param characters_data: A list of dictionaries containing character data.
+        :type characters_data: list[dict]
+        
+        :rtype: None
         """
         characters = {self.project_title: characters_data}
         json.dump(characters, f, indent=4)
@@ -356,10 +397,16 @@ class CharacterExporter(Exporter):
     def _write_yaml(self, f: TextIO, characters_data: list[dict]) -> None:
         """
         Writes the character data to the file object in YAML format.
+        
+        The YAML structure mirrors the JSON structure, using the project title as 
+        the root key for the character list.
 
-        Args:
-            f: The open file object (TextIO).
-            characters_data: A list of dictionaries containing character data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in text mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param characters_data: A list of dictionaries containing character data.
+        :type characters_data: list[dict]
+        
+        :rtype: None
         """
         yaml_data = {
             "project_title": self.project_title,

@@ -16,24 +16,39 @@ if TYPE_CHECKING:
 
 class LoreExporter(Exporter):
     """
-    Handles the presentation and file writing logic for exporting the entire lore
-    library and individual lore entries.
-    It fetches data from the AppCoordinator but operates independently of the main UI.
-    The primary data source is the Lore_Entries table.
+    Handles the presentation and file writing logic for exporting the entire lore entries 
+    and selected lore entries.
+    
+    It is a concrete implementation of :py:class:`~app.services.exporter.Exporter` 
+    and supports exporting to multiple formats including html, md, txt, PDF, JSON, and YAML.
     """
     def __init__(self, coordinator: AppCoordinator, project_title: str) -> None:
+        """
+        Initializes the :py:class:`.LoreExporter`.
+
+        :param coordinator: The application coordinator, used to access the lore repository.
+        :type coordinator: :py:class:`~app.services.app_coordinator.AppCoordinator`
+        :param project_title: The current project's title, used for file naming and document metadata.
+        :type project_title: str
+        
+        :rtype: None
+        """
         super().__init__(coordinator=coordinator, project_title=project_title)
 
     def export(self, parent: QWidget, selected_ids: list[int] = []) -> bool:
         """
-        Main export method. Prompts user for location, fetches data, and writes the file.
+        The main public method to initiate the lore entry export process.
         
-        Args:
-            parent: The QWidget parent (MainWindow) for centering dialogs.
-            selected_ids: A list of Lore Entry IDs to export. If empty, all entries are exported.
+        It guides the user through selecting a file path and format, fetches the 
+        lore entry data, and calls the private file writing method.
+
+        :param parent: The parent Qt widget, used for modal dialogs like :py:class:`~PyQt6.QtWidgets.QFileDialog`.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
+        :param selected_ids: A list of lore entry IDs to export. If empty, all lore entrys are exported.
+        :type selected_ids: list[int]
         
-        Returns:
-            True if export was successful, False otherwise.
+        :returns: True if the export was successful, False otherwise.
+        :rtype: bool
         """
         formats = FileFormats.ALL
         formats.remove(FileFormats.EPUB)
@@ -80,12 +95,14 @@ class LoreExporter(Exporter):
 
     def _write_file(self, file_path: str, file_format: str, lore_data: list[dict], parent) -> None:
         """
-        Handles the actual file writing based on the selected format.
+        Implementation of the abstract method from :py:class:`~app.services.exporter.Exporter`.
+
+        Based on the :py:attr:`.output_format` determined in :py:meth:`.export`, 
+        this method calls the appropriate format-specific writer method to save the 
+        :py:attr:`.lore_data` to :py:attr:`.output_path`.
         
-        Args:
-            file_path: A string that is the file_path to the desired file to write to
-            file_format: The file format that is being written in
-            lore_data: The lore data that is being written.
+        :returns: True if the file write operation succeeded, False otherwise.
+        :rtype: bool
         """
         
         writer_map = {
@@ -122,34 +139,25 @@ class LoreExporter(Exporter):
         """
         Helper to safely convert HTML content to plain text
         
-        Args:
-            html_content: The string of HTML content being turned into regular text.
+        :param html_content: The html content to convert to plain text
+        :type html_content: str
 
-        Returns:
-            The plain text.
+        :rtype: str
         """
         doc = QTextDocument()
         doc.setHtml(html_content)
         return doc.toPlainText()
-    
-    # --- HTML/PDF Helper ---
-    def _generate_lore_html_content(self, entry: dict) -> str:
-        """
-        Generates the HTML content snippet for a single lore entry.
-        """
-        title = entry.get('Title', 'Untitled Entry')
-        category = entry.get('Category', 'Uncategorized')
-        content = entry.get('Content', '') # Content is rich text (HTML)
-
-        # Basic HTML structure for a single entry
-        html_content = f'<h2>{title}</h2>\n'
-        html_content += f'<p><strong>Category:</strong> {category}</p>\n'
-        html_content += f'<div class="lore-content">{content}</div>\n'
-        return html_content
 
     def _generate_full_html_document(self, lore_data: list[dict]) -> str:
         """
-        Generates a full HTML document string for PDF generation.
+        Generates a complete HTML string representing the entire lore_data, 
+        suitable for conversion to PDF.
+        
+        :param lore_data: A list of dictionaries containing lore entry data.
+        :type lore_data: list[dict]
+        
+        :returns: The complete HTML document string.
+        :rtype: str
         """
         # Simple, print-friendly CSS style for PDF
         css_style = """
@@ -189,15 +197,17 @@ class LoreExporter(Exporter):
         </html>
         """
         return html
-    # --- End HTML/PDF Helper ---
 
     def _write_html(self, f: TextIO, lore_data: list[dict]) -> None:
         """
-        Writes the lore data to the file object in HTML format.
+        Writes the lore entry data to the file object in html format.
 
-        Args:
-            f: The open file object (TextIO).
-            lore_data: A list of dictionaries containing lore data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in text mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param lore_data: A list of dictionaries containing lore entry data.
+        :type lore_data: list[dict]
+        
+        :rtype: None
         """
         
         # HTML Header/Preamble
@@ -223,11 +233,14 @@ class LoreExporter(Exporter):
 
     def _write_markdown(self, f: TextIO, lore_data: list[dict]) -> None:
         """
-        Writes the lore data to the file object in Markdown format.
+        Writes the lore entry data to the file object in markdown format.
 
-        Args:
-            f: The open file object (TextIO).
-            lore_data: A list of dictionaries containing lore data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in text mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param lore_data: A list of dictionaries containing lore entry data.
+        :type lore_data: list[dict]
+        
+        :rtype: None
         """
         f.write(f"# {self.project_title} Lore Library\n\n")
         for entry in lore_data:
@@ -242,11 +255,14 @@ class LoreExporter(Exporter):
 
     def _write_plain_text(self, f: TextIO, lore_data: list[dict]) -> None:
         """
-        Writes the lore data to the file object in Plain Text format.
+        Writes the lore entry data to the file object in text format.
 
-        Args:
-            f: The open file object (TextIO).
-            lore_data: A list of dictionaries containing lore data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in text mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param lore_data: A list of dictionaries containing lore entry data.
+        :type lore_data: list[dict]
+        
+        :rtype: None
         """
         f.write(f"{self.project_title} Lore Library\n\n")
         f.write("=" * len(f"{self.project_title} Lore Library") + "\n\n")
@@ -264,11 +280,18 @@ class LoreExporter(Exporter):
 
     def _write_pdf(self, f: TextIO, lore_data: list[dict]) -> None:
         """
-        Writes the lore data to the file object in PDF format.
+        Writes the lore entry data to the file object in PDF format.
+        
+        This method relies on the `xhtml2pdf` library (`pisa`) to convert 
+        generated HTML content into a PDF document.
 
-        Args:
-            f: The open file object (TextIO).
-            lore_data: A list of dictionaries containing lore data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in binary mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param lore_data: A list of dictionaries containing lore entry data.
+        :type lore_data: list[dict]
+
+        :raises IOError: If the PDF generation fails using `xhtml2pdf`.
+        :rtype: None
         """
         html_string = self._generate_full_html_document(lore_data)
 
@@ -279,11 +302,17 @@ class LoreExporter(Exporter):
 
     def _write_json(self, f: TextIO, lore_data: list[dict]) -> None:
         """
-        Writes the lore data to the file object in JSON format.
+        Writes the lore entry data to the file object in JSON format.
+        
+        The JSON structure includes the project title as the root key, containing 
+        the list of lore entry data.
 
-        Args:
-            f: The open file object (TextIO).
-            lore_data: A list of dictionaries containing lore data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in text mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param lore_data: A list of dictionaries containing lore entry data.
+        :type lore_data: list[dict]
+        
+        :rtype: None
         """
         # Structure the output for easy reading/parsing
         output_data = {
@@ -294,11 +323,17 @@ class LoreExporter(Exporter):
 
     def _write_yaml(self, f: TextIO, lore_data: list[dict]) -> None:
         """
-        Writes the lore data to the file object in YAML format.
+        Writes the lore entry data to the file object in YAML format.
+        
+        The YAML structure mirrors the JSON structure, using the project title as 
+        the root key for the lore entry list.
 
-        Args:
-            f: The open file object (TextIO).
-            lore_data: A list of dictionaries containing lore data.
+        :param f: The open file object (:py:class:`~typing.TextIO` opened in text mode).
+        :type f: :py:class:`~typing.TextIO`
+        :param lore_data: A list of dictionaries containing lore entry data.
+        :type lore_data: list[dict]
+        
+        :rtype: None
         """
         yaml_data = {
             "project_title": self.project_title,

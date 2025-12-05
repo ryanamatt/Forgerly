@@ -302,10 +302,6 @@ class MainWindow(QMainWindow):
         self.coordinator.char_loaded.connect(self._handle_character_loaded)
         self.coordinator.graph_data_loaded.connect(self.relationship_editor_panel.load_graph)
         
-        # The coordinator signals the outline to update title (relaying editor signal)
-        self.coordinator.lore_title_updated_in_outline.connect(self._update_lore_outline_title)
-        self.coordinator.char_name_updated_in_ouline.connect(self._update_character_outline_name)
-
         self.relationship_outline_manager.relationship_types_updated.connect(self.coordinator.reload_relationship_graph_data)
 
     # -------------------------------------------------------------------------

@@ -23,20 +23,88 @@ class AppCoordinator(QObject):
     """
     Coordinates data flow between the UI components (Outline/Editor) and the 
     database repositories. Centralizes save/load/dirty checking logic.
+    
+    This class acts as the central hub for all application events that involve 
+    data retrieval or persistence, ensuring that UI components only interact 
+    with each other via signals, and interact with the database only via this coordinator.
     """
     # --- Signals for Editor Panel Updates ---
     chapter_loaded = pyqtSignal(int, str, list)      # id, content_html, tags
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str, list): Emitted to load a 
+    chapter's content into the editor. Carries the Chapter ID, its content 
+    as HTML, and a list of associated tags.
+    """
     lore_loaded = pyqtSignal(int, str, str, str, list) # id, title, category, content_html, tags
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str, str, str, list): Emitted 
+    to load a lore item's content. Carries the Lore ID, title, category, 
+    content as HTML, and a list of associated tags.
+    """
     char_loaded = pyqtSignal(int, str, str, str)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str, str, str): Emitted to load 
+    a character's data into the editor. Carries the Character ID, name, 
+    description (HTML), and bio (HTML).
+    """
     graph_data_loaded = pyqtSignal(dict)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (dict): Emitted to provide all necessary 
+    data for the relationship graph. Carries a dictionary containing node and edge data.
+    """
     
     relationship_types_available = pyqtSignal(list) # list[dict]
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (list): Emitted to provide the list of 
+    all defined relationship types (names, colors, IDs) to the graph and outline manager.
+    """
+    
+    # --- Signals for Outline Panel Updates ---
+    chapter_created = pyqtSignal(int, str)           # id, title
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str): Emitted after a new chapter 
+    is successfully created in the database. Carries the new Chapter ID and title.
+    """
 
-    # --- Signals for Outline Manager Updates (UI IN) ---
-    lore_title_updated_in_outline = pyqtSignal(int, str)
-    char_name_updated_in_ouline = pyqtSignal(int, str)
+    lore_created = pyqtSignal(int, str, str)         # id, title, category
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str, str): Emitted after a new 
+    lore item is successfully created. Carries the new Lore ID, title, and category.
+    """
+
+    character_created = pyqtSignal(int, str)         # id, name
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str): Emitted after a new character 
+    is successfully created. Carries the new Character ID and name.
+    """
+
+    chapter_editor_dirty_status = pyqtSignal(bool)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (bool): Emitted to indicate the chapter 
+    editor's dirty (unsaved changes) status.
+    """
+
+    lore_editor_dirty_status = pyqtSignal(bool)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (bool): Emitted to indicate the lore 
+    editor's dirty status.
+    """
+
+    character_editor_dirty_status = pyqtSignal(bool)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (bool): Emitted to indicate the character 
+    editor's dirty status.
+    """
 
     def __init__(self, db_connector: DBConnector) -> None:
+        """
+        Initializes the :py:class:`.AppCoordinator` and sets up the database repositories.
+
+        :param db_connector: The active connection object to the SQLite database.
+        :type db_connector: :py:class:`~app.db_connector.DBConnector`
+        
+        :rtype: None
+        """
         super().__init__()
 
         self.db = db_connector
@@ -59,8 +127,12 @@ class AppCoordinator(QObject):
         self.character_editor = None
         self.relationship_editor = None
         
-    def connect_signals(self):
-        """Connect signals. Called in MainWindow after set_editors"""
+    def connect_signals(self) -> None:
+        """
+        Connects signals. Called in MainWindow after set_editors
+        
+        :rtype: None
+        """
         self.relationship_editor.relationship_created.connect(self.save_new_relationship)
 
     # --- View Logic ---
@@ -69,26 +141,28 @@ class AppCoordinator(QObject):
         """
         Sets all editor references using a dictionary map where keys are ViewType constants.
         Example: {ViewType.CHAPTER_EDITOR: chapter_editor, ViewType.LORE_EDITOR: lore_editor...}
+        
+        :param editor_map: A dictionary map of all
+
+        :rtype: None
         """
         self.editors = editor_map
         
         # Handle specific editor connections separately (like title change signals)
-        if ViewType.LORE_EDITOR in self.editors:
-            self.lore_editor: LoreEditor = self.editors[ViewType.LORE_EDITOR]
-            # Connect the specific signal
-            self.lore_editor.lore_title_changed.connect(self.lore_title_updated_in_outline)
-
-        if ViewType.CHARACTER_EDITOR in self.editors:
-            self.character_editor: CharacterEditor = self.editors[ViewType.CHARACTER_EDITOR]
-            self.character_editor.char_name_changed.connect(self.char_name_updated_in_ouline)
-
         if ViewType.RELATIONSHIP_GRAPH in self.editors:
             self.relationship_editor: RelationshipEditor = self.editors[ViewType.RELATIONSHIP_GRAPH]
             # The editor signals the coordinator to load the data when it becomes visible
             self.relationship_editor.request_load_data.connect(self.load_relationship_graph_data)
 
     def set_current_view(self, view_type: ViewType) -> None:
-        """Called by MainWindow when the view is explicitly switched."""
+        """
+        Called by MainWindow when the view is explicitly switched.
+        
+        :param view_type: The view that is being set as the current view.
+        :type view_type: :py:class:`~.ViewType`
+
+        :rtype: None
+        """
         self.current_view = view_type
 
         if view_type != ViewType.RELATIONSHIP_GRAPH:
@@ -98,14 +172,24 @@ class AppCoordinator(QObject):
 
     # --- Save / Dirty Check Logic (Core Business Logic) ---
 
-    def get_current_editor(self):
-        """Helper to get the currently visible editor panel"""
+    def get_current_editor(self) -> ViewType:
+        """
+        Helper to get the currently visible editor panel
+        
+        :rtype: :py:class:`~.ViewType`
+        """
         return self.editors.get(self.current_view)
 
     def check_and_save_dirty(self, parent=None) -> bool:
         """
         Prompts the user to save if the active editor is dirty.
         Returns True if safe to proceed (saved or discarded), False otherwise (canceled).
+
+        :param parent: The parent. Default is None.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
+
+        :returns: Returns True if saved, otherwise False
+        :rtype: bool
         """
         if self.current_view == ViewType.RELATIONSHIP_GRAPH:
             return True
@@ -135,7 +219,19 @@ class AppCoordinator(QObject):
         return True
     
     def save_current_item(self, item_id: int, view: ViewType, parent=None) -> bool:
-        """General Method to save either chapter or a lore entry."""
+        """
+        General Method to save either chapter, character or a lore entry.
+        
+        :param item_id: The ID number of the item to save.
+        :type item_id: int
+        :param view: The current view of the application.
+        :type view: :py:class:`~.ViewType`
+        :param parent: The parent. Default is None.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
+
+        :returns: Returns True if saved, otherwise False
+        :rtype: bool
+        """
 
         if self.current_view == ViewType.RELATIONSHIP_GRAPH:
             return True
@@ -157,7 +253,17 @@ class AppCoordinator(QObject):
                 return False
             
     def _save_chapter_content(self, chapter_id: int, parent=None) -> bool:
-        """Saves the current chapter content and tags to the database"""
+        """
+        Saves the current chapter content.
+        
+        :param chapter_id: The ID number of the chapter item to save.
+        :type chapter_id: int
+        :param parent: The parent. Default is None.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
+
+        :returns: Returns True if saved, otherwise False
+        :rtype: bool
+        """
         editor: ChapterEditor = self.editors[ViewType.CHAPTER_EDITOR]
         content = editor.get_html_content()
         tags = editor.get_tags()
@@ -173,7 +279,17 @@ class AppCoordinator(QObject):
             return False
 
     def _save_lore_entry_content(self, lore_id: int, parent=None) -> bool:
-        """Saves the current lore content and tags to the database"""
+        """
+        Saves the current lore entry content.
+        
+        :param lore_id: The ID number of the lore item to save.
+        :type lore_id: int
+        :param parent: The parent. Default is None.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
+
+        :returns: Returns True if saved, otherwise False
+        :rtype: bool
+        """
         editor: LoreEditor = self.lore_editor
         data = editor.get_data()
         
@@ -195,7 +311,17 @@ class AppCoordinator(QObject):
             return False
         
     def _save_character_content(self, char_id: int, parent=None) -> bool:
-        """Saves the current Character content"""
+        """
+        Saves the current character content.
+        
+        :param char_id: The ID number of the character item to save.
+        :type char_id: int
+        :param parent: The parent. Default is None.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
+
+        :returns: Returns True if saved, otherwise False
+        :rtype: bool
+        """
         editor: CharacterEditor = self.character_editor
 
         data = editor.get_data()
@@ -216,7 +342,26 @@ class AppCoordinator(QObject):
         
     def save_node_position(self, char_id: int, x_pos: float, y_pos: float, node_color: str, node_shape: str, is_hidden: int) -> bool:
         """
-        Receives node position/attribute updates from RelationshipEditor and persists them.
+        Saves the position and presentation attributes of a character node in the database.
+        
+        This method is typically called frequently (e.g., on mouse release after a drag) 
+        and does not affect the dirty status of the main character editor.
+
+        :param char_id: The ID of the character node.
+        :type char_id: int
+        :param x_pos: The new X-coordinate for the node.
+        :type x_pos: float
+        :param y_pos: The new Y-coordinate for the node.
+        :type y_pos: float
+        :param node_color: The color of the node.
+        :type node_color: str
+        :param node_shape: The shape of the node.
+        :type node_shape: str
+        :param is_hidden: To tell whether the Node is hidden. 1 if True, otherwise 0
+        :type is_hidden: int
+        
+        :returns: True if the save was successful, False otherwise.
+        :rtype: bool
         """
         return self.relationship_repo.save_node_attributes(
             character_id=char_id,
@@ -229,6 +374,23 @@ class AppCoordinator(QObject):
     
     def save_new_relationship(self, char_a_id: int, char_b_id: int, type_id: int,
                               description: str = "", intensity: int = 5) -> bool:
+        """
+        Saves the new relationship by creating a new relationship.
+        
+        :param char_a_id: The ID of the first character
+        :type char_a_id: int
+        :param char_b_id: The ID of the second character
+        :type char_b_id: int
+        :param type_id: The ID of the type of relationship
+        :type type_id: int
+        :param description: A description of the relationship
+        :type description: str
+        :param intensity: The intensity (thickness) of the line
+        :type intensity: int
+
+        :return: Returns the True if successfully created and saved new relationship.
+        :rtype: bool
+        """
         # 1. Save to DB
         new_id = self.relationship_repo.create_relationship(
             char_a_id, char_b_id, type_id, None, description, intensity
@@ -249,7 +411,14 @@ class AppCoordinator(QObject):
     # --- Load Content Logic (Called by Outline Managers) ---
 
     def load_chapter(self, chapter_id: int) -> None:
-        """Loads chapter data and emits a signal to update the editor."""
+        """
+        Fetches a chapter from the repository and emits the :py:attr:`.chapter_loaded` signal.
+
+        :param chapter_id: The ID of the chapter to load.
+        :type chapter_id: int
+        
+        :rtype: None
+        """
         
         # 1. Update Coordinator State
         self.current_item_id = chapter_id
@@ -269,7 +438,14 @@ class AppCoordinator(QObject):
         self.chapter_loaded.emit(chapter_id, content, tag_names)
 
     def load_lore(self, lore_id: int) -> None:
-        """Loads lore data and emits a signal to update the editor."""
+        """
+        Fetches a lore item from the repository and emits the :py:attr:`.lore_loaded` signal.
+
+        :param lore_id: The ID of the lore item to load.
+        :type lore_id: int
+        
+        :rtype: None
+        """
         
         # 1. Update Coordinator State
         self.current_item_id = lore_id
@@ -295,7 +471,14 @@ class AppCoordinator(QObject):
         self.lore_loaded.emit(lore_id, title, category, content, tag_names)
 
     def load_character(self, char_id: int) -> None:
-        """Loads character data and emits a signal to update the editor."""
+        """
+        Fetches a character from the repository and emits the :py:attr:`.char_loaded` signal.
+
+        :param char_id: The ID of the character to load.
+        :type char_id: int
+        
+        :rtype: None
+        """
         # 1. Update Coordinator State
         self.current_item_id = char_id
         self.current_view = ViewType.CHARACTER_EDITOR
@@ -316,8 +499,12 @@ class AppCoordinator(QObject):
 
     def load_relationship_graph_data(self) -> None:
         """
-        Fetches all data requires to render the character relationship graph
-        and emits a signal to update the RelationshipEditor
+        Fetches all character nodes, relationship edges, and relationship types 
+        required for the graph editor.
+
+        Emits :py:attr:`.relationship_types_available` and :py:attr:`.graph_data_loaded`.
+        
+        :rtype: None
         """
         # Update Coordinator State
         self.current_item_id = 0
@@ -336,8 +523,11 @@ class AppCoordinator(QObject):
 
     def load_relationship_types_for_editor(self) -> None:
         """
-        Fetches all available relationship types and sends them to the editor.
-        The editor will use this list to populate the 'new relationship' dialog.
+        Fetches and emits the current list of relationship types.
+
+        Emits :py:attr:`.relationship_types_available`.
+        
+        :rtype: None
         """
         try:
             rel_types = self.relationship_repo.get_all_relationship_types()
@@ -347,7 +537,18 @@ class AppCoordinator(QObject):
 
     def _process_graph_data(self, relationships: list[dict], node_positions: list[dict], relationship_types: list[dict]) -> dict:
         """
-        Converts the database results into the 'nodes' and 'edges' format expected by Relationship Editor
+        Docstring for _process_graph_data
+        
+        :param relationships: A list of relationships with the relationship attributes a dict.
+        :type relationships: list[dict]
+        :param node_positions: The postition of the nodes (characters)
+        :type node_positions: list[dict]
+        :param relationship_types: A list of the types of relationships with the relationship_types
+            attributes as dict.
+        :type relationship_types: list[dict]
+
+        :return: Returns a dict of nodes and edges.
+        :rtype: dict
         """
         # --- Node Processing ---
         char_ids = set()
@@ -401,6 +602,8 @@ class AppCoordinator(QObject):
         """
         Fetches and emits the current graph data for the editor to display.
         Called when a relationship type is created/edited/deleted, forcing a graph refresh.
+
+        :rtype: None
         """
         try:
             self.load_relationship_graph_data()
@@ -408,57 +611,40 @@ class AppCoordinator(QObject):
         except Exception as e:
             QMessageBox.critical(None, "Data Error", f"Failed to reload graph data: {e}")
 
-    # --- Cross-Update Logic ---
-
-    def update_lore_outline_title(self, lore_id: int, new_title: str) -> None:
-        """
-        Receives title change from LoreEditor and relays it to the LoreOutlineManager.
-        Note: The editor is responsible for setting the item as dirty,
-        and the save logic handles persisting the new title to the DB.
-        """
-        self.lore_title_updated_in_outline.emit(lore_id, new_title)
-
-    def update_character_outline_title(self, char_id: int, new_name: str) -> None:
-        """
-        Receives name change from CharacterEditor and relays it to the CharacterOutlineManager.
-        Note: The editor is responsible for setting the item as dirty,
-        and the save logic handles persisting the new title to the DB.
-        """
-        self.char_name_updated_in_ouline.emit(char_id, new_name)
-
     # --- Export Logic Helper (For use by the new Exporter classes) ---
     
     def get_chapter_data_for_export(self, chapter_ids: list[int] = []) -> list[int]:
         """
         Fetches all chapter data required for a full or partial story export.
         
-        Args:
-            chapter_ids: A list of IDs to fetch. If None, all chapters are fetched.
+        :param chapter_ids: A list of chapter IDs to fetch. If empty, all chapters are fetched.
+        :type chapter_ids: list[int]
         
-        Returns:
+        :returns: A list of dictionaries, where each dictionary contains all data for a chapter.
+        :rtype: list[:py:obj:`Any`]
         """
         return self.chapter_repo.get_all_chapters_for_export(chapter_ids)
     
     def get_character_data_for_export(self, character_ids: list[int] = []) -> list[int]:
         """
-        Fetches all chapter data required for all or some characters export.
+        Fetches all character data required for all or some characters export.
         
-        Args:
-            character_ids: A list of IDs to fetch. If None, all characters are fetched.
+        :param character_ids: A list of character IDs to fetch. If empty, all characters are fetched.
+        :type character_ids: list[int]
         
-        Returns:
+        :returns: A list of dictionaries, where each dictionary contains all data for a character.
+        :rtype: list[:py:obj:`Any`]
         """
-
         return self.character_repo.get_all_characters_for_export(character_ids)
     
     def get_lore_data_for_export(self, lore_ids: list[int] = []) -> list[int]:
         """
-        Fetches all chapter data required for all or some Lore_Entries export.
+        Fetches all lore entry data required for all or some Lore_Entries export.
         
-        Args:
-            lore_ids: A list of IDs to fetch. If None, all characters are fetched.
+        :param lore_ids: A list of lore IDs to fetch. If empty, all lore entries are fetched.
+        :type lore_ids: list[int]
         
-        Returns:
+        :returns: A list of dictionaries, where each dictionary contains all data for a lore entry.
+        :rtype: list[:py:obj:`Any`]
         """
-
         return self.lore_repo.get_lore_entries_for_export(lore_ids)
