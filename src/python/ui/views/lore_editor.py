@@ -12,17 +12,36 @@ from ...ui.widgets.basic_text_editor import BasicTextEditor
 
 class LoreEditor(QWidget):
     """
-    A composite QWidget for editing a Lore Entry (Title, Category, Content, Tags).
-    It is a pure UI component and does not interact with repositories directly.
+    A composite :py:class:`~PyQt6.QtWidgets.QWidget` for editing a Lore Entry's details 
+    (Title, Content, Category).
+    
+    This is a pure UI component designed to be managed by an external controller 
+    (like the :py:class:`.MainWindow`). It handles data loading, state 
+    management (dirty checks), and local validation, but does not interact 
+    with repositories directly.
     """
+
     lore_title_changed = pyqtSignal(int, str)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str): Emitted when the Lore Entry's 
+    title changes, carrying the Lore Entry ID and the new title.
+    """
     
     # State tracking for unsaved changes
     _initial_title = ""
     _initial_category = ""
     current_lore_id: int | None = None
+    """The database ID of the Lore Entry currently loaded in the editor, or :py:obj:`None`."""
     
     def __init__(self, parent=None) -> None:
+        """
+        Initializes the :py:class:`.LoreEditor` widget.
+        
+        :param parent: The parent widget.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`, optional
+
+        :rtype: None
+        """
         super().__init__(parent)
         
         # --- Sub-components ---
@@ -89,7 +108,25 @@ class LoreEditor(QWidget):
     # =========================================================================
 
     def load_lore(self, lore_id: int, title: str, category: str, content: str, tag_names: list[str]) -> None:
-        """Loads all data into the UI, setting the internal clean state."""
+        """
+        Loads Lore Entry data into the editor fields.
+        
+        This method updates the Title, Category, and Content fields, and 
+        calls :py:meth:`.mark_saved` to reset the dirty state. 
+        
+        :param lore_id: The ID of the Lore Entry
+        :type lore_id: int
+        :param title: The title of the Lore Entry
+        :type title: str
+        :param category: The category of the Lore Entry
+        :type category: str
+        :param content: The content of the Lore Entry
+        :type content: str
+        :param tag_names: A list of the names of all tags applied to the Lore Entry
+        :type tag_names: list[str]
+
+        :rtype: None
+        """
         self.set_enabled(False)
         self.current_lore_id = lore_id
 
@@ -113,7 +150,13 @@ class LoreEditor(QWidget):
         self.set_enabled(True)
 
     def get_data(self) -> dict[str, Any]:
-        """Returns the current state of all editable fields for MainWindow to save."""
+        """
+        Returns the current state of all editable fields for MainWindow to save.
+
+        This method returns the data in the edittor fields as a dictionary.
+        
+        :rtype dict[str, Any]
+        """
         return {
             'id': self.current_lore_id,
             'title': self.title_input.text().strip(),
@@ -123,7 +166,16 @@ class LoreEditor(QWidget):
         }
         
     def is_dirty(self) -> bool:
-        """Checks if any component (Title, Category, Content, Tags) has unsaved changes."""
+        """
+        Checks if the content in the editor has unsaved changes compared to 
+        the last loaded or saved state.
+        
+        This dynamically compares the current state of inputs with their 
+        initial values.
+        
+        :returns: True if changes are detected, False otherwise.
+        :rtype: bool
+        """
         if not self.current_lore_id:
             return False # Nothing is loaded, so nothing is dirty
 
@@ -136,12 +188,23 @@ class LoreEditor(QWidget):
                 self.tag_manager.is_dirty())
 
     def mark_saved(self) -> None:
-        """Marks all nested components as clean."""
+        """
+        Marks all nested components as clean.
+        
+        :rtype: None
+        """
         self.basic_text_editor.mark_saved()
         self.tag_manager.mark_saved()
         
     def set_enabled(self, enabled: bool) -> None:
-        """Enables/disables the entire editor panel."""
+        """
+        Enables/disables the entire editor panel.
+        
+        :param enabled: True if want to enable editor panel, otherwise False
+        :type enabled: bool
+        
+        :rtype: None
+        """
         self.title_input.setEnabled(enabled)
         self.category_combo.setEnabled(enabled)
         self.basic_text_editor.setEnabled(enabled)
@@ -152,10 +215,18 @@ class LoreEditor(QWidget):
     # =========================================================================
         
     def _set_dirty(self) -> None:
-        """Placeholder for dirtiness signals. Actual dirtiness is checked in is_dirty()."""
+        """
+        Placeholder for dirtiness signals. Actual dirtiness is checked in is_dirty().
+        
+        :rtype: None
+        """
         pass
 
     def _emit_title_change(self) -> None:
-        """Emits the signal to update the outline after the user finishes editing the title."""
+        """
+        Emits the signal to update the outline after the user finishes editing the title.
+        
+        :rtype: None
+        """
         if self.current_lore_id is not None:
              self.lore_title_changed.emit(self.current_lore_id, self.title_input.text().strip())

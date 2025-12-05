@@ -16,21 +16,39 @@ RELATIONSHIP_TYPE_ID_ROLE = Qt.ItemDataRole.UserRole + 1
 
 class RelationshipOutlineManager(QWidget):
     """
-    A custom QWidget dedicated to displaying and managing the list of
-    Relationship Types. It interacts with the data layer via RelationshipRepository.
+    A custom :py:class:`~PyQt6.QtWidgets.QWidget` dedicated to displaying 
+    and managing the list of Relationship Types. 
     
+    It interacts with the data layer via :py:class:`~app.repository.relationship_repository.RelationshipRepository`.
     This manager allows users to define/edit the fundamental properties of a 
-    relationship type (name, color, line style).
+    relationship type (name, color, line style, directionality).
     """
 
-    # Signal emitted when a relationship type is selected (e.g., to load its details)
     type_selected = pyqtSignal(int)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int): Emitted when a relationship 
+    type in the list is selected or double-clicked. Carries the Relationship 
+    Type ID of the selected item.
+    """
     
-    # Signal emitted after a relationship type is created, edited, or deleted.
-    # This is for the AppCoordinator to tell the RelationshipEditor (graph) to refresh.
-    relationship_types_updated = pyqtSignal() 
+    relationship_types_updated = pyqtSignal()
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when the list of 
+    relationship types has been modified (created, edited, or deleted). 
+    The recipient (e.g., the application coordinator) should use this 
+    to trigger a refresh of all views that depend on relationship types.
+    """ 
 
     def __init__(self, relationship_repository: RelationshipRepository | None = None) -> None:
+        """
+        Initializes the :py:class:`.RelationshipOutlineManager`.
+
+        :param relationship_repository: The data access object for relationship types. 
+            Can be None if set later via :py:meth:`.set_repository`.
+        :type relationship_repository: :py:class:`~app.repository.relationship_repository.RelationshipRepository` or None
+        
+        :rtype: None
+        """
         super().__init__()
 
         self.rel_repo = relationship_repository
@@ -62,13 +80,15 @@ class RelationshipOutlineManager(QWidget):
         # Load initial data
         self.load_outline()
         
-    def set_repository(self, repo: RelationshipRepository) -> None:
-        """Sets the repository dependency, usually called by AppCoordinator."""
-        self.rel_repo = repo
-        self.load_outline()
-        
     def load_outline(self) -> None:
-        """Loads all relationship types from the database and populates the list."""
+        """
+        Loads all relationship types from the database via the repository and 
+        populates the internal :py:class:`~PyQt6.QtWidgets.QListWidget`.
+        
+        Each item is set with the name as text and its ID and color in the data roles.
+        
+        :rtype: None
+        """
         if not self.rel_repo:
             return
         
@@ -92,13 +112,32 @@ class RelationshipOutlineManager(QWidget):
     # --- Internal Handlers ---
 
     def _handle_item_clicked(self, item: QListWidgetItem) -> None:
-        """Emits the signal to tell the coordinator that a relationship type has been selected."""
+        """
+        Handles a single click on a list item.
+        
+        Emits the :py:attr:`.type_selected` signal with the ID of the clicked type.
+
+        :param item: The list item that was clicked.
+        :type item: :py:class:`~PyQt6.QtWidgets.QListWidgetItem`
+        
+        :rtype: None
+        """
         type_id = item.data(RELATIONSHIP_TYPE_ID_ROLE)
         if type_id is not None:
             self.type_selected.emit(type_id)
 
     def _show_context_menu(self, position: QPoint) -> None:
-        """Shows the context menu for the list widget."""
+        """
+        Shows the context menu for the list widget at the right-click position.
+        
+        The menu contains options to "New Relationship Type" and, if an item 
+        is clicked, "Edit Type Properties..." and "Delete Type".
+
+        :param position: The position where the right-click occurred, relative to the list widget.
+        :type position: :py:class:`~PyQt6.QtCore.QPoint`
+        
+        :rtype: None
+        """
         item = self.list_widget.itemAt(position)
         
         menu = QMenu(self)
@@ -119,8 +158,16 @@ class RelationshipOutlineManager(QWidget):
 
     def _open_type_editor(self, item: QListWidgetItem) -> None:
         """
-        A simple, self-contained editor for the core properties (Name, Color, Style, Direction).
-        This can be replaced with a full custom QDialog later for better UX.
+        Opens a multi-step input dialog flow to edit the core properties of 
+        the selected Relationship Type (Name, Short Label, Color, Style, Direction).
+        
+        Saves changes to the repository and refreshes the UI item if successful,
+        and emits the :py:attr:`.relationship_types_updated` signal.
+
+        :param item: The list item corresponding to the Relationship Type to be edited.
+        :type item: :py:class:`~PyQt6.QtWidgets.QListWidgetItem`
+        
+        :rtype: None
         """
         if not self.rel_repo:
             QMessageBox.critical(self, "Error", "RelationshipRepository is missing.")
@@ -204,7 +251,14 @@ class RelationshipOutlineManager(QWidget):
 
 
     def _create_new_type(self) -> None:
-        """Handles the creation of a new relationship type."""
+        """
+        Handles the creation of a new relationship type by prompting the user for a name.
+        
+        Saves the new type with default properties to the repository, reloads 
+        the list, and emits the :py:attr:`.relationship_types_updated` signal.
+        
+        :rtype: None
+        """
         if not self.rel_repo:
             QMessageBox.critical(self, "Error", "RelationshipRepository is missing.")
             return
@@ -232,7 +286,18 @@ class RelationshipOutlineManager(QWidget):
                 QMessageBox.critical(self, "Error", f"Failed to create relationship type '{new_name}' in the database.")
 
     def _delete_type(self, item: QListWidgetItem) -> None:
-        """Handles the deletion of a relationship type."""
+        """
+        Handles the deletion of a relationship type after user confirmation.
+        
+        If deleted, it removes the item from the list and emits 
+        the :py:attr:`.relationship_types_updated` signal. Warns the user 
+        that all relationships of this type will also be deleted.
+
+        :param item: The list item corresponding to the Relationship Type to be deleted.
+        :type item: :py:class:`~PyQt6.QtWidgets.QListWidgetItem`
+        
+        :rtype: None
+        """
         if not self.rel_repo:
             QMessageBox.critical(self, "Error", "RelationshipRepository is missing.")
             return

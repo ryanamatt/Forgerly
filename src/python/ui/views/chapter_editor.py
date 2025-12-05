@@ -16,6 +16,7 @@ def calculate_word_count(text: str) -> int:
 
     :param text: The plain text content string.
     :type text: str
+
     :returns: The calculated number of words.
     :rtype: int
     """
@@ -33,6 +34,7 @@ def calculate_character_count(text: str, include_spaces: bool = True) -> int:
                            characters are included in the count. If ``False``, 
                            all whitespace is excluded.
     :type include_spaces: bool
+
     :returns: The calculated number of characters.
     :rtype: int
     """
@@ -52,6 +54,7 @@ def calculate_read_time(word_count: int, wpm: int = 250) -> str:
     :type word_count: int
     :param wpm: The assumed reading speed in words per minute. Must be greater than 0.
     :type wpm: int
+
     :returns: A formatted string for the estimated read time (e.g., '5 min', '<1 min', '0 min').
     :rtype: str
     """
@@ -98,7 +101,9 @@ class ChapterEditor(QWidget):
                                  including 'words_per_minute'.
         :type current_settings: dict
         :param parent: The parent widget. Defaults to ``None``.
-        :type parent: :py:class:`PyQt6.QtWidgets.QWidget`
+        :type parent: :py:class:`PyQt6.QtWidgets.QWidget`, optional
+
+        :rtype: None
         """
         super().__init__(parent)
         self.wpm = current_settings['words_per_minute']
@@ -160,6 +165,8 @@ class ChapterEditor(QWidget):
 
         This method is connected to the :py:attr:`~.RichTextEditor.content_changed`
         and :py:attr:`~.RichTextEditor.selection_changed` signals.
+
+        :rtype: None
         """
         # 1. Check for selected text first
         selected_text = self.rich_text_editor.get_selected_text()
@@ -189,6 +196,8 @@ class ChapterEditor(QWidget):
         
         :param new_wpm: The new WPM number to set. Will default to 250 if <= 0.
         :type new_wpm: int
+
+        :rtype: None
         """
         if new_wpm <= 0:
             new_wpm = 250
@@ -200,6 +209,8 @@ class ChapterEditor(QWidget):
         Sets the rich text editor's dirty flag when tags are modified.
 
         (Currently commented out as signal name is hypothetical)
+
+        :rtype: None
         """
         self.rich_text_editor._set_dirty()
         
@@ -218,6 +229,8 @@ class ChapterEditor(QWidget):
     def mark_saved(self) -> None:
         """
         Marks both the rich text content and the tags as clean (saved).
+
+        :rtype: None
         """
         self.rich_text_editor.mark_saved()
         self.tag_manager.mark_saved()
@@ -229,6 +242,8 @@ class ChapterEditor(QWidget):
 
         :param enabled: ``True`` to enable, ``False`` to disable.
         :type enabled: bool
+
+        :rtype: None
         """
         self.rich_text_editor.setEnabled(enabled)
         self.tag_manager.setEnabled(enabled)
@@ -248,6 +263,7 @@ class ChapterEditor(QWidget):
 
         :param html_content: The HTML content string to load into the editor.
         :type html_content: str
+        :rtype: None
         """
         self.rich_text_editor.set_html_content(html_content)
         self._update_stats_display()

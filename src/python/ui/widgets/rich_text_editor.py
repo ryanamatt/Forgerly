@@ -30,6 +30,14 @@ class RichTextEditor(BasicTextEditor):
     """
 
     def __init__(self, parent=None) -> None:
+        """
+        Initializes the RichTextEditor and connects its signals
+
+        :param parent: The parent widget. Defaults to ``None``.
+        :type parent: :py:class:`PyQt6.QtWidgets.QWidget`
+
+        :rtype: None
+        """
         super().__init__(parent)
 
         # Map display names to their corresponding QTextFormat block level
@@ -54,8 +62,12 @@ class RichTextEditor(BasicTextEditor):
         self.editor.selectionChanged.connect(self._update_toolbar_state)
         self.editor.cursorPositionChanged.connect(self._update_toolbar_state)
 
-    def _setup_toolbar(self):
-        """Creates and connects the formatting actions to the editor."""
+    def _setup_toolbar(self) -> None:
+        """
+        Creates and connects the formatting actions to the editor.
+        
+        :rtype: None
+        """
 
         self.toolbar.setIconSize(QSize(16, 16))
 
@@ -192,6 +204,8 @@ class RichTextEditor(BasicTextEditor):
         
         :param style_name: The name of the heading style
         :type style_name: str
+
+        :rtype: None
         """
         level_value = self._block_style_map.get(style_name)
         
@@ -211,6 +225,8 @@ class RichTextEditor(BasicTextEditor):
         
         :param font: The selected font to change the text to.
         :type font: :py:class:`PyQt6.QtGui.QFont`
+
+        :rtype: None
         """
         # Use mergeCharFormat to ensure only the font family is changed
         char_format = QTextCharFormat()
@@ -224,6 +240,8 @@ class RichTextEditor(BasicTextEditor):
         
         :param size_str: The font size that is selected
         :type size_str: str
+
+        :rtype: None
         """
         try:
             # Clean and convert the string input from the QComboBox
@@ -239,7 +257,11 @@ class RichTextEditor(BasicTextEditor):
             print(f"Invalid font size input: {size_str}")
     
     def _toggle_bold(self) -> None:
-        """Toggles bold formatting for the selected text."""        
+        """
+        Toggles bold formatting for the selected text.
+        
+        :rtype: None
+        """        
         format = self.editor.currentCharFormat()
         weight = QFont.Weight.Bold if format.fontWeight() != QFont.Weight.Bold else QFont.Weight.Normal
         format.setFontWeight(weight)
@@ -247,21 +269,33 @@ class RichTextEditor(BasicTextEditor):
         self._set_dirty()
         
     def _toggle_italic(self) -> None:
-        """Toggles italic formatting for the selected text."""            
+        """
+        Toggles italic formatting for the selected text.
+        
+        :rtype: None
+        """            
         format = self.editor.currentCharFormat()
         format.setFontItalic(not format.fontItalic())
         self.editor.mergeCurrentCharFormat(format)
         self._set_dirty()
 
     def _toggle_underline(self) -> None:
-        """Toggles underline formatting for the selected text."""
+        """
+        Toggles underline formatting for the selected text.
+        
+        :rtype: None
+        """
         format = self.editor.currentCharFormat()
         format.setFontUnderline(not format.fontUnderline())
         self.editor.mergeCurrentCharFormat(format)
         self._set_dirty()
 
     def _select_text_color(self) -> None:
-        """Opens a color dialog to select the foreground (text) color"""
+        """
+        Opens a color dialog to select the foreground (text) color
+        
+        :rtype: None
+        """
         # Get the current color to use as the default in the dialog
         current_format = self.editor.textCursor().charFormat()
         initial_color = current_format.foreground().color()
@@ -278,6 +312,8 @@ class RichTextEditor(BasicTextEditor):
         """
         Opens a color dialog to select the background (highlight) color
         and marks the editor as dirty.
+
+        :rtype: None
         """
         # Get the current color to use as the default in the dialog
         current_format = self.editor.textCursor().charFormat()
@@ -298,6 +334,8 @@ class RichTextEditor(BasicTextEditor):
         
         :param list_style: The style of list that is selected (order or unordered).
         :type list_style: :py:class:'PyQt6.QtGui.QTextListFormat.Style'
+
+        :rtype: None
         """
         cursor = self.editor.textCursor()
         
@@ -317,6 +355,8 @@ class RichTextEditor(BasicTextEditor):
         """
         Updates the enabled/checked state of toolbar buttons based on the
         current cursor position/selection format.
+
+        :rtype: None
         """
         format = self.editor.currentCharFormat()
         
@@ -340,6 +380,8 @@ class RichTextEditor(BasicTextEditor):
         
         :param alignment: The alignment flag that sets the editor to the correct alignment
         :type alignment: :py:class:'PyQt6.QtCore.Qt.AlignmentFlag'
+
+        :rtype: None
         """
         self.editor.setAlignment(alignment)
         self._set_dirty()
@@ -351,6 +393,8 @@ class RichTextEditor(BasicTextEditor):
         :param direction: The direction the indent is moving (increasing/decreasing).
                   Positive moves right (increase), negative moves left (decrease).
         :type int: Positive move to right, negative move to left
+
+        :rtype: None
         """
         # Get the current cursor
         cursor = self.editor.textCursor()
@@ -374,7 +418,11 @@ class RichTextEditor(BasicTextEditor):
             self._set_dirty()
 
     def _clear_formatting(self) -> None:
-        """Removes character formatting (bold, color, etc.) from the selected text or current word."""
+        """
+        Removes character formatting (bold, color, etc.) from the selected text or current word.
+        
+        :rtype: None
+        """
         cursor = self.editor.textCursor()
 
         if cursor.hasSelection():
@@ -406,6 +454,8 @@ class RichTextEditor(BasicTextEditor):
         """
         Updates the state of all toolbar controls (font, size, bold, etc.) 
         based on the formatting at the current cursor position/selection.
+
+        :rtype: None
         """
         
         # Get the current character format
@@ -452,4 +502,3 @@ class RichTextEditor(BasicTextEditor):
         self.bold_action.setChecked(current_format.fontWeight() == QFont.Weight.Bold)
         self.italic_action.setChecked(current_format.fontItalic())
         self.underline_action.setChecked(current_format.fontUnderline())
-        

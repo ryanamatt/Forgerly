@@ -20,12 +20,33 @@ if TYPE_CHECKING:
     from services.app_coordinator import AppCoordinator
 
 class ExporterDialog(QDialog):
-    """A small dialog window to manager exporting parts of the project"""
+    """
+    A modal dialog window used to configure and initiate the project export process.
+    
+    This dialog allows the user to select the type of content to export (e.g., Story, 
+    Lore, Character data) and choose the specific items to include. It uses a 
+    :py:class:`~PyQt6.QtWidgets.QStackedWidget` to switch between content-specific 
+    selection widgets.
+    """
 
-    # Signal to request data from the Coordinator upon dialog acceptance
     export_requested = pyqtSignal(str, list) # (export_type, selected_ids)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (str, list): Emitted when the user confirms 
+    the export. Carries the selected export type (str) and a list of selected 
+    item IDs (list[int]).
+    """
 
-    def __init__(self, coordinator: AppCoordinator, parent=None) -> None: # NOTE: Added coordinator argument
+    def __init__(self, coordinator: 'AppCoordinator', parent=None) -> None:
+        """
+        Initializes the :py:class:`.ExporterDialog`.
+
+        :param coordinator: The application coordinator for data access and export logic.
+        :type coordinator: :py:class:`~services.app_coordinator.AppCoordinator`
+        :param parent: The parent Qt widget.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget` or None
+        
+        :rtype: None
+        """
         super().__init__(parent)
 
         self.coordinator = coordinator # Store coordinator reference
@@ -40,6 +61,12 @@ class ExporterDialog(QDialog):
         self._set_initial_state()
         
     def _setup_ui(self) -> None:
+        """
+        Sets up the layout of the dialog, including the export type selector 
+        and the stacked widget that holds the specific item selectors.
+        
+        :rtype: None
+        """
         main_layout = QVBoxLayout(self)
         
         # --- 1. Type Selection (Combo Box) ---
@@ -93,12 +120,23 @@ class ExporterDialog(QDialog):
         main_layout.addWidget(button_box)
         
     def _set_initial_state(self) -> None:
-        """Sets the initial state of the dialog."""
+        """
+        Sets the initial state of the dialog. Default is ExportType.STORY
+        
+        :rtype: None
+        """
         self.selected_export_type = ExportType.STORY
         self.content_stack.setCurrentIndex(0) # Index 0 is the Story widget
 
     def _update_content_stack(self, new_type: str) -> None:
-        """Updates the visible selector widget based on the combo box selection."""
+        """
+        Updates the visible selector widget based on the combo box selection.
+        
+        :param new_type: The new type of export option
+        :type new_type: str
+
+        :rtype: None
+        """
         self.selected_export_type = new_type
         
         index_map = {
@@ -115,7 +153,12 @@ class ExporterDialog(QDialog):
         self.selected_item_ids = []
 
     def accept(self) -> None:
-        """Override to retrieve selected IDs and emit the export_requested signal before closing."""
+        """
+        Override to retrieve selected IDs and emit the export_requested signal before closing.
+        Handles the Accpetance of the 'Ok' button.
+        
+        :rtype: None
+        """
         
         # 1. Determine which selector is active and get its selected IDs
         if self.selected_export_type == ExportType.STORY:
@@ -144,9 +187,18 @@ class ExporterDialog(QDialog):
         """Returns the selected export type and item IDs."""
         return self.selected_export_type, self.selected_item_ids
 
+# --- Class Selectors ---
+
 class LoreSelector(QWidget):
     """Widget to display and select Lore Entries."""
     def __init__(self, coordinator, parent=None) -> None:
+        """
+        A custom :py:class:`~PyQt6.QtWidgets.QWidget` dedicated to displaying 
+        and selecting Lore Entries for export.
+        
+        This widget is designed to be placed inside the 
+        :py:class:`~PyQt6.QtWidgets.QStackedWidget` of :py:class:`.ExporterDialog`.
+        """
         super().__init__(parent)
         self.coordinator = coordinator
         self.all_data = [] # To store the full list of dictionaries
@@ -160,7 +212,12 @@ class LoreSelector(QWidget):
         self.load_data()
 
     def load_data(self):
-        """Fetches and populates the list with lore entries."""
+        """
+        Fetches all Lore entries from the repository and populates the 
+        :py:class:`~PyQt6.QtWidgets.QListWidget` with their titles.
+        
+        :rtype: None
+        """
         self.list_widget.clear()
         # Fetching all lore entries (ID, Title, Category)
         self.all_data = self.coordinator.lore_repo.get_all_lore_entries()
@@ -169,7 +226,12 @@ class LoreSelector(QWidget):
                 self.list_widget.addItem(f"[{entry['Category']}] {entry['Title']}")
 
     def get_selected_ids(self) -> list[int]:
-        """Returns the IDs of the selected lore entries."""
+        """
+        Retrieves the unique database IDs of all Lore Entries currently selected in the list widget.
+        
+        :returns: A list of integer IDs for the selected Lore Entries.
+        :rtype: list[int]
+        """
         selected_ids = []
         for item in self.list_widget.selectedItems():
             # Find the ID corresponding to the selected row index
@@ -180,6 +242,13 @@ class LoreSelector(QWidget):
 class CharacterSelector(QWidget):
     """Widget to display and select Characters."""
     def __init__(self, coordinator, parent=None) -> None:
+        """
+        A custom :py:class:`~PyQt6.QtWidgets.QWidget` dedicated to displaying 
+        and selecting Characters for export.
+        
+        This widget is designed to be placed inside the 
+        :py:class:`~PyQt6.QtWidgets.QStackedWidget` of :py:class:`.ExporterDialog`.
+        """
         super().__init__(parent)
         self.coordinator = coordinator
         self.all_data = [] # To store the full list of dictionaries
@@ -193,7 +262,12 @@ class CharacterSelector(QWidget):
         self.load_data()
 
     def load_data(self):
-        """Fetches and populates the list with characters."""
+        """
+        Fetches all character entries from the repository and populates the 
+        :py:class:`~PyQt6.QtWidgets.QListWidget` with their names.
+        
+        :rtype: None
+        """
         self.list_widget.clear()
         # Fetching all character entries (ID, Name, Status)
         self.all_data = self.coordinator.character_repo.get_all_characters()
@@ -202,7 +276,12 @@ class CharacterSelector(QWidget):
                 self.list_widget.addItem(f"{entry['Name']}")
 
     def get_selected_ids(self) -> list[int]:
-        """Returns the IDs of the selected characters."""
+        """
+        Retrieves the unique database IDs of all characters currently selected in the list widget.
+        
+        :returns: A list of integer IDs for the selected characters.
+        :rtype: list[int]
+        """
         selected_ids = []
         for item in self.list_widget.selectedItems():
             # Find the ID corresponding to the selected row index
@@ -212,8 +291,24 @@ class CharacterSelector(QWidget):
 
 
 class ChapterSelector(QWidget):
-    """Widget to display and select Chapters."""
+    """
+    A custom :py:class:`~PyQt6.QtWidgets.QWidget` dedicated to displaying 
+    and selecting Chapters for export.
+    
+    This widget is designed to be placed inside the 
+    :py:class:`~PyQt6.QtWidgets.QStackedWidget` of :py:class:`.ExporterDialog`.
+    """
     def __init__(self, coordinator, parent=None) -> None:
+        """
+        Initializes the :py:class:`.ChapterSelector`.
+
+        :param coordinator: The application coordinator to access the chapter repository.
+        :type coordinator: :py:class:`~services.app_coordinator.AppCoordinator`
+        :param parent: The parent Qt widget.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget` or None
+        
+        :rtype: None
+        """
         super().__init__(parent)
         self.coordinator = coordinator
         self.all_data = [] # To store the full list of dictionaries
@@ -227,7 +322,12 @@ class ChapterSelector(QWidget):
         self.load_data()
 
     def load_data(self):
-        """Fetches and populates the list with chapters."""
+        """
+        Fetches all chapter entries from the repository and populates the 
+        :py:class:`~PyQt6.QtWidgets.QListWidget` with their titles and sort order.
+        
+        :rtype: None
+        """
         self.list_widget.clear()
         # Fetching all chapter entries (ID, Title)
         self.all_data = self.coordinator.chapter_repo.get_all_chapters()
@@ -238,7 +338,12 @@ class ChapterSelector(QWidget):
                 self.list_widget.addItem(f"Chapter {order}: {entry['Title']}")
 
     def get_selected_ids(self) -> list[int]:
-        """Returns the IDs of the selected chapters."""
+        """
+        Retrieves the unique database IDs of all chapters currently selected in the list widget.
+        
+        :returns: A list of integer IDs for the selected chapters.
+        :rtype: list[int]
+        """
         selected_ids = []
         for item in self.list_widget.selectedItems():
             # Find the ID corresponding to the selected row index

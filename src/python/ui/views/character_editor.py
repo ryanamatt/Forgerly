@@ -11,20 +11,36 @@ from ...ui.widgets.basic_text_editor import BasicTextEditor
 
 class CharacterEditor(QWidget):
     """
-    A composite QWidget for editing a Character (Name, Status, Description).
-    It is a pure UI component and does not interact with repositories directly.
+    A composite :py:class:`~PyQt6.QtWidgets.QWidget` for editing a Character's details 
+    (Name, Status, Description).
     
-    It is designed to be managed by the AppCoordinator.
+    This is a pure UI component designed to be managed by an external controller 
+    (like the :py:class:`.MainWindow`). It handles data loading, state 
+    management (dirty checks), and local validation, but does not interact 
+    with repositories directly.
     """
-    # Signal emitted when the character's name changes, for the Outline Manager to update its list item.
+
     char_name_changed = pyqtSignal(int, str)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str): Emitted when the character's 
+    name changes, carrying the Character ID and the new name.
+    """
 
     # State tracking for unsaved changes
     _initial_name: str = ""
     _initial_status: str = ""
     current_char_id: int | None = None
+    """The database ID of the character currently loaded in the editor, or :py:obj:`None`."""
 
     def __init__(self, parent=None) -> None:
+        """
+        Initializes the :py:class:`.CharacterEditor` widget.
+        
+        :param parent: The parent widget. Defaults to ``None``.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`, optional
+
+        :rtype: None
+        """
         super().__init__(parent)
 
         # --- Sub-components (Description) ---
@@ -89,7 +105,22 @@ class CharacterEditor(QWidget):
 
     def load_character(self, char_id: int, name: str, description: str, status: str) -> None:
         """
-        Loads character data into the editor components and marks the state as clean.
+        Loads character data into the editor fields.
+        
+        This method updates the name, status, and description fields, and 
+        calls :py:meth:`.mark_saved` to reset the dirty state. This method
+        also fills the tag fields.
+        
+        :param char_id: The id of the character
+        :type char_id: int
+        :param name: The name of the character to load.
+        :type name: str
+        :param description: The description of the character
+        :type description: str
+        :param status: The status of the character
+        :type status: str
+        
+        :rtype: None
         """
         self.current_char_id = char_id
         
@@ -116,7 +147,13 @@ class CharacterEditor(QWidget):
         self.setEnabled(True)
 
     def get_data(self) -> dict[str, Any]:
-        """Returns the current state of all editable fields for MainWindow to save."""
+        """
+        Returns the current state of all editable fields for MainWindow to save.
+
+        This method returns the data in the edittor fields as a dictionary.
+        
+        :rtype dict[str, Any]
+        """
         return {
             'id': self.current_char_id,
             'name': self.name_input.text().strip(),
@@ -126,7 +163,14 @@ class CharacterEditor(QWidget):
         
     def is_dirty(self) -> bool:
         """
-        Checks if the character data (name, status, or description) has unsaved changes.
+        Checks if the content in the editor has unsaved changes compared to 
+        the last loaded or saved state.
+        
+        This dynamically compares the current state of inputs (Name, Status, 
+        and Description content) with their initial values.
+        
+        :returns: True if changes are detected, False otherwise.
+        :rtype: bool
         """
         if self.current_char_id is None:
             return False 
@@ -140,7 +184,10 @@ class CharacterEditor(QWidget):
 
     def mark_saved(self) -> None:
         """
-        Marks all nested components as clean and resets initial state trackers.
+        Updates the internal initial state trackers to match the current content, 
+        effectively marking the editor as "clean" (saved).
+        
+        :rtype: None
         """
         self.basic_text_editor.mark_saved()
         
@@ -149,7 +196,14 @@ class CharacterEditor(QWidget):
         self._initial_status = self.status_combo.currentText().strip()
         
     def set_enabled(self, enabled: bool) -> None:
-        """Enables/disables the entire editor panel."""
+        """
+        Enables or disables all interactive elements within the editor panel.
+        
+        :param enabled: If True, enables the panel; otherwise, disables it.
+        :type enabled: bool
+
+        :rtype: None
+        """
         self.name_input.setEnabled(enabled)
         self.status_combo.setEnabled(enabled)
         self.basic_text_editor.setEnabled(enabled)
@@ -157,15 +211,30 @@ class CharacterEditor(QWidget):
     # --- Data Retrieval Methods ---
     
     def get_name(self) -> str:
-        """Returns the current character name."""
+        """
+        Returns the current character name from the input field.
+        
+        :returns: The character's name, trimmed of whitespace.
+        :rtype: str
+        """
         return self.name_input.text().strip()
     
     def get_status(self) -> str:
-        """Returns the current character status."""
+        """
+        Returns the current character status from the combo box.
+        
+        :returns: The selected character status.
+        :rtype: str
+        """
         return self.status_combo.currentText().strip()
 
     def get_description_content(self) -> str:
-        """Returns the current basic text description content (HTML)."""
+        """
+        Returns the rich text description content as HTML string.
+        
+        :returns: The description content in HTML format.
+        :rtype: str
+        """
         return self.basic_text_editor.get_html_content()
     
     # =========================================================================
@@ -174,14 +243,22 @@ class CharacterEditor(QWidget):
         
     def _set_dirty(self) -> None:
         """
-        Handler for UI input. We don't need to do anything here, as the dirtiness
-        is checked dynamically in `is_dirty()`.
+        Handler for UI input. 
+        
+        This method is connected to signals from various input widgets (like 
+        :py:class:`~PyQt6.QtWidgets.QLineEdit` and :py:class:`~PyQt6.QtWidgets.QComboBox`) 
+        to track when user interaction occurs.
+        
+        :rtype: None
         """
         pass 
 
     def _emit_name_change(self) -> None:
         """
-        Emits the signal to update the outline after the user finishes editing the name.
+        Emits the :py:attr:`.char_name_changed` signal after the user finishes 
+        editing the name (e.g., focus leaves the :py:class:`~PyQt6.QtWidgets.QLineEdit`).
+        
+        :rtype: None
         """
         if self.current_char_id is not None:
              self.char_name_changed.emit(self.current_char_id, self.get_name())

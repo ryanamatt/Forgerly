@@ -8,18 +8,19 @@ from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 
 from ...repository.lore_repository import LoreRepository
 
-# Define the roles for the custom data we want to store in the QTreeWidget
-# This makes it easy to retrieve the Lore Entry ID associated with a clicked item.
-LORE_ID_ROLE = Qt.ItemDataRole.UserRole + 1
-# Role to identify the root item (which is not a Lore Entry)
-ROOT_ITEM_ROLE = Qt.ItemDataRole.UserRole + 2
-
 class LoreOutlineManager(QWidget):
     """
-    A custom QTreeWidget dedicated to displaying the hierarchical outline 
-    of Lore elements.
-    It interacts with the data layer via LoreRepositroy.
+    A custom :py:class:`~PyQt6.QtWidgets.QTreeWidget` dedicated to displaying the 
+    hierarchical outline of Lore Entries and other narrative elements.
+    
+    It interacts with the data layer via a :py:class:`.LoreRepository`.
     """
+
+    LORE_ID_ROLE = Qt.ItemDataRole.UserRole + 1
+    """The :py:obj:`int` role used to store the database ID of a Lore Entry on an item."""
+
+    ROOT_ITEM_ROLE = Qt.ItemDataRole.UserRole + 2
+    """The :py:obj:`bool` role used to identify the uneditable project root item."""
 
     # Signal emitted when a lore item is selected, carrying the lore ID
     lore_selected = pyqtSignal(int)
@@ -28,6 +29,14 @@ class LoreOutlineManager(QWidget):
 
     
     def __init__(self, lore_repository: LoreRepository | None = None) -> None:
+        """
+        Initializes the :py:class:`.LoreOutlineManager`.
+        
+        :param lore_repository: The repository object for Lore Entry CRUD operations.
+        :type lore_repository: :py:class:`.LoreRepository` or None, optional
+
+        :rtype: None
+        """
         super().__init__()
 
         self.lore_repo = lore_repository
@@ -62,6 +71,12 @@ class LoreOutlineManager(QWidget):
         Loads the Lore Entries into the outline manager.
         If lore_entries is provided (e.g., from a search), it loads those.
         Otherwise, it loads all entries from the repository.
+
+        :param lore_entries: A list of Lore Entries to load,
+            default is None and will load all Lore Entries. 
+        :type lore_entries: list[dict], optional
+
+        :rtype: None
         """
         if not self.lore_repo:
             return
@@ -74,7 +89,7 @@ class LoreOutlineManager(QWidget):
         
         # Create the root item
         self.project_root_item = QTreeWidgetItem(self.tree_widget, ["World Lore Base"])
-        self.project_root_item.setData(0, ROOT_ITEM_ROLE, True)
+        self.project_root_item.setData(0, self.ROOT_ITEM_ROLE, True)
         self.project_root_item.setFlags(self.project_root_item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
         self.project_root_item.setFlags(self.project_root_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
 
@@ -86,7 +101,7 @@ class LoreOutlineManager(QWidget):
                 category = entry.get("Category", "Uncategorized")
                 
                 item = QTreeWidgetItem(self.project_root_item, [title])
-                item.setData(0, LORE_ID_ROLE, entry["ID"])
+                item.setData(0, self.LORE_ID_ROLE, entry["ID"])
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
                 item.setToolTip(0, f"Category: {category}") 
                 
@@ -96,7 +111,12 @@ class LoreOutlineManager(QWidget):
     def _handle_search_input(self, query: str) -> None:
         """
         Handles text changes in the search bar. 
-        Performs FTS search or reverts to the full outline.
+        Performs SQL Like search or reverts to the full outline.
+
+        :param query: The search query to search for.
+        :type query: str
+
+        :rtype: None
         """
         clean_query = query.strip()
 
@@ -107,7 +127,7 @@ class LoreOutlineManager(QWidget):
             else:
                 self.tree_widget.clear()
                 no_result_item = QTreeWidgetItem(self.tree_widget, ["No search results found."])
-                no_result_item.setData(0, LORE_ID_ROLE, -1)
+                no_result_item.setData(0, self.LORE_ID_ROLE, -1)
                 self.tree_widget.expandAll()
         
         # Search is cleared, revert to full outline
@@ -115,17 +135,33 @@ class LoreOutlineManager(QWidget):
             self.load_outline()
 
     def _handle_selection_change(self) -> None:
-        """Emits a signal with the selected Lore ID when the selection changes."""
+        """
+        Emits a signal with the selected Lore ID when the selection changes.
+        
+        :rtype: None
+        """
         current_item = self.tree_widget.currentItem()
         if current_item:
-            lore_id = current_item.data(0, LORE_ID_ROLE)
+            lore_id = current_item.data(0, self.LORE_ID_ROLE)
             # Only emit if a valid lore entry (not the root or a 'no result' message) is selected
             if isinstance(lore_id, int) and lore_id > 0:
                 self.lore_selected.emit(lore_id)
 
     def _handle_item_click(self, item: QTreeWidgetItem, column: int) -> None:
-        """Handles the click event on a tree item"""
-        lore_id = item.data(0, LORE_ID_ROLE)
+        """
+        Handles the click event on a tree item.
+        
+        If a lore entry item is clicked, it emits :py:attr:`.pre_lore_change` 
+        followed by :py:attr:`.lore_selected`.
+
+        :param item: The clicked tree item.
+        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :param column: The column index clicked.
+        :type column: int
+
+        :rtype: None
+        """
+        lore_id = item.data(0, self.LORE_ID_ROLE)
 
         if lore_id is not None:
             # Emit pre-change signal to allow the main window to save the current lore entry
@@ -134,15 +170,35 @@ class LoreOutlineManager(QWidget):
             self.lore_selected.emit(lore_id)
 
     def _handle_item_double_click(self, item: QTreeWidget, column: int) -> None:
-        """Handles double click to initiate renaming"""
-        if item.data(0, LORE_ID_ROLE) is not None:
+        """
+        Handles double click on a Lore Entry item to initiate the rename process.
+        
+        The editor is only activated if the item is a valid lore entry item (not the root).
+        
+        :param item: The double-clicked tree item.
+        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :param column: The column index.
+        :type column: :py:obj:`int`
+
+        :rtype: None
+        """
+        if item.data(0, self.LORE_ID_ROLE) is not None:
             self.tree_widget.editItem(item, 0)
 
     def _handle_item_renamed(self, item: QTreeWidgetItem, column: int) -> None:
         """
         Handles the signal emitted when a tree item has been successfully renamed.
+        
+        The new name is saved to the database via the :py:class:`.LoreRepository`.
+        
+        :param item: The renamed tree item.
+        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :param column: The column index.
+        :type column: int
+
+        :rtype: None
         """
-        lore_id = item.data(0, LORE_ID_ROLE)
+        lore_id = item.data(0, self.LORE_ID_ROLE)
         new_title = item.text(0).strip()
 
         if not self.lore_repo:
@@ -170,7 +226,15 @@ class LoreOutlineManager(QWidget):
             self.load_outline()
 
     def _show_context_menu(self, pos: QPoint) -> None:
-        """Displays the context menu when right-clicked"""
+        """
+        Displays the context menu when right-clicked, offering options 
+        like 'Add New Lore Entry' and 'Delete Lore Entry'.
+        
+        :param pos: The position of the right-click relative to the widget.
+        :type pos: :py:class:`~PyQt6.QtCore.QPoint`
+
+        :rtype: None
+        """
         item = self.tree_widget.itemAt(pos)
 
         menu = QMenu(self)
@@ -179,7 +243,7 @@ class LoreOutlineManager(QWidget):
         new_action.triggered.connect(self.prompt_and_add_lore)
         
         if item:
-            is_lore_entry = item.data(0, LORE_ID_ROLE)
+            is_lore_entry = item.data(0, self.LORE_ID_ROLE)
 
             if is_lore_entry:
                 rename_action = menu.addAction("Rename Lore Entry")
@@ -192,7 +256,14 @@ class LoreOutlineManager(QWidget):
             menu.exec(self.mapToGlobal(pos))
 
     def prompt_and_add_lore(self) -> None:
-        """Prompts the user for a new lore entry title ands adds it to the DB and outline."""
+        """
+        Prompts the user for a new Lore Entry name, creates the Lore Entry in 
+        the database, reloads the outline, and selects the new Lore Entry.
+        
+        Emits :py:attr:`.pre_lore_change` before prompting.
+        
+        :rtype: None
+        """
     
         if not self.lore_repo:
             QMessageBox.critical(self, "Internal Error", "LoreRepository is missing.")
@@ -222,8 +293,16 @@ class LoreOutlineManager(QWidget):
 
 
     def _delete_lore(self, item: QTreeWidgetItem) -> None:
-        """Handles confirmation and deletion of a lore entry"""
-        lore_id = item.data(0, LORE_ID_ROLE)
+        """
+        Handles confirmation and deletion of a Lore Entry item and its corresponding 
+        entry in the database.
+        
+        :param item: The Lore Entry item to be deleted.
+        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+
+        :rtype: None
+        """
+        lore_id = item.data(0, self.LORE_ID_ROLE)
         title = item.text(0)
 
         if lore_id is None:
@@ -248,17 +327,34 @@ class LoreOutlineManager(QWidget):
         else:
                 QMessageBox.critical(self, "Deletion Error", "A database error occurred while trying to delete the lore entry.")
     def check_save_and_delete(self, item: QTreeWidgetItem) -> None:
-        """Emits pre-change signal, then deletes the chapter"""
+        """
+        Emits :py:attr:`.pre_lore_change` to ensure the currently viewed 
+        Lore Entry is saved, then triggers the deletion process.
+
+        :param item: The Lore Entry item queued for deletion.
+        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+
+        :rtype: None
+        """
         self.pre_lore_change.emit()
         self._delete_lore(item)
 
     def find_lore_item_by_id(self, lore_id: int) -> QTreeWidgetItem | None:
-        """Helper to find a lore entry item by its stored ID"""
+        """
+        Helper to find a Lore Entry :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem` 
+        by its stored database ID.
+        
+        :param char_id: The unique ID of the Lore Entry to find.
+        :type char_id: int
+
+        :returns: The matching item or None
+        :rtype: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem` or None
+        """
         if not self.project_root_item:
             return None
         
         for i in range(self.project_root_item.childCount()):
             item = self.project_root_item.child(i)
-            if item.data(0, LORE_ID_ROLE) == lore_id:
+            if item.data(0, self.LORE_ID_ROLE) == lore_id:
                 return item
         return None

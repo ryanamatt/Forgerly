@@ -24,6 +24,8 @@ class BasicTextEditor(QWidget):
 
         :param parent: The parent widget. Defaults to ``None``.
         :type parent: :py:class:`PyQt6.QtWidgets.QWidget`
+
+        :rtype: None
         """
         super().__init__(parent)
 
@@ -48,7 +50,11 @@ class BasicTextEditor(QWidget):
     # --- Dirty Flag Management ---
 
     def _set_dirty(self) -> None:
-        """Sets the dirty flag when the text content changes."""
+        """
+        Sets the dirty flag when the text content changes.
+        
+        :rtype: None
+        """
         if not self._is_dirty:
             self._is_dirty = True
 
@@ -61,7 +67,11 @@ class BasicTextEditor(QWidget):
         return self._is_dirty
 
     def mark_saved(self) -> None:
-        """Clears the dirty flag and updates the last saved content."""
+        """
+        Clears the dirty flag and updates the last saved content.
+        
+        :rtype: None
+        """
         self._is_dirty = False
         self._last_saved_content = self.editor.toHtml()
 
@@ -83,6 +93,8 @@ class BasicTextEditor(QWidget):
 
         :param html_content: The html content that is being set in the editor
         :type html_content: str
+
+        :rtype: None
         """
         # Block signals to prevent _set_dirty from firing during load
         self.editor.blockSignals(True) 
@@ -93,9 +105,17 @@ class BasicTextEditor(QWidget):
         self.mark_saved()
 
     def get_plain_text(self) -> str:
-        """Returns the editor's content as plain text."""
+        """
+        Returns the editor's content as plain text.
+        
+        :rtype: None
+        """
         return self.editor.toPlainText()
     
     def get_selected_text(self) -> str:
-        """Returns the currently selected plain text."""
+        """
+        Returns the currently selected plain text.
+        
+        :rtype: None
+        """
         return self.editor.textCursor().selectedText()
