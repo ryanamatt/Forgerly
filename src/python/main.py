@@ -1,20 +1,23 @@
 import sys
 from PyQt6.QtWidgets import QApplication
 
-from main_window import MainWindow
+from .main_window import MainWindow
 
-if __name__ == '__main__':
-    # Initialize the QApplication
+def main() -> None:
+    """
+    The entry point of the Narrative Forge application. 
+    
+    It initializes the :py:class:`~PyQt6.QtWidgets.QApplication`, creates and 
+    shows the :py:class:`~app.main_window.MainWindow`, and starts the Qt event loop.
+    
+    :rtype: None
+    """
     app = QApplication(sys.argv)
-
-    # app_icon = QIcon(os.path.join('assets', 'logo.png'))
-    # app.setWindowIcon(app_icon)
     
-    # Create the main window instance
     window = MainWindow()
-    
-    # Show the window
     window.show()
     
-    # Start the event loop
     sys.exit(app.exec())
+
+if __name__ == '__main__':
+    main()

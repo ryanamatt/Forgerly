@@ -1,108 +1,38 @@
-# Reusable Tagging UI Component: src/python/ui/tag_widget.py
+# src/python/ui/tag_widget.py
 
 from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, 
-    QPushButton, QLabel, QSizePolicy, QLayout, 
-    QApplication, QMainWindow
+    QPushButton, QLabel, QSizePolicy
 )
-from PyQt6.QtCore import Qt, QSize, pyqtSignal, QRect, QPoint
-import sys
+from PyQt6.QtCore import QSize, pyqtSignal
 
-class QFlowLayout(QLayout):
-    """
-    A layout that arranges items ina flow, wrapping to the next line
-    when the row is full. This is essential for a dynamic tag list
-    """
-    def __init__(self, parent=None, margin=0, spacing=-1):
-        super().__init__(parent)
-
-        if parent is not None:
-            self.setContentsMargins(margin, margin, margin, margin)
-        self.setSpacing(spacing)
-
-        self.item_list = []
-    
-    def __del__(self):
-        item = self.takeAt(0)
-        while item:
-            item = self.takeAt(0)
-
-    def addItem(self, item):
-        self.item_list.append(item)
-
-    def count(self):
-        return len(self.item_list)
-
-    def itemAt(self, index):
-        if 0 <= index < len(self.item_list):
-            return self.item_list[index]
-        return None
-
-    def takeAt(self, index):
-        if 0 <= index < len(self.item_list):
-            return self.item_list.pop(index)
-        return None
-    
-    def expandingDirections(self):
-        return Qt.Orientation.Horizontal | Qt.Orientation.Vertical
-
-    def hasHeightForWidth(self):
-        return True
-
-    def heightForWidth(self, width):
-        return self._do_layout(QRect(0, 0, width, 0), True)
-
-    def setGeometry(self, rect):
-        super().setGeometry(rect)
-        self._do_layout(rect, False)
-
-    def sizeHint(self):
-        return self.minimumSize()
-
-    def minimumSize(self):
-        size = QSize()
-        for item in self.item_list:
-            size = size.expandedTo(item.minimumSize())
-        
-        # Add margins and spacing
-        margin = self.contentsMargins()
-        size += QSize(margin.left() + margin.right(), margin.top() + margin.bottom())
-        return size
-    
-    def _do_layout(self, rect: QRect, test_only):
-        """Performs the actual layout calculation."""
-        x = rect.x()
-        y = rect.y()
-        line_height = 0
-        
-        spacing = self.spacing()
-
-        for item in self.item_list:
-            next_x = x + item.sizeHint().width() + spacing
-            
-            if next_x - spacing > rect.right() and line_height > 0:
-                # Move to next line
-                x = rect.x()
-                y = y + line_height + spacing
-                next_x = x + item.sizeHint().width() + spacing
-                line_height = 0
-            
-            if not test_only:
-                item.setGeometry(QRect(QPoint(x, y), item.sizeHint()))
-
-            x = next_x
-            line_height = max(line_height, item.sizeHint().height())
-
-        # Returns the height used by the layout
-        return y + line_height - rect.y() if line_height > 0 else 0
+from .flow_layout import QFlowLayout
     
 class TagLabel(QWidget):
-    """A small, removable pill-style widget for displaying a single tag."""
+    """
+    A small, removable pill-style widget for displaying a single tag.
     
-    # Signal emitted when the remove button is clicked, carrying the tag name
+    This widget consists of a :py:class:`~PyQt6.QtWidgets.QLabel` for the tag name 
+    and a :py:class:`~PyQt6.QtWidgets.QPushButton` for removal.
+    It emits a signal when the remove button is clicked.
+    """
+    
     tag_removed = pyqtSignal(str)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (str): Emitted when the tag is removed carrying the tag's name.
+    """
 
-    def __init__(self, tag_name: str, parent=None):
+    def __init__(self, tag_name: str, parent=None) -> None:
+        """
+        Initializes the TagLabel.
+        
+        :param tag_name: The text content of the tag.
+        :type tag_name: :py:class:`str`
+        :param parent: The parent widget. Defaults to ``None``.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`, optional
+
+        :rtype: None
+        """
         super().__init__(parent)
         self.tag_name = tag_name
         
@@ -130,7 +60,7 @@ class TagLabel(QWidget):
                 margin: 0px; 
                 border: none;
                 font-weight: bold;
-                color: #555555;
+                color: #a80f0f;
             }
             QPushButton:hover {
                 color: #A00000;
@@ -154,13 +84,29 @@ class TagLabel(QWidget):
 
 class TagManagerWidget(QWidget):
     """
-    A complete widget for managing a list of tags. 
-    Allows input via QLineEdit and displays tags using QFlowLayout.
+    A complete :py:class:`~PyQt6.QtWidgets.QWidget` for managing a list of tags. 
+    
+    It provides a :py:class:`~PyQt6.QtWidgets.QLineEdit` for input and displays 
+    the current tags using a :py:class:`.QFlowLayout`, allowing them to wrap dynamically. 
+    Tags are stored as a unique set (case-insensitive, converted to lowercase).
     """
-    # Signal emitted when the list of tags has been modified
-    tags_changed = pyqtSignal(list)
 
-    def __init__(self, initial_tags: list[str] = None, parent=None):
+    tags_changed = pyqtSignal(list)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when the list of tags has been modified.
+    """
+
+    def __init__(self, initial_tags: list[str] = None, parent=None) -> None:
+        """
+        Initializes the TagManagerWidget.
+        
+        :param initial_tags: A list of tag strings to initialize the widget with.
+        :type initial_tags: :py:obj:`list[str]`, optional
+        :param parent: The parent widget. Defaults to ``None``.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`, optional
+
+        :rtype: None
+        """
         super().__init__(parent)
         self.tags = set() # Use a set for quick lookups and uniqueness
 
@@ -191,24 +137,42 @@ class TagManagerWidget(QWidget):
             self.set_tags(initial_tags)
 
     def is_dirty(self) -> bool:
-        """Checks if the tags have unsaved changes"""
+        """
+        Checks if the tags have unsaved changes since the last mark_saved call.
+        
+        :return: True if tags have been modified, False otherwise.
+        :rtype: bool
+        """
         return self._is_dirty
     
     def mark_saved(self) -> None:
-        """Marks the tags as clean."""
+        """
+        Marks the current state of the tags as clean (saved).
+        
+        :rtype: None
+        """
         self._is_dirty = False
         
     def _set_dirty(self) -> None:
-        """Sets the dirty flag and emits change signal if state changes."""
+        """
+        Sets the dirty flag to True and emits the tags_changed signal if 
+        the state transitioned from clean to dirty.
+
+        :rtype: None
+        """
         if not self._is_dirty:
             self._is_dirty = True
             # The signal is emitted here, which will be handled by MainWindow
             self.tags_changed.emit(self.get_tags())
 
-    def _add_tag_from_input(self):
+    def _add_tag_from_input(self) -> None:
         """
-        Processes the input line, splitting by comma or semicolon, 
-        and adds valid tags.
+        Processes the text in the input line. 
+        
+        It splits by comma or semicolon and adds all valid, unique, non-empty tags. 
+        The input line is cleared after processing.
+
+        :rtype: None
         """
         input_text = self.tag_input.text().strip()
         if not input_text:
@@ -234,15 +198,30 @@ class TagManagerWidget(QWidget):
             self.tag_input.clear()
             self._set_dirty()
         
-    def _create_tag_label(self, tag_name: str):
-        """Instantiates a new TagLabel and adds it to the flow layout."""
+    def _create_tag_label(self, tag_name: str) -> None:
+        """
+        Instantiates a new TagLabel and adds it to the flow layout.
+        
+        :param tag_name: The tag string for the label.
+        :type tag_name: str
+
+        :rtype: None
+        """
         tag_label = TagLabel(tag_name)
         # Connect the custom signal for removal
         tag_label.tag_removed.connect(self._remove_tag)
         self.tag_flow_layout.addWidget(tag_label)
 
-    def _remove_tag(self, tag_name: str):
-        """Removes a tag from the set and its corresponding widget from the layout."""
+    def _remove_tag(self, tag_name: str) -> None:
+        """
+        Removes a tag from the set and its corresponding widget from the layout.
+        
+        This method is connected to the TagLabel's tag_removed signal.
+        
+        :param tag_name: The name of the tag to remove.
+        :type tag_name: str
+        :rtype: :py:obj:`None`
+        """
         if tag_name in self.tags:
             self.tags.remove(tag_name)
             
@@ -258,14 +237,23 @@ class TagManagerWidget(QWidget):
             self.tags_changed.emit(self.get_tags())
 
     def get_tags(self) -> list[str]:
-        """Returns the current list of tags, sorted alphabetically."""
+        """
+        Returns the current list of tags.
+        
+        :return: A list of unique tags, sorted alphabetically.
+        :rtype: list[str]
+        """
         # Convert the set back to a list for a stable, user-friendly order
         return sorted(list(self.tags))
 
     def set_tags(self, tag_names: list[str]) -> None:
         """
-        Sets the tags to a new list. 
-        Used when loading a new chapter/lore_entry.
+        Sets the tags to a new list, clearing any existing tags. 
+        
+        :param tag_names: The list of tag strings to set.
+        :type tag_names: list[str]
+
+        :rtype: None
         """
         # This prevents the initial loading process from firing the tags_changed signal.
         self.blockSignals(True) 
@@ -293,26 +281,3 @@ class TagManagerWidget(QWidget):
         # Restore signals and explicitly mark clean ---
         self.blockSignals(False) 
         self.mark_saved()
-
-# --- Test Execution ---
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    
-    main_window = QMainWindow()
-    main_window.setWindowTitle("TagManagerWidget Test")
-    main_window.setGeometry(100, 100, 400, 300)
-    
-    # Initialize with some dummy tags
-    initial_tags = ["Epic Fantasy", "First Contact", "Space Opera", "Political Thriller"]
-    tag_manager = TagManagerWidget(initial_tags=initial_tags)
-    
-    # Connect to the change signal to see updates in the console
-    def on_tags_changed(tags):
-        print(f"Tags changed! Current list: {tags}")
-
-    tag_manager.tags_changed.connect(on_tags_changed)
-
-    main_window.setCentralWidget(tag_manager)
-    main_window.show()
-    
-    sys.exit(app.exec())

@@ -6,21 +6,57 @@ from PyQt6.QtWidgets import (
     QMessageBox, QFrame, QDialog, QFormLayout, QComboBox, QLineEdit,
     QSpinBox, QDialogButtonBox, QLabel
 )
-from PyQt6.QtCore import Qt, QPointF, pyqtSignal, QRectF, QObject, QLineF
+from PyQt6.QtCore import Qt, QPointF, pyqtSignal, QRectF, QObject
 from PyQt6.QtGui import QColor, QPen, QBrush, QFont
 import math
-from typing import Any, TYPE_CHECKING
-if TYPE_CHECKING:
-    from services.app_coordinator import AppCoordinator
+from typing import Any
+from ...services.app_coordinator import AppCoordinator
 
 class CharacterNodeSignals(QObject):
-    """Signal Emitter for CharacterNode, which cannot inherit from QObject."""
+    """
+    Signal Emitter for :py:class:`.CharacterNode`.
+    
+    This is necessary because :py:class:`.CharacterNode` inherits from 
+    :py:class:`~PyQt6.QtWidgets.QGraphicsEllipseItem` and cannot be a 
+    direct subclass of :py:class:`~PyQt6.QtCore.QObject`.
+    """
     node_moved = pyqtSignal(int, float, float, str, str, int)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, float, float, str, str, int): 
+    Emitted when a node is dragged and released.
+    
+    Carries the Character ID, new X position, new Y position, Name, Color, and Shape ID.
+    The Name, Color, and Shape ID are included to allow the editor to persist 
+    node attributes along with position.
+    """
 
 class CharacterNode(QGraphicsEllipseItem):
-    """A draggable character node (an ellipse)"""
+    """
+    A draggable and interactive representation of a Character on the 
+    relationship graph canvas.
+    """
 
     def __init__(self, char_id: int, name: str, x: float, y: float, color: str, shape: str, parent=None) -> None:
+        """
+        Initializes the character node.
+        
+        :param char_id: The unique database ID of the character.
+        :type char_id: int
+        :param name: The character's display name.
+        :type name: str
+        :param x: The initial X position of the node.
+        :type x: float
+        :param y: The initial Y position of the node.
+        :type y: float
+        :param color: The color string for the node (e.g., "#RRGGBB").
+        :type color: str
+        :param shape: The shape type for the node (e.g., "ellipse").
+        :type shape: str
+        :param parent: The parent Qt item.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QGraphicsItem` or None
+
+        :rtype: None
+        """
         self.NODE_RADIUS = 30
         rect = QRectF(-self.NODE_RADIUS, -self.NODE_RADIUS, 2 * self.NODE_RADIUS, 2 * self.NODE_RADIUS)
         super().__init__(rect, parent)
@@ -47,7 +83,14 @@ class CharacterNode(QGraphicsEllipseItem):
         self.label.setFont(QFont("Arial", 10))
 
     def _update_appearance(self) -> None:
-        """Updates the brush/pen based on current attributes."""
+        """
+        Updates the brush/pen based on current attributes.
+        
+        This method is called during initialization and when the node's visual 
+        state (like selection highlight) changes.
+        
+        :rtype: None
+        """
         brush = QBrush(QColor(self.node_color))
         pen = QPen(QColor(Qt.GlobalColor.black), 2)
         
@@ -55,6 +98,20 @@ class CharacterNode(QGraphicsEllipseItem):
         self.setPen(pen)
 
     def _itemChange(self, change: QGraphicsEllipseItem.GraphicsItemChange, value: Any) -> Any:
+        """
+        Handles changes to the item's state, specifically for movement.
+        
+        Ensures the node position is correctly snapped to the grid (if any) 
+        and updates connected edges.
+
+        :param change: The type of state change.
+        :type change: :py:class:`~PyQt6.QtWidgets.QGraphicsItem.GraphicsItemChange`
+        :param value: The new value for the state change.
+        :type value: Any
+        
+        :returns: The potentially modified new value.
+        :rtype: :py:obj:`Any`
+        """
         """Called when item changes (likes position)"""
         if change == QGraphicsEllipseItem.GraphicsItemChange.ItemPositionHasChanged:
             # When position changes, update connected edges
@@ -65,7 +122,15 @@ class CharacterNode(QGraphicsEllipseItem):
                         item.update_position()
 
     def mouseReleaseEvent(self, event) -> None:
-        """Emit signal to save position when dragging stops"""
+        """
+        Handles the mouse release event. Emits the :py:attr:`.node_moved` 
+        signal if the node has been dragged from its original position.
+        
+        :param event: The mouse event.
+        :type event: :py:class:`~PyQt6.QtGui.QGraphicsSceneMouseEvent`
+
+        :rtype: None
+        """
         super().mouseReleaseEvent(event)
 
         pos = self.scenePos()
@@ -81,7 +146,15 @@ class CharacterNode(QGraphicsEllipseItem):
         )
 
     def set_selection_highlight(self, highlight: bool) -> None:
-        """Toggles the highlight for relationship selection."""
+        """
+        Toggles the highlight for relationship selection.
+        
+        :param highlight: True if to set highlight for relationship selection,
+            otherwise False.
+        :type highlight: bool
+
+        :rtype: None
+        """
         if not self.scene():
             return
 
@@ -90,7 +163,18 @@ class CharacterNode(QGraphicsEllipseItem):
         self.update() # Force redraw
 
     def mousePressEvent(self, event) -> None:
-        """Handle mouse clicks for selection and dragging."""
+        """
+        Handles the mouse press event. Stores the initial position for change detection.
+        
+        If the left button is clicked, it allows for dragging. If the right button 
+        is clicked, it signals the parent :py:class:`.RelationshipEditor` to handle 
+        the selection logic for relationship creation.
+        
+        :param event: The mouse event.
+        :type event: :py:class:`~PyQt6.QtGui.QGraphicsSceneMouseEvent`
+
+        :rtype: None
+        """
         
         # If left click, proceed with standard dragging/moving
         if event.button() == Qt.MouseButton.LeftButton:
@@ -105,9 +189,26 @@ class CharacterNode(QGraphicsEllipseItem):
 
 
 class RelationshipEdge(QGraphicsLineItem):
-    """A line representing a relationship between two CharacterNodes."""
+    """
+    A line item representing a relationship between two :py:class:`.CharacterNode`'s.
+    
+    It updates its position dynamically as the connected nodes are moved and 
+    displays the relationship label.
+    """
     
     def __init__(self, edge_data: dict[str, Any], nodes: dict[int, CharacterNode], parent=None):
+        """
+        Initializes the relationship edge.
+        
+        :param edge_data: A dictionary containing relationship data (source, target, type, style, etc.).
+        :type edge_data: dict[str, Any]
+        :param nodes: A dictionary mapping character IDs to :py:class:`.CharacterNode` objects.
+        :type nodes: dict[int, :py:class:`.CharacterNode`]
+        :param parent: The parent Qt item.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QGraphicsItem` or None
+
+        :rtype: None
+        """
         super().__init__(parent)
         self.edge_data = edge_data
         self.source_node = nodes[edge_data['source']]
@@ -120,7 +221,12 @@ class RelationshipEdge(QGraphicsLineItem):
         self.update_position()
 
     def _update_pen(self):
-        """Sets the pen properties based on edge data"""
+        """
+        Sets the pen properties based on edge data, including color, thickness 
+        (based on 'intensity'), and line style.
+        
+        :rtype: None
+        """
         color = QColor(self.edge_data['color'])
         thickness = max(10, min(100, 10 * self.edge_data['intensity']))
         pen = QPen(color, thickness)
@@ -141,7 +247,16 @@ class RelationshipEdge(QGraphicsLineItem):
                 pen.setStyle(Qt.PenStyle.SolidLine)
 
     def update_position(self) -> None:
-        """Recalculates line start/end points based on node positions."""
+        """
+        Recalculates the start and end points of the line based on the 
+        current positions of the source and target nodes.
+        
+        The line is drawn from the center of the source node to the center 
+        of the target node. It also updates the position and rotation of the 
+        relationship label.
+        
+        :rtype: None
+        """
 
         start_point = self.source_node.scenePos()
         end_point = self.target_node.scenePos()
@@ -155,7 +270,17 @@ class RelationshipEdge(QGraphicsLineItem):
         self.label_item.setRotation(self._calculate_angle(start_point, end_point))
 
     def _calculate_angle(self, p1: QPointF, p2: QPointF) -> float:
-        """Calculates the angle of the line for rotating the label."""
+        """
+        Calculates the angle of the line for rotating the label.
+        
+        :param p1: The first point (:py:class:`~PyQt6.QtCore.QPointF`).
+        :type p1: :py:class:`~PyQt6.QtCore.QPointF`
+        :param p2: The second point (:py:class:`~PyQt6.QtCore.QPointF`).
+        :type p2: :py:class:`~PyQt6.QtCore.QPointF`
+
+        :returns: Returns the value of the angle in degrees, used to align the label with the edge.
+        :rtype: float
+        """
         dx = p2.x() - p1.x()
         dy = p2.y() - p1.y()
         # Angle in radians so convert to degrees
@@ -163,8 +288,26 @@ class RelationshipEdge(QGraphicsLineItem):
         return math.degrees(angle)
     
 class RelationshipCreationDialog(QDialog):
-    """Dialog to gather details for a new relationship."""
-    def __init__(self, relationship_types: list[dict], char_a_name: str, char_b_name: str, parent=None):
+    """
+    A Dialog to gather details for a new relationship.
+    
+    Presents fields for Relationship Type, Description, and Intensity.
+    """
+    def __init__(self, relationship_types: list[dict], char_a_name: str, char_b_name: str, parent=None) -> None:
+        """
+        Initializes :py:class:`.RelationshipCreationDialog`.
+        
+        :param relationship_types: A list of all the existing Relationship Types (dicts containing 'ID' and 'Type_Name').
+        :type relationship_types: list[dict]
+        :param char_a_name: The name of the first Character.
+        :type char_a_name: str
+        :param char_b_name: The name of the second Charcter.
+        :type char_b_name: str
+        :param parent: The parent object.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
+
+        :rtype: None
+        """
         super().__init__(parent)
         self.setWindowTitle(f"Create Relationship: {char_a_name} ↔ {char_b_name}")
         
@@ -199,7 +342,12 @@ class RelationshipCreationDialog(QDialog):
         layout.addRow(button_box)
 
     def get_relationship_data(self) -> tuple[int, str, int]:
-        """Returns (Type ID, Description, Intensity)."""
+        """
+        Retrieves the data entered by the user in the dialog controls.
+        
+        :returns: A tuple containing the selected Relationship Type ID, Description, and Intensity.
+        :rtype: tuple[int, str, int]
+        """
         # Retrieve the type ID from the stored UserRole data
         type_id = self.type_combo.currentData(Qt.ItemDataRole.UserRole) 
         description = self.description_input.text()
@@ -208,19 +356,50 @@ class RelationshipCreationDialog(QDialog):
     
 class RelationshipEditor(QWidget):
     """
-    Main Widget for visualizing and editing character relationships as a graph.
-    Allows for node dragging and saving node positions.
+    A composite :py:class:`~PyQt6.QtWidgets.QWidget` that provides a visual,
+    graph-based editor for managing character relationships.
+
+    It utilizes a :py:class:`~PyQt6.QtWidgets.QGraphicsScene` and
+    :py:class:`~PyQt6.QtWidgets.QGraphicsView` to display :py:class:`.CharacterNode`
+    and :py:class:`.RelationshipEdge` objects. This component is primarily responsible
+    for the visual arrangement and editing of relationship properties, with the
+    persistence managed by an external controller (:py:class:`~app.services.app_coordinator.AppCoordinator`).
     """
-    # Signal to request data load from AppCoordinator
+
     request_load_data = pyqtSignal()
-    # Signal to save a single node's attributes after being moved
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted to request all graph data from the coordinator.
+    """
+
     save_node_attributes = pyqtSignal(int, float, float, str, str, int)
-    # Emitted when the user wants to save a new relationship
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, float, float, str, str, int): 
+    Emitted to save a character node's position and attributes.
+    """
+
     relationship_created = pyqtSignal(int, int, int, str, int)
-    # Signal to request relationship types when loaded
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, int, int, str, int): 
+    Emitted when a new relationship is created, carrying 
+    (Source ID, Target ID, Type ID, Description, Intensity).
+    """
+
     request_load_rel_types = pyqtSignal()
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted to request the list of available relationship types.
+    """
 
     def __init__(self, coordinator: AppCoordinator, parent=None) -> None:
+        """
+        Initializes the :py:class:`.RelationshipEditor`.
+
+        :param coordinator: The application coordinator for data persistence and signals.
+        :type coordinator: :py:class:`~app.services.app_coordinator.AppCoordinator`
+        :param parent: The parent Qt widget.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget` or None
+        
+        :rtype: None
+        """
         super().__init__(parent)
 
         self.coordinator = coordinator
@@ -258,11 +437,28 @@ class RelationshipEditor(QWidget):
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 
     def set_available_relationship_types(self, rel_types: list[dict]) -> None:
-        """Receives and stores the list of relationship types from the coordinator."""
+        """
+        Receives and stores the list of relationship types from the coordinator.
+        
+        :param rel_types: The list of relationship type dictionaries.
+        :type rel_types: list[dict]
+        
+        :rtype: None
+        """
         self.available_rel_types = rel_types
 
     def set_coordinator_signals(self, coordinator: AppCoordinator) -> None:
-        """Connects signals to the AppCoordinator"""
+        """
+        Connects editor-specific signals to the :py:class:`~app.services.app_coordinator.AppCoordinator`.
+        
+        This method is called to establish the communication links required for 
+        loading and saving graph data and relationship types.
+        
+        :param coordinator: The application coordinator instance.
+        :type coordinator: :py:class:`~app.services.app_coordinator.AppCoordinator`
+        
+        :rtype: None
+        """
         self.request_load_data.connect(coordinator.load_relationship_graph_data)
         self.save_node_attributes.connect(coordinator.save_node_position)
 
@@ -271,13 +467,13 @@ class RelationshipEditor(QWidget):
         
         # Request the relationship types on editor start
         self.request_load_rel_types.emit()
-
-    def set_available_relationship_types(self, rel_types: list[dict]) -> None:
-        """Receives and stores the list of relationship types from the coordinator."""
-        self.available_rel_types = rel_types
         
     def clear_selection(self) -> None:
-        """Clears the current node selection."""
+        """
+        Clears the current node selection (both A and B) and removes the visual highlight.
+        
+        :rtype: None
+        """
         if self.selected_node_a:
             self.selected_node_a.set_selection_highlight(False)
             self.selected_node_a = None
@@ -288,8 +484,16 @@ class RelationshipEditor(QWidget):
     def handle_node_right_click(self, node: CharacterNode) -> None:
         """
         Manages the two-click process for relationship creation.
-        1. First click sets A.
-        2. Second click sets B and opens the dialog.
+        
+        1. First right-click sets :py:attr:`.selected_node_a` and highlights it.
+        2. Second right-click on a *different* node sets :py:attr:`.selected_node_b`, 
+           opens the creation dialog, and then clears both selections.
+        3. Second right-click on the *same* node clears the selection.
+        
+        :param node: The :py:class:`.CharacterNode` that was right-clicked.
+        :type node: :py:class:`.CharacterNode`
+        
+        :rtype: None
         """
         if self.selected_node_a is None:
             # First selection
@@ -311,7 +515,18 @@ class RelationshipEditor(QWidget):
             self.clear_selection() # Clear selection regardless of dialog result
 
     def create_relationship_dialog(self, node_a: CharacterNode, node_b: CharacterNode) -> None:
-        """Opens a dialog to get relationship details and emits the save signal."""
+        """
+        Opens a dialog to get relationship details and emits the save signal.
+        
+        This method is the core logic for initiating a new relationship.
+        
+        :param node_a: The first selected :py:class:`.CharacterNode`.
+        :type node_a: :py:class:`.CharacterNode`
+        :param node_b: The second selected :py:class:`.CharacterNode`.
+        :type node_b: :py:class:`.CharacterNode`
+        
+        :rtype: None
+        """
         
         if node_a.char_id == node_b.char_id:
             QMessageBox.warning(self, "Warning", "Cannot create a relationship to the same character.")
@@ -345,7 +560,19 @@ class RelationshipEditor(QWidget):
             QMessageBox.information(self, "Success", f"Relationship creation request sent for {node_a.name} and {node_b.name}.")
 
     def connect_selected_characters(self, node_a: 'CharacterNode', node_b: 'CharacterNode') -> None:
-        """Opens a dialog to create a relationship between two nodes."""
+        """
+        Opens a dialog to create a relationship between two nodes.
+        
+        This method is an alternative entry point for relationship creation, 
+        often used by menu actions or external triggers.
+        
+        :param node_a: The first selected :py:class:`.CharacterNode`.
+        :type node_a: :py:class:`.CharacterNode`
+        :param node_b: The second selected :py:class:`.CharacterNode`.
+        :type node_b: :py:class:`.CharacterNode`
+        
+        :rtype: None
+        """
         
         # Prevent connecting a node to itself
         if node_a.char_id == node_b.char_id:
@@ -379,7 +606,15 @@ class RelationshipEditor(QWidget):
 
     def load_graph(self, graph_data: dict[str, list[dict[str, Any]]]) -> None:
         """
-        Recieves graph data from App Coordinator and populates the QGraphicsScene.
+        Recieves graph data from :py:class:`~app.services.app_coordinator.AppCoordinator` 
+        and populates the :py:class:`~PyQt6.QtWidgets.QGraphicsScene`.
+        
+        This clears the existing graph and draws all new nodes and edges based on the data.
+        
+        :param graph_data: A dictionary containing 'nodes' (list of character data) and 'edges' (list of relationship data).
+        :type graph_data: dict[str, list[dict[str, Any]]]
+        
+        :rtype: None
         """
         try:
             self.clear_selection()
@@ -437,13 +672,34 @@ class RelationshipEditor(QWidget):
             self.scene.clear()
 
     def set_enabled(self, enabled: bool) -> None:
-        """Enables/disables the editor panel"""
+        """
+        Enables/disables the editor panel's interaction.
+        
+        :param enabled: True to enable interaction, False to disable.
+        :type enabled: bool
+        
+        :rtype: None
+        """
         self.view.setEnabled(enabled)
 
     def is_dirty(self) -> bool:
-        """Positions are saved immediatrly so editor is never dirty"""
+        """
+        Indicates if the editor has unsaved changes.
+        
+        Positions are saved immediately upon release, so the editor is never 
+        considered dirty by its own state.
+        
+        :returns: Always False.
+        :rtype: bool
+        """
         return False
     
     def mark_saved(self) -> None:
-        """No state to mark as saved"""
+        """
+        Placeholder method to conform to standard editor interface.
+        
+        Since node positions are saved immediately, there is no state to mark as saved.
+        
+        :rtype: None
+        """
         pass

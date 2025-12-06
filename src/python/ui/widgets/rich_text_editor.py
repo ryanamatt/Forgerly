@@ -1,31 +1,46 @@
-# Rich Text Editor Component: src/python/rich_text_editor.py
+# src/python/rich_text_editor.py
 
 from PyQt6.QtWidgets import (
-    QTextEdit, QToolBar, QWidget, QVBoxLayout, QStyle,
-    QFontComboBox, QComboBox, QColorDialog
+    QToolBar, QStyle, QFontComboBox, QComboBox, QColorDialog
 )
 from PyQt6.QtGui import (
     QAction, QTextCharFormat, QFont, QTextCursor, 
     QTextListFormat, QTextBlockFormat, QIcon, QBrush,
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QSize
+from PyQt6.QtCore import Qt, QSize
 
-class RichTextEditor(QWidget):
-    """
-    A Custom QWidget containing a QTextEdit and a formatiing toolbar
-    Handles the rich text formating Action
-    """
-    # signal to notify listeners (like ChapterEditor/LoreEditor) of content changes
-    content_changed = pyqtSignal()
+from .basic_text_editor import BasicTextEditor
 
-    def __init__(self, parent =None) -> None:
+class RichTextEditor(BasicTextEditor):
+    """
+    A Custom QWidget containing a QTextEdit and a formatting toolbar.
+
+    Inherits from :py:class:`~.BasicTextEditor` and extends it by adding
+    rich text formatting capabilities via a :py:class:`PyQt6.QtWidgets.QToolBar`.
+
+    This class handles all rich text formatting actions such as font selection,
+    size, bold, italic, underline, color, highlighting, lists, alignment, and
+    indentation. It also dynamically updates the toolbar controls
+    based on the current cursor position or selection.
+
+    :ivar toolbar: The formatting toolbar containing all controls and actions.
+    :vartype toolbar: :py:class:`PyQt6.QtWidgets.QToolBar`
+    :ivar editor: The core text editor component inherited from BasicTextEditor.
+    :vartype editor: :py:class:`PyQt6.QtWidgets.QTextEdit`
+    """
+
+    def __init__(self, parent=None) -> None:
+        """
+        Initializes the RichTextEditor and connects its signals
+
+        :param parent: The parent widget. Defaults to ``None``.
+        :type parent: :py:class:`PyQt6.QtWidgets.QWidget`
+
+        :rtype: None
+        """
         super().__init__(parent)
 
-        # State tracking for unsaved changes
-        self._is_dirty = False
-        self._last_saved_content = ""
-
-        # Map display names to their corresponding QTestFormat block level
+        # Map display names to their corresponding QTextFormat block level
         self._block_style_map = {
             "Paragraph": 0,
             "Heading 1": 1,
@@ -33,49 +48,26 @@ class RichTextEditor(QWidget):
             "Heading 3": 3,
         }
 
-        # Core components
-        self.editor = QTextEdit()
-        self.editor.setPlaceholderText("Start writing here")
-
-        self.editor.cursorPositionChanged.connect(self._update_format_controls)
-
         # Layout
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout = self.layout()
 
         # Toolbar setup
         self.toolbar = QToolBar()
         self._setup_toolbar()
 
-        main_layout.addWidget(self.toolbar)
-        main_layout.addWidget(self.editor)
+        main_layout.insertWidget(0, self.toolbar)
 
         # Connect signals for dynamic toolbar updates
+        self.editor.cursorPositionChanged.connect(self._update_format_controls)
         self.editor.selectionChanged.connect(self._update_toolbar_state)
         self.editor.cursorPositionChanged.connect(self._update_toolbar_state)
-        self.editor.textChanged.connect(self._set_dirty)
-        self.editor.textChanged.connect(self.content_changed.emit)
 
-    # --- Dirty Flag Management ---
-
-    def _set_dirty(self) -> None:
-        """Sets the dirty flag when the text content changes."""
-        if not self._is_dirty:
-            self._is_dirty = True
-            # print("Editor: Content is now DIRTY.") # Debugging line
-
-    def is_dirty(self) -> bool:
-        """Returns True if the content has been modified since the last save/load."""
-        return self._is_dirty
-
-    def mark_saved(self) -> None:
-        """Clears the dirty flag and updates the last saved content."""
-        self._is_dirty = False
-        self._last_saved_content = self.editor.toHtml()
-        # print("Editor: Content marked as clean.") # Debugging line
-
-    def _setup_toolbar(self):
-        """Creates and connects the formatting actions to the editor."""
+    def _setup_toolbar(self) -> None:
+        """
+        Creates and connects the formatting actions to the editor.
+        
+        :rtype: None
+        """
 
         self.toolbar.setIconSize(QSize(16, 16))
 
@@ -155,14 +147,12 @@ class RichTextEditor(QWidget):
         # UNORDERED LIST (Bullet Points)
         list_bullet_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_CustomBase) # Placeholder icon
         self.list_bullet_action = QAction(list_bullet_icon, "Bullet List", self)
-        self.list_bullet_action.setShortcut("Ctrl+Shft+8")
         self.list_bullet_action.triggered.connect(lambda: self._toggle_list(QTextListFormat.Style.ListDisc))
         self.toolbar.addAction(self.list_bullet_action)
 
         # ORDERED LIST (Numbers)
         list_number_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_CustomBase)
         self.list_number_action = QAction(list_number_icon, "Numbered List", self)
-        self.list_number_action.setShortcut("Ctrl+Shft+9")
         self.list_number_action.triggered.connect(lambda: self._toggle_list(QTextListFormat.Style.ListDecimal))
         self.toolbar.addAction(self.list_number_action)
 
@@ -208,11 +198,17 @@ class RichTextEditor(QWidget):
 
     # --- Formatting Handlers ---
 
-    def _select_block_style(self, style_name_index: int) -> None:
-        """Applies a block-level style (e.g., Heading or Paragraph)."""
-        level_value = self._block_style_map.get(style_name_index)
+    def _select_block_style(self, style_name: str) -> None:
+        """
+        Applies a block-level style (e.g., Heading or Paragraph).
         
-            
+        :param style_name: The name of the heading style
+        :type style_name: str
+
+        :rtype: None
+        """
+        level_value = self._block_style_map.get(style_name)
+        
         cursor = self.editor.textCursor()
         block_format = cursor.blockFormat()
         
@@ -223,7 +219,15 @@ class RichTextEditor(QWidget):
         self._set_dirty()
 
     def _select_font(self, font: QFont) -> None:
-        """Applies the selected font family to the selected text."""
+        """
+        Applies the selected font family to the selected text 
+        or cursor if no selected text.
+        
+        :param font: The selected font to change the text to.
+        :type font: :py:class:`PyQt6.QtGui.QFont`
+
+        :rtype: None
+        """
         # Use mergeCharFormat to ensure only the font family is changed
         char_format = QTextCharFormat()
         char_format.setFontFamily(font.family())
@@ -231,7 +235,14 @@ class RichTextEditor(QWidget):
         self._set_dirty()
 
     def _select_font_size(self, size_str: str) -> None:
-        """Applies the selected font size to the selected text."""
+        """
+        Applies the selected font size to the selected text.
+        
+        :param size_str: The font size that is selected
+        :type size_str: str
+
+        :rtype: None
+        """
         try:
             # Clean and convert the string input from the QComboBox
             size = int(size_str.strip())
@@ -246,41 +257,45 @@ class RichTextEditor(QWidget):
             print(f"Invalid font size input: {size_str}")
     
     def _toggle_bold(self) -> None:
-        """Toggles bold formatting for the selected text."""
-        cursor = self.editor.textCursor()
-        if not cursor.hasSelection():
-            cursor.select(QTextCursor.SelectionType.WordUnderCursor)
+        """
+        Toggles bold formatting for the selected text.
         
-        format = cursor.charFormat()
+        :rtype: None
+        """        
+        format = self.editor.currentCharFormat()
         weight = QFont.Weight.Bold if format.fontWeight() != QFont.Weight.Bold else QFont.Weight.Normal
         format.setFontWeight(weight)
-        cursor.mergeCharFormat(format)
         self.editor.mergeCurrentCharFormat(format)
+        self._set_dirty()
         
     def _toggle_italic(self) -> None:
-        """Toggles italic formatting for the selected text."""
-        cursor = self.editor.textCursor()
-        if not cursor.hasSelection():
-            cursor.select(QTextCursor.SelectionType.WordUnderCursor)
-            
-        format = cursor.charFormat()
+        """
+        Toggles italic formatting for the selected text.
+        
+        :rtype: None
+        """            
+        format = self.editor.currentCharFormat()
         format.setFontItalic(not format.fontItalic())
-        cursor.mergeCharFormat(format)
         self.editor.mergeCurrentCharFormat(format)
+        self._set_dirty()
 
     def _toggle_underline(self) -> None:
-        """Toggles underline formatting for the selected text."""
-        cursor = self.editor.textCursor()
-        if not cursor.hasSelection():
-            cursor.select(QTextCursor.SelectionType.WordUnderCursor)
-            
-        format = cursor.charFormat()
+        """
+        Toggles underline formatting for the selected text.
+        
+        :rtype: None
+        """
+        format = self.editor.currentCharFormat()
         format.setFontUnderline(not format.fontUnderline())
-        cursor.mergeCharFormat(format)
         self.editor.mergeCurrentCharFormat(format)
+        self._set_dirty()
 
     def _select_text_color(self) -> None:
-        """Opens a color dialog to select the foreground (text) color"""
+        """
+        Opens a color dialog to select the foreground (text) color
+        
+        :rtype: None
+        """
         # Get the current color to use as the default in the dialog
         current_format = self.editor.textCursor().charFormat()
         initial_color = current_format.foreground().color()
@@ -294,7 +309,12 @@ class RichTextEditor(QWidget):
             self._set_dirty()
 
     def _select_highlight_color(self) -> None:
-        """Opens a color dialog to select the background (highlight) color."""
+        """
+        Opens a color dialog to select the background (highlight) color
+        and marks the editor as dirty.
+
+        :rtype: None
+        """
         # Get the current color to use as the default in the dialog
         current_format = self.editor.textCursor().charFormat()
         initial_color = current_format.background().color()
@@ -309,7 +329,14 @@ class RichTextEditor(QWidget):
          
 
     def _toggle_list(self, list_style: QTextListFormat.Style) -> None:
-        """Toggles the current paragraph(s) into a list format."""
+        """
+        Toggles the current paragraph(s) into a list format in the editor.
+        
+        :param list_style: The style of list that is selected (order or unordered).
+        :type list_style: :py:class:'PyQt6.QtGui.QTextListFormat.Style'
+
+        :rtype: None
+        """
         cursor = self.editor.textCursor()
         
         # Check if we are already in the desired list style
@@ -328,41 +355,47 @@ class RichTextEditor(QWidget):
         """
         Updates the enabled/checked state of toolbar buttons based on the
         current cursor position/selection format.
+
+        :rtype: None
         """
         format = self.editor.currentCharFormat()
         
-        # Update Bold button state
-        bold_action = self.toolbar.actions()[0] # Assuming position 0 is Bold
-        bold_action.setChecked(format.fontWeight() == QFont.Weight.Bold)
-        
-        # Update Italic button state
-        italic_action = self.toolbar.actions()[1] # Assuming position 1 is Italic
-        italic_action.setChecked(format.fontItalic())
-        
-        # Update Underline button state
-        underline_action = self.toolbar.actions()[2] # Assuming position 2 is Underline
-        underline_action.setChecked(format.fontUnderline())
-        
+        self.bold_action.setChecked(format.fontWeight() == QFont.Weight.Bold)
+        self.italic_action.setChecked(format.fontItalic())
+        self.underline_action.setChecked(format.fontUnderline())
+
         # Update List button states
         current_list = self.editor.textCursor().currentList()
-        if current_list is None: current_list = False
+        is_list = current_list is not None # Check if it's a list
 
-        list_bullet_action = self.toolbar.actions()[4] # Assuming position 4 is Bullet List (index 3 is the separator)
-        list_number_action = self.toolbar.actions()[5] # Assuming position 5 is Numbered List
+        is_bullet = is_list and current_list.format().style() == QTextListFormat.Style.ListDisc
+        is_numbered = is_list and current_list.format().style() == QTextListFormat.Style.ListDecimal
 
-        is_bullet = current_list and current_list.format().style() == QTextListFormat.Style.ListDisc
-        is_numbered = current_list and current_list.format().style() == QTextListFormat.Style.ListDecimal
-
-        list_bullet_action.setChecked(is_bullet)
-        list_number_action.setChecked(is_numbered)
+        self.list_bullet_action.setChecked(is_bullet)
+        self.list_number_action.setChecked(is_numbered)
 
     def _align_text(self, alignment: Qt.AlignmentFlag) -> None:
-        """Sets the alignment of the current text block(s) and marks content as dirty."""
+        """
+        Sets the alignment of the current text block(s) and marks content as dirty.
+        
+        :param alignment: The alignment flag that sets the editor to the correct alignment
+        :type alignment: :py:class:'PyQt6.QtCore.Qt.AlignmentFlag'
+
+        :rtype: None
+        """
         self.editor.setAlignment(alignment)
         self._set_dirty()
 
     def _adjust_indent(self, direction: int) -> None:
-        """Increases or decreases the indentation of the current text block(s) and marks content as dirty."""
+        """
+        Increases or decreases the indentation of the current text block(s) and marks content as dirty.
+        
+        :param direction: The direction the indent is moving (increasing/decreasing).
+                  Positive moves right (increase), negative moves left (decrease).
+        :type int: Positive move to right, negative move to left
+
+        :rtype: None
+        """
         # Get the current cursor
         cursor = self.editor.textCursor()
         
@@ -385,23 +418,44 @@ class RichTextEditor(QWidget):
             self._set_dirty()
 
     def _clear_formatting(self) -> None:
-        """Removes character formatting (bold, color, etc.) from the selected text or current word."""
+        """
+        Removes character formatting (bold, color, etc.) from the selected text or current word.
+        
+        :rtype: None
+        """
         cursor = self.editor.textCursor()
 
         if cursor.hasSelection():
             # Apply a default, clean character format to the selection
-            clean_format = QTextCharFormat()
-            cursor.mergeCharFormat(clean_format)
+            clean_char_format = QTextCharFormat()
+            cursor.mergeCharFormat(clean_char_format)
             
         else:
-            pass
+            self.editor.setCurrentCharFormat(QTextCharFormat())
+
+        # Clear Block Formatting (heading, alignment, indentation)
+        clean_block_format = QTextBlockFormat()
+        clean_block_format.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        clean_block_format.setIndent(0)
+        clean_block_format.setHeadingLevel(0)
+
+        if not cursor.hasSelection():
+            cursor.select(QTextCursor.SelectionType.BlockUnderCursor)
+
+        # Use begin/endEditBlock for better merging
+        cursor.beginEditBlock()
+        cursor.setBlockFormat(clean_block_format)
+        cursor.endEditBlock()
             
+        self.editor.setTextCursor(cursor) 
         self._set_dirty()
 
     def _update_format_controls(self) -> None:
         """
         Updates the state of all toolbar controls (font, size, bold, etc.) 
         based on the formatting at the current cursor position/selection.
+
+        :rtype: None
         """
         
         # Get the current character format
@@ -448,24 +502,3 @@ class RichTextEditor(QWidget):
         self.bold_action.setChecked(current_format.fontWeight() == QFont.Weight.Bold)
         self.italic_action.setChecked(current_format.fontItalic())
         self.underline_action.setChecked(current_format.fontUnderline())
-        
-    # --- Public Accessors for Content ---
-
-    def get_html_content(self) -> str:
-        """Returns the editor's content as Rich Text HTML."""
-        return self.editor.toHtml()
-
-    def set_html_content(self, html_content: str) -> None:
-        """
-        Sets the editor's content from Rich Text HTML and marks the content as clean.
-        The textChanged signal is temporarily blocked to prevent setting the dirty flag.
-        """
-        # Block signals to prevent _set_dirty from firing during load
-        self.editor.blockSignals(True) 
-        self.editor.setHtml(html_content)
-        # Unblock signals
-        self.editor.blockSignals(False) 
-        
-        # Manually reset the dirty state after a successful load
-        self.mark_saved()
-        # print("Editor: Content loaded and marked as clean.") # Debugging line

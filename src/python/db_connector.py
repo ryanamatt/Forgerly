@@ -1,26 +1,42 @@
-# src/python/db_connector.py (The new, reduced Connection Manager)
+# src/python/db_connector.py
 
 import sqlite3
 import os
-import sys
 from typing import Any
 
 class DBConnector:
     """
-    Handles the connection, initialization, and safe query execution for the
-    SQLite database. It is solely responsible for database management,
-    while Repositories handle application data access logic.
+    Handles the connection, initialization, and safe query execution for the 
+    SQLite database. 
+    
+    This class is solely responsible for database connection management, 
+    while Repositories handle application-specific data access logic.
     """
     def __init__(self, db_path : str = os.path.join('data', 'narrative_forge.db'), 
                  schema_path: str = os.path.join('sql', 'schema_v1.sql')) -> None:
-        """Initializes paths and connection attribute"""
+        """
+        Initializes file paths and the connection attribute. Does not establish 
+        a connection immediately.
+
+        :param db_path: The file path to the SQLite database file.
+        :type db_path: str
+        :param schema_path: The file path to the SQL schema file used for initialization.
+        :type schema_path: str
+        
+        :rtype: None
+        """
         self.db_path = db_path
         self.schema_path = schema_path
         self.conn = None
         self.initialize_directories()
 
     def initialize_directories(self) -> None:
-        """Ensures the 'data' and 'sql' direcotries exist"""
+        """
+        Ensures the 'data' and 'sql' directories, required for the database 
+        and schema files, exist on the filesystem.
+        
+        :rtype: None
+        """
         data_dir = os.path.dirname(self.db_path) or os.path.join('data')
         sql_dir = os.path.dirname(self.schema_path) or os.path.join('sql')
 
@@ -28,7 +44,15 @@ class DBConnector:
         os.makedirs(sql_dir, exist_ok=True)
 
     def connect(self) -> bool:
-        """Opens a connection to the SQLite database"""
+        """
+        Opens a connection to the SQLite database specified by :py:attr:`.db_path`.
+
+        It sets the connection's :py:attr:`~sqlite3.Connection.row_factory` to 
+        :py:obj:`sqlite3.Row` for dictionary-like access to results.
+
+        :returns: True if the connection was successful, False otherwise.
+        :rtype: bool
+        """
         try:
             self.conn = sqlite3.connect(self.db_path)
             self.conn.row_factory = sqlite3.Row
@@ -42,13 +66,24 @@ class DBConnector:
             return False
         
     def close(self) -> None:
-        """Closes the database connection safely."""
+        """
+        Closes the active database connection safely.
+        
+        :rtype: None
+        """
         if self.conn:
             self.conn.close()
             self.conn = None
 
     def initialize_schema(self) -> None:
-        """Reads the schema file and creates tables if they don't exist."""
+        """
+        Initializes the database structure by executing the schema file.
+
+        This is typically done only when the database file is first created.
+
+        :returns: True if initialization was successful, False otherwise.
+        :rtype: bool
+        """
         if not self.conn:
             print("Error: Cannot initialize schema, database is not connected.")
             return
@@ -67,7 +102,27 @@ class DBConnector:
     # --- Core Execution Methods (Used by all Repositories) ---
 
     def _execute_query(self, sql: str, params: tuple | None = None, fetch_one: bool = False, fetch_all: bool = False, as_list: bool = False) -> Any:
-        """Executes a SELECT query and returns results."""
+        """
+        Internal method for executing SELECT queries or single non-SELECT operations 
+        (INSERT/UPDATE/DELETE).
+
+        It safely handles exceptions and connection checks.
+
+        :param sql: The SQL query string to execute.
+        :type sql: str
+        :param params: A tuple of parameters to safely bind to the query. Defaults to None.
+        :type params: tuple or None
+        :param fetch_one: If True, fetches and returns a single row (as a dictionary).
+        :type fetch_one: bool
+        :param fetch_all: If True, fetches and returns all rows (as a list of dictionaries).
+        :type fetch_all: bool
+        :param fetch_lastrowid: If True, returns the ID of the last inserted row.
+        :type fetch_lastrowid: bool
+        
+        :returns: The query results (row, list of rows, last ID), the number of 
+                  rows affected (for non-SELECT), or None/empty list on error.
+        :rtype: Any
+        """
         if not self.conn:
             print("ERROR: DB not connected for query.")
             return None
@@ -93,7 +148,21 @@ class DBConnector:
             return None
 
     def _execute_commit(self, sql: str, params: tuple | None = None, fetch_id: bool = False) -> bool | int | None:
-        """Executes a non-SELECT query (INSERT/UPDATE/DELETE) and commits."""
+        """
+        Executes a non-SELECT query (INSERT/UPDATE/DELETE) and commits.
+        
+        This is used for more complex non-SELECT queries. It safely handles 
+        exceptions and connection checks.
+
+        :param sql: The SQL query string to execute.
+        :type sql: str
+        :param params: A tuple of parameters to safely bind to the query. Defaults to None.
+        :type params: tuple or None
+
+        :returns: Returns True if successful, Returns ID if fetch_id=True, Returns None if fails.
+        :rtype: bool or int or None
+
+        """
         if not self.conn:
             print("ERROR: DB not connected for commit.")
             return False
@@ -115,9 +184,15 @@ class DBConnector:
         
     def _execute_transaction(self, operations: list[tuple[str, tuple | None]]) -> bool:
         """
-        Executes a sequence of non-SELECT operations in a single transaction.
-        'operations' is a list of (sql_query, parameters_tuple) pairs.
-        Returns True on success, False on error (with automatic rollback).
+        Executes a sequence of non-SELECT operations in a single, atomic transaction.
+
+        If any operation fails, the entire transaction is rolled back.
+
+        :param operations: A list of tuples, where each tuple is ``(sql_query, tuple)``.
+        :type operations: list[tuple[str, tuple or None]]
+        
+        :returns: True if all operations succeed and the transaction commits, False otherwise.
+        :rtype: bool
         """
         if not self.conn:
             print("ERROR: DB not connected for transaction.")

@@ -1,7 +1,10 @@
 {
     "theme": "Dark",
-    "Autosave Mode": "Time-based",
-    "autosave_interval_minutes": 5,
-    "default_font_size": 12,
-    "default_font": "Segoe UI"
+    "window_size": "1200x800",
+    "outline_width_pixels": 300,
+    "window_width": 1200,
+    "window_height": 800,
+    "window_pos_x": 100,
+    "window_pos_y": 100,
+    "words_per_minute": 250
 }

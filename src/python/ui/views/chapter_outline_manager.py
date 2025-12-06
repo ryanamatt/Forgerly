@@ -1,32 +1,47 @@
-# Outline Manager Component: src/python/ui/outline_manager.py
+# src/python/ui/outline_manager.py
 
 from PyQt6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QHeaderView, QStyle, QMenu, QInputDialog, QMessageBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 
-from repository.chapter_repository import ChapterRepository 
-
-
-# Define the roles for the custom data we want to store in the QTreeWidget
-# This makes it easy to retrieve the Chapter ID associated with a clicked item.
-CHAPTER_ID_ROLE = Qt.ItemDataRole.UserRole + 1
-# Role to identify the root item (which is not a chapter)
-ROOT_ITEM_ROLE = Qt.ItemDataRole.UserRole + 2
+from ...repository.chapter_repository import ChapterRepository 
 
 class ChapterOutlineManager(QTreeWidget):
     """
-    A custom QTreeWidget dedicated to displaying the hierarchical outline 
-    of Chapters and other narrative elements.
-    It interacts with the data layer via ChapterRepository.
+    A custom :py:class:`~PyQt6.QtWidgets.QTreeWidget` dedicated to displaying the 
+    hierarchical outline of Chapters and other narrative elements.
+    
+    It interacts with the data layer via a :py:class:`.ChapterRepository`.
     """
+
+    CHAPTER_ID_ROLE = Qt.ItemDataRole.UserRole + 1
+    """The :py:obj:`int` role used to store the database ID of a Chapter on an item."""
+
+    ROOT_ITEM_ROLE = Qt.ItemDataRole.UserRole + 2
+    """The :py:obj:`bool` role used to identify the uneditable project root item."""
 
     # Signal emitted when a chapter item is selected, carrying the Chapter ID
     chapter_selected = pyqtSignal(int)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int): Emitted when a chapter item is selected, 
+    carrying the Chapter ID.
+    """
+
     # Emitted before a new chapter is selected, allowing the main window to save
     pre_chapter_change = pyqtSignal()
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (): Emitted before a new chapter is 
+    selected, allowing the main window to save the current chapter state.
+    """
 
     def __init__(self, chapter_repository: ChapterRepository | None = None) -> None:
+        """
+        Initializes the ChapterOutlineManager.
+        
+        :param chapter_repository: The repository object for chapter CRUD operations.
+        :type chapter_repository: :py:class:`.ChapterRepository` or :py:obj:`None`, optional
+        """
         super().__init__()
         # Renamed attribute to clearly show its new role
         self.chapter_repo = chapter_repository 
@@ -51,7 +66,11 @@ class ChapterOutlineManager(QTreeWidget):
     def load_outline(self) -> None:
         """
         Loads the outline structure by fetching all chapters from the database 
-        and populating the QTreeWidget.
+        and populating the :py:class:`~PyQt6.QtWidgets.QTreeWidget`.
+        
+        It attempts to select the first chapter upon successful load.
+        
+        :rtype: None
         """
         self.clear()
 
@@ -64,7 +83,7 @@ class ChapterOutlineManager(QTreeWidget):
         self.project_root_item = QTreeWidgetItem(self, ["The Story of Narrative Forge"])
         # Mark as non-editable and assign the ROOT_ITEM_ROLE
         self.project_root_item.setFlags(self.project_root_item.flags() & ~Qt.ItemFlag.ItemIsEditable) 
-        self.project_root_item.setData(0, ROOT_ITEM_ROLE, True)
+        self.project_root_item.setData(0, self.ROOT_ITEM_ROLE, True)
 
         # Fetch the actual chapter data from the database using the Repository
         if self.chapter_repo:
@@ -79,7 +98,7 @@ class ChapterOutlineManager(QTreeWidget):
 
             chapter_item = QTreeWidgetItem(self.project_root_item, [title])
             chapter_item.setIcon(0, chapter_icon)
-            chapter_item.setData(0, CHAPTER_ID_ROLE, chap_id)
+            chapter_item.setData(0, self.CHAPTER_ID_ROLE, chap_id)
             chapter_item.setFlags(chapter_item.flags() | Qt.ItemFlag.ItemIsEditable)
 
         self.blockSignals(False)
@@ -89,11 +108,23 @@ class ChapterOutlineManager(QTreeWidget):
         if self.project_root_item.childCount() > 0:
             first_child = self.project_root_item.child(0)
             self.setCurrentItem(first_child)
-            self.chapter_selected.emit(first_child.data(0, CHAPTER_ID_ROLE))
+            self.chapter_selected.emit(first_child.data(0, self.CHAPTER_ID_ROLE))
 
     def _handle_item_click(self, item: QTreeWidgetItem, column: int) -> None:
-        """Handles the click event on a tree item."""
-        chapter_id = item.data(0, CHAPTER_ID_ROLE)
+        """
+        Handles the click event on a tree item.
+        
+        If a chapter is clicked, it emits :py:attr:`.pre_chapter_change` followed 
+        by :py:attr:`.chapter_selected`.
+
+        :param item: The clicked tree item.
+        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :param column: The column index clicked (always 0 in this case).
+        :type column: int
+
+        :rtype: None
+        """
+        chapter_id = item.data(0, self.CHAPTER_ID_ROLE)
         
         if chapter_id is not None:
             # Emit pre-change signal to allow the main window to save the current chapter
@@ -102,16 +133,34 @@ class ChapterOutlineManager(QTreeWidget):
             self.chapter_selected.emit(chapter_id)
 
     def _handle_item_double_click(self, item: QTreeWidgetItem, column: int) -> None:
-        """Handles double click to initiate renaming"""
-        if item.data(0, CHAPTER_ID_ROLE) is not None:
+        """
+        Handles double click to initiate renaming for chapter items.
+        
+        :param item: The double-clicked tree item.
+        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :param column: The column index.
+        :type column: :py:obj:`int`
+
+        :rtype: None
+        """
+        if item.data(0, self.CHAPTER_ID_ROLE) is not None:
             # Only allow renaming for chapter items
             self.editItem(item, 0)
 
     def _handle_item_renamed(self, item: QTreeWidgetItem, column: int) -> None:
         """
         Handles the signal emitted when a tree item has been successfully renamed.
+        
+        The new title is saved to the database via the :py:class:`.ChapterRepository`.
+        
+        :param item: The renamed tree item.
+        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :param column: The column index.
+        :type column: int
+
+        :rtype: None
         """
-        chapter_id = item.data(0, CHAPTER_ID_ROLE)
+        chapter_id = item.data(0, self.CHAPTER_ID_ROLE)
         new_title = item.text(0).strip()
         
         if not self.chapter_repo:
@@ -140,7 +189,15 @@ class ChapterOutlineManager(QTreeWidget):
             self.load_outline()
 
     def _show_context_menu(self, pos: QPoint) -> None:
-        """Displays the context menu when right-clicked."""
+        """
+        Displays the context menu when right-clicked, offering options 
+        like 'Add New Chapter', 'Rename Chapter', and 'Delete Chapter'.
+        
+        :param pos: The position of the right-click relative to the widget.
+        :type pos: :py:class:`~PyQt6.QtCore.QPoint`
+
+        :rtype: None
+        """
         item = self.itemAt(pos)
 
         menu = QMenu(self)
@@ -150,7 +207,7 @@ class ChapterOutlineManager(QTreeWidget):
         new_action.triggered.connect(self.prompt_and_add_chapter)
 
         if item:            
-            is_chapter = item.data(0, CHAPTER_ID_ROLE) is not None
+            is_chapter = item.data(0, self.CHAPTER_ID_ROLE) is not None
         
             # Actions for Chapters (visible if clicking a chapter item)
             if is_chapter:
@@ -166,7 +223,14 @@ class ChapterOutlineManager(QTreeWidget):
             menu.exec(self.mapToGlobal(pos))
 
     def prompt_and_add_chapter(self) -> None:
-        """Prompts the user for a new chapter title and adds it to the DB and outline."""
+        """
+        Prompts the user for a new chapter title, creates the chapter in the 
+        database, reloads the outline, and selects the new chapter.
+        
+        Emits :py:attr:`.pre_chapter_change` before prompting.
+        
+        :rtype: None
+        """
         
         if not self.chapter_repo:
             QMessageBox.critical(self, "Internal Error", "ChapterRepository is missing.")
@@ -206,8 +270,16 @@ class ChapterOutlineManager(QTreeWidget):
                 QMessageBox.warning(self, "Database Error", "Failed to save the new chapter to the database.")
 
     def _delete_chapter(self, item: QTreeWidgetItem) -> None:
-        """Handles confirmation and deletion of a chapter."""
-        chapter_id = item.data(0, CHAPTER_ID_ROLE)
+        """
+        Handles confirmation and deletion of a chapter item and its corresponding 
+        entry in the database.
+        
+        :param item: The chapter item to be deleted.
+        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+
+        :rtype: None
+        """
+        chapter_id = item.data(0, self.CHAPTER_ID_ROLE)
         title = item.text(0)
         
         if chapter_id is None:
@@ -233,17 +305,34 @@ class ChapterOutlineManager(QTreeWidget):
                 QMessageBox.critical(self, "Deletion Error", "A database error occurred while trying to delete the chapter.")
 
     def check_save_and_delete(self, item: QTreeWidgetItem) -> None:
-        """Emits pre-change signal, then deletes the chapter"""
+        """
+        Emits :py:attr:`.pre_chapter_change` to ensure the currently viewed 
+        chapter is saved, then triggers the deletion process.
+
+        :param item: The chapter item queued for deletion.
+        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+
+        :rtype: None
+        """
         self.pre_chapter_change.emit()
         self._delete_chapter(item)
 
     def find_chapter_item_by_id(self, chapter_id: int) -> QTreeWidgetItem | None:
-        """Helper to find a chapter item by its stored ID."""
+        """
+        Helper to find a chapter :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem` 
+        by its stored database ID.
+        
+        :param chapter_id: The unique ID of the chapter to find.
+        :type chapter_id: :py:obj:`int`
+        
+        :returns: The matching item or None.
+        :rtype: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem` or None
+        """
         if not self.project_root_item:
             return None
         
         for i in range(self.project_root_item.childCount()):
             item = self.project_root_item.child(i)
-            if item.data(0, CHAPTER_ID_ROLE) == chapter_id:
+            if item.data(0, self.CHAPTER_ID_ROLE) == chapter_id:
                 return item
         return None
