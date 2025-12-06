@@ -34,24 +34,23 @@ Follow these steps to set up and run the application:
 1.**Clone the Repository** (if not already done).
 2.**Install Dependencies:**
 
-    
-    pip install -r requirements.txt
-    
+```Bash
+pip install -r requirements.txt
+```
 
 ### Execution
 
 Run the application directly from the main module:
 
-    
-    python -m src.python.main
-    
-
+```Bash
+python -m src.python.main
+```
 
 ## Database
 
 This application uses an SQLite Database to manager a project.
 
-See Schema in docs/EntityRelationshipDiagram or Click [Here](https://dbdiagram.io/d/NarrativeForge-692603ec7d9416ddff179d8c)
+See Schema in docs/EntityRelationshipDiagram or Click [Datbase Link](https://dbdiagram.io/d/NarrativeForge-692603ec7d9416ddff179d8c)
 
 ## Documentation
 
@@ -61,14 +60,14 @@ To view documentation of code.
 
 Will build documentation using Sphinx.
 
-    
-    python tools/build_docs.py
-    
+```Bash  
+python tools/build_docs.py
+```
 
 ### View Documentation
 
 Will open documentation in web browser.
 
-    
-    python tools/view_docs.py
-    
+```Bash
+python tools/view_docs.py
+```
