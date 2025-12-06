@@ -33,14 +33,16 @@ Follow these steps to set up and run the application:
 
 1.**Clone the Repository** (if not already done).
 2.**Install Dependencies:**
-    ```bash
+
+    ```
     pip install -r requirements.txt
     ```
 
 ### Execution
 
 Run the application directly from the main module:
-    ```bash
+
+    ```
     python -m src.python.main
     ```
 
@@ -50,3 +52,23 @@ Run the application directly from the main module:
 This application uses an SQLite Database to manager a project.
 
 See Schema in docs/EntityRelationshipDiagram or Click [Here](https://dbdiagram.io/d/NarrativeForge-692603ec7d9416ddff179d8c)
+
+## Documentation
+
+To view documentation of code.
+
+### Build Documentation
+
+    Will build documentation using Sphinx.
+
+    ```
+    python tools/build_docs.py
+    ```
+
+### View Documentation
+
+    Will open documentation in web browser.
+
+    ```
+    python tools/view_docs.py
+    ```
