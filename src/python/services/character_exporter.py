@@ -10,9 +10,8 @@ from PyQt6.QtGui import QTextDocument
 from ..services.exporter import Exporter
 from ..utils.constants import FileFormats, generate_file_filter
 
-from typing import TYPE_CHECKING, TextIO
-if TYPE_CHECKING:
-    from ..services.app_coordinator import AppCoordinator
+from typing import TextIO
+from ..services.app_coordinator import AppCoordinator
 
 class CharacterExporter(Exporter):
     """

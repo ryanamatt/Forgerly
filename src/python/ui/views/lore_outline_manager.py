@@ -22,10 +22,17 @@ class LoreOutlineManager(QWidget):
     ROOT_ITEM_ROLE = Qt.ItemDataRole.UserRole + 2
     """The :py:obj:`bool` role used to identify the uneditable project root item."""
 
-    # Signal emitted when a lore item is selected, carrying the lore ID
     lore_selected = pyqtSignal(int)
-    # Emitted before a new lore is selected, allowing the main window to save
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int): Emitted when a lore item is 
+    selected, carrying the Lore ID.
+    """
+
     pre_lore_change = pyqtSignal()
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (): Emitted before a new lore entry is 
+    selected, allowing the main window to save the current lore entry state.
+    """
 
     
     def __init__(self, lore_repository: LoreRepository | None = None) -> None:

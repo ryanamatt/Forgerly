@@ -1,21 +1,38 @@
 # src/python/lore_repository.py
 
 from ..utils.types import LoreEntryDict, LoreSearchResultDict, DBRowList
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from ..db_connector import DBConnector
+from ..db_connector import DBConnector
 
 class LoreRepository:
     """
-    Manages all database operations for the Lore_Entries entity.
-    Includes methods for basic CRUD (Create, Read, Update, Delete) 
-    and related associations (Tags, Locations).
+    Manages all database operations for the Lore Entry entity.
+
+    This class serves as the Data Access Object (DAO) for Lore Entry, handling 
+    CRUD operations and ensuring data integrity specific to lore_entroes.
+    It uses the provided :py:class:`~app.db_connector.DBConnector` to execute queries.
     """
     def __init__(self, db_connector: DBConnector) -> None:
+        """
+        Initializes the :py:class:`.LoreRepository`.
+
+        :param db_connector: The active connection object to the SQLite database.
+        :type db_connector: :py:class:`~app.db_connector.DBConnector`
+        
+        :rtype: None
+        """
         self.db = db_connector
 
     def get_all_lore_entries(self) -> DBRowList | None:
-        """Retrieves ID, Title, and Category for all lore entries."""
+        """"
+        Retrieves a list of all Lore Entries, ordered by their Title in ascending order.
+        
+        The returned data includes basic information necessary for the Outline 
+        Manager, but excludes the full lore entry content.
+
+        :returns: A list of dictionaries, each containing the lore entry's ID, Title, 
+            Content, and Category.
+        :rtype: :py:class:`~app.utils.types.DBRowList`
+        """
         query = """
         SELECT ID, Title, Category
         FROM Lore_Entries
@@ -24,7 +41,19 @@ class LoreRepository:
         return self.db._execute_query(query, fetch_all=True)
 
     def create_lore_entry(self, title: str, content: str = "", category: str = "") -> int | None:
-        """Creates a new lore entry and returns its ID."""
+        """
+        Inserts a new lore entry record into the database with a default empty content field.
+
+        :param title: The title of the new lore entry.
+        :type title: str
+        :param content: The content of the lore entry, Defaults to Empty String.
+        :type content: str
+        :param category: The category of the lore entry (e.g. Magic System), Defaults to Empty String
+        :type category: str
+        
+        :returns: The ID of the newly created lore entry if successful, otherwise None.
+        :rtype: int or None
+        """
         query = """
         INSERT INTO Lore_Entries (Title, Content, Category)
         VALUES (?, ?, ?)
@@ -32,14 +61,30 @@ class LoreRepository:
         lore_id = self.db._execute_commit(query, (title, content, category), fetch_id=True)
         return lore_id
     
-    def get_lore_entry_title(self, lore_id: int) -> str:
-        """Retrieves the title of a lore entry given lore id"""
+    def get_lore_entry_title(self, lore_id: int) -> str | None:
+        """
+        Get the title of a lore entry based on its lore_id.
+        
+        :param lore_id: The lore ID of the lore entry.
+        :type lore_id: int
+
+        :return: returns the title of the lore entry or None if not found.
+        :rtype: str or None
+        """
         query = "SELECT Title FROM Lore_Entries WHERE ID = ?"
         result =  self.db._execute_query(query, (lore_id,), fetch_one=True)
         return result['Title'] if result else None
     
     def get_lore_entry_details(self, lore_id: int) -> LoreEntryDict | None:
-        """Retrieves the full details (Title, Content, Category) for a specific ID."""
+        """
+        Retrieves the full details of a lore entry (Title, Content, Category) for a specific ID.
+
+        :param lore_id: The lore entry id to get details for.
+        :type lore_id: int
+
+        :returns a dictionary of the Lore Entry's details.
+        :rtype: :py:class:`~app.utils.types.LoreEntryDict`
+        """
         query = """
         SELECT ID, Title, Content, Category
         FROM Lore_Entries
@@ -48,15 +93,34 @@ class LoreRepository:
         return self.db._execute_query(query, (lore_id,), fetch_one=True)
 
     def update_lore_entry(self, lore_id: int, title: str, content: str = "", category: str = "") -> bool:
-        """Updates the title, content, and category of an existing lore entry."""
+        """
+        Updates the Lore Entry details in the database.
+
+        :param lore_id: The lore entry ID to know which lore entry to update.
+        :type lore_id: int
+        :param title: The new/same title of the Lore Entry to update.
+        :type title: str
+        :param content: The content of a lore entry. Defaults to Empty String
+        :type content: str
+        :param category: The category that the lore entry is in. Defaults to Empty String.
+        :type category: str
+
+        :returns: True if successfully saved to dataase, otherwise False.
+        :rtype: bool
+        """
         query = query = "UPDATE Lore_Entries SET Title = ?, Content = ?, Category = ? WHERE ID = ?;"
         params = (title, content, category, lore_id)
         return self.db._execute_commit(query, params)
     
     def delete_lore_entry(self, lore_id: int) -> bool:
         """
-        Deletes a lore entry. Cascading deletes should handle associated 
-        Chapter_Lore and Lore_Tags based on the schema design.
+        Deletes a lore entry.
+        
+        :param lore_id: The lore entry ID of the lore entry to be deleted.
+        :type lore_id: int
+
+        :returns: True if successfully delete lore entry, otherwise False
+        :rtype: bool
         """
         query = "DELETE FROM Lore_Entries WHERE ID = ?;"
         return self.db._execute_commit(query, (lore_id,))
@@ -67,6 +131,12 @@ class LoreRepository:
         1. FTS on Title, Content, and Category (ranked results).
         2. JOIN search on Tag names (unranked results).
         3. Merges and deduplicates the results, prioritizing FTS rank.
+
+        :param user_query: The user's search query.
+        :type user_query: str
+
+        :returns: Returns a list of the Lore Entry search results.
+        :rtype: list[:py:class:`~app.utils.types.LoreSearchResultDict`]
         """
 
         clean_query = user_query.strip()
@@ -93,8 +163,14 @@ class LoreRepository:
     
     def get_lore_entries_for_export(self, lore_ids: list[int] = None) -> list[dict]:
         """
-        Retrieves Lore Entry details (ID, Title, Content, Sort_Order) for export purposes,
+        Retrieves lore entry details for export purposes,
         optionally filtered by a list of IDs.
+
+        :param lore_ids: A list of all the lore entry IDs selected. Defaults
+            to Empty List which means all Lore Entry IDS are selected.
+
+        :returns: A dictionary of all the lore entries selected by ID.
+        :rtype: list[dict]
         """
         query = """
         SELECT ID, Title, Content, Category

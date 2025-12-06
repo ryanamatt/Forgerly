@@ -147,6 +147,11 @@ class AppCoordinator(QObject):
         :rtype: None
         """
         self.editors = editor_map
+
+        if ViewType.LORE_EDITOR in self.editors:
+            self.lore_editor: LoreEditor = self.editors[ViewType.LORE_EDITOR]
+        if ViewType.CHARACTER_EDITOR in self.editors:
+            self.character_editor: CharacterEditor = self.editors[ViewType.CHARACTER_EDITOR]
         
         # Handle specific editor connections separately (like title change signals)
         if ViewType.RELATIONSHIP_GRAPH in self.editors:

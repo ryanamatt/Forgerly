@@ -7,7 +7,7 @@ from PyQt6.QtCore import pyqtSignal
 
 class BasicTextEditor(QWidget):
     """
-    A composite :py:class:`PyQt6.QtWidgets.QWidget` that serves as a basic
+    A composite :py:class:`~PyQt6.QtWidgets.QWidget` that serves as a basic
     text editing widget.
 
     The Widget contains a text editing editor with basic signals for saving
@@ -16,7 +16,14 @@ class BasicTextEditor(QWidget):
     """
     # Signal to notify listeners (like ChapterEditor/LoreEditor) of content changes
     content_changed = pyqtSignal()
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when the content of the editor changes.
+    """
+
     selection_changed = pyqtSignal()
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when the selection has changed..
+    """
 
     def __init__(self, parent=None) -> None:
         """

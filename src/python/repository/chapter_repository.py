@@ -1,9 +1,7 @@
 # src/python/chapter_repository.py
 
 from ..utils.types import ChapterContentDict, ChapterBasicDict
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from ..db_connector import DBConnector
+from ..db_connector import DBConnector
 
 class ChapterRepository:
     """
@@ -26,7 +24,7 @@ class ChapterRepository:
 
     def get_all_chapters(self) -> ChapterBasicDict:
         """
-        Retrieves a list of all chapters, ordered by their :term:`Sort_Order`.
+        Retrieves a list of all chapters, ordered by their Sort_Order.
         
         The returned data includes basic information necessary for the Outline 
         Manager, but excludes the full text content.

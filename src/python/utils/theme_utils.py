@@ -11,12 +11,21 @@ else:
 
 # Define the directory where style files are stored
 STYLES_DIR = 'styles'
+"""
+:py:class:`str`: The relative path to the directory containing 
+Qt Style Sheet (QSS) files.
+"""
 
 def get_available_themes() -> list[str]:
     """
-    Scans the styles directory for .qss files and returns a list of theme names.
+    Scans the :py:attr:`.STYLES_DIR` for ``.qss`` files and returns a list of theme names.
+    
     The theme name is derived from the filename (e.g., 'dark.qss' -> 'Dark').
-    If the directory does not exist, it returns a default list.
+    If the directory does not exist or contains no valid files, it returns a 
+    default list ``['Light', 'Dark']``.
+
+    :returns: A sorted list of available theme names (capitalized).
+    :rtype: list[str]
     """
     themes = []
     
@@ -43,12 +52,18 @@ def apply_theme(app_window: HasStyleSheet, settings: dict[str, Any]) -> bool:
     """
     Loads and applies the QSS file for the selected theme to the given window/widget.
 
-    Args:
-        app_window: The QMainWindow or QWidget instance to apply the stylesheet to.
-        settings: The application settings dictionary containing the 'theme' key.
+    It reads the theme name from the provided ``settings`` dictionary under the 
+    key ``'theme'`` and searches for the corresponding lowercase ``.qss`` file 
+    in the :py:attr:`.STYLES_DIR`.
 
-    Returns:
-        True if the theme was applied successfully, False otherwise.
+    :param app_window: The :py:class:`~PyQt6.QtWidgets.QMainWindow` or 
+                       :py:class:`~PyQt6.QtWidgets.QWidget` instance to apply the stylesheet to.
+    :type app_window: :py:class:`~app.utils.theme_utils.HasStyleSheet`
+    :param settings: The application settings dictionary containing the ``'theme'`` key.
+    :type settings: dict[str, Any]
+
+    :returns: True if the theme was applied successfully (file found and read), False otherwise.
+    :rtype: bool
     """
     theme_name = settings.get("theme", "Light") # Default to 'Light' if key is missing
     theme_file = os.path.join('styles', f"{theme_name.lower()}.qss")

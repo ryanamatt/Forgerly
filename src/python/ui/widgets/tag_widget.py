@@ -17,8 +17,10 @@ class TagLabel(QWidget):
     It emits a signal when the remove button is clicked.
     """
     
-    # Signal emitted when the remove button is clicked, carrying the tag name
     tag_removed = pyqtSignal(str)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (str): Emitted when the tag is removed carrying the tag's name.
+    """
 
     def __init__(self, tag_name: str, parent=None) -> None:
         """
@@ -88,8 +90,11 @@ class TagManagerWidget(QWidget):
     the current tags using a :py:class:`.QFlowLayout`, allowing them to wrap dynamically. 
     Tags are stored as a unique set (case-insensitive, converted to lowercase).
     """
-    # Signal emitted when the list of tags has been modified
+
     tags_changed = pyqtSignal(list)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when the list of tags has been modified.
+    """
 
     def __init__(self, initial_tags: list[str] = None, parent=None) -> None:
         """

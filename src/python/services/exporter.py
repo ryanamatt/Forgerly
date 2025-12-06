@@ -2,9 +2,7 @@
 
 from PyQt6.QtWidgets import QWidget
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from app_coordinator import AppCoordinator
+from .app_coordinator import AppCoordinator
 
 class Exporter(ABC):
     """

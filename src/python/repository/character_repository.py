@@ -1,9 +1,7 @@
 # src/python/repository/character_repository
 
 from ..utils.types import DBRowList, CharacterDetailsDict, CharacterBasicDict
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from ..db_connector import DBConnector
+from ..db_connector import DBConnector
 
 class CharacterRepository:
     """
@@ -59,7 +57,7 @@ class CharacterRepository:
     
     def get_character_details(self, char_id: int) -> CharacterDetailsDict:
         """
-        Retrieves the full details (Name, Description, Status) for a specific ID.
+        Retrieves the full details of a character (Name, Description, Status) for a specific ID.
 
         :param char_id: The character id to get details for.
         :type char_id: int

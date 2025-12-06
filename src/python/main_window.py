@@ -35,12 +35,24 @@ from .utils.constants import ViewType, ExportType
 
 class MainWindow(QMainWindow):
     """
-    The Main Window for The Narrative Forge application.
-    Sets up the core layout: Outline Manager on the left, Editor on the right.
-    Uses a stack-like approach for view management and delegates business logic 
-    to the AppCoordinator.
+    The main window of the Narrative Forge application.
+    
+    It is responsible for:
+    
+    1. **Initialization:** Setting up the database, settings, and central application coordinator.
+    2. **Layout Management:** Arranging the outline panel, editor panel, and menu bar.
+    3. **View Switching:** Managing which content editor (Chapter, Lore, Character, Relationship) 
+       is currently visible via a :py:class:`~PyQt6.QtWidgets.QStackedWidget`.
+    4. **Event Handling:** Intercepting window close events to check for unsaved changes.
+    5. **Settings/Theming:** Loading and saving window geometry and applying the current theme.
     """
     def __init__(self) -> None:
+        """
+        Initializes the main window, connecting to the database and setting up 
+        all sub-components and services.
+        
+        :rtype: None
+        """
         super().__init__()
 
         # need to know if macOS for differences
@@ -85,8 +97,6 @@ class MainWindow(QMainWindow):
         # State tracking now primarily managed by Coordinator, but keep a pointer to the ID for convenience
         self.current_view = ViewType.CHAPTER_EDITOR
 
-        self._create_view_shortcut()
-
         self._setup_ui()
         
         # NEW: Link editors to the coordinator using a dictionary map for scalability
@@ -117,7 +127,17 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        """Handles closing the database connection when the application exits."""
+        """
+        Overrides the standard window close event.
+
+        Checks with the :py:class:`.AppCoordinator` if there are unsaved changes. 
+        If so, it prompts the user to save, discard, or cancel the exit.
+        
+        :param event: The QCloseEvent object.
+        :type event: :py:class:`~PyQt6.QtGui.QCloseEvent`
+        
+        :rtype: None
+        """
 
         if not self.coordinator.check_and_save_dirty(parent=self):
             event.ignore()
@@ -135,13 +155,29 @@ class MainWindow(QMainWindow):
             self.db_connector.close()
         super().closeEvent(event)
 
-    def resizeEvent(self, event: QResizeEvent):
-        """Called when the window is resized. Saves new dimensions."""
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        """
+        Overrides the standard window resize event to automatically save the 
+        new window dimensions to settings.
+        
+        :param event: The QResizeEvent object.
+        :type event: :py:class:`~PyQt6.QtGui.QResizeEvent`
+        
+        :rtype: None
+        """
         super().resizeEvent(event)
         self._save_geometry_to_settings()
 
-    def moveEvent(self, event: QMoveEvent):
-        """Called when the window is moved. Saves new position."""
+    def moveEvent(self, event: QMoveEvent) -> None:
+        """
+        Overrides the standard window move event to automatically save the 
+        new window position to settings.
+        
+        :param event: The QMoveEvent object.
+        :type event: :py:class:`~PyQt6.QtGui.QMoveEvent`
+        
+        :rtype: None
+        """
         super().moveEvent(event)
         self._save_geometry_to_settings()
 
@@ -149,20 +185,15 @@ class MainWindow(QMainWindow):
     # View Management
     # -------------------------------------------------------------------------
 
-    def _create_view_shortcut(self) -> None:
-        """Creates a shortcut to toggle between Chapter and Lore view (Ctrl+Tab)."""
-        toggle_action = QAction("Toggle View", self)
-        toggle_action.setShortcut("Ctrl+Tab")
-        toggle_action.triggered.connect(self._toggle_view)
-        self.addAction(toggle_action)
-
-    def _toggle_view(self) -> None:
-        """Toggles between the Chapter and Lore view."""
-        new_view = ViewType.LORE_EDITOR if self.current_view == ViewType.CHAPTER_EDITOR else ViewType.CHAPTER_EDITOR
-        self._switch_to_view(new_view)
-
     def _switch_to_view(self, view: ViewType) -> None:
-        """Switches between the Chapter and Lore View"""
+        """
+        Switches between all the different views.
+        
+        :param view: The view that will be changed to.
+        :type view: :py:class:`~app.utils.types.ViewType`
+
+        :rtype: None
+        """
         if not self.coordinator.check_and_save_dirty(parent=self):
             return
         
@@ -206,7 +237,12 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
 
     def _setup_ui(self) -> None:
-        """Sets up the main application layout and components."""
+        """
+        Creates the main window structure, including the menu bar, the central 
+        splitter, and the stacked widgets for outlines and editors.
+        
+        :rtype: None
+        """
         
         # 1. Instantiate Repositories (Outline Managers still need a repo to handle CUD)
         # Note: Outline Managers now only handle C/U/D, the Coordinator handles R/Update.
@@ -269,7 +305,11 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
 
     def _connect_components(self) -> None:
-        """Connects signals from custom widgets to slots in the main window and coordinator."""
+        """
+        Connects signals from custom widgets to slots in the main window and coordinator.
+        
+        :rtype: None
+        """
         
         # --- Outline Managers (UI signal OUT -> Coordinator slot IN) ---
         # The outline manager now signals the coordinator to load data
@@ -311,12 +351,18 @@ class MainWindow(QMainWindow):
     def _check_save_before_change(self) -> bool:
         """
         Prompts the user to save if the active editor is dirty via the Coordinator.
-        Returns True if safe to proceed (saved or discarded), False otherwise.
+
+        :returns: Returns True if safe to proceed (saved or discarded), False otherwise.
+        :rtype: bool
         """
         return self.coordinator.check_and_save_dirty(parent=self)
 
-    def _save_current_item_wrapper(self):
-        """Wrapper to call coordinator's save method and update status bar."""
+    def _save_current_item_wrapper(self) -> None:
+        """
+        Wrapper to call coordinator's save method and update status bar.
+        
+        :rtype: None
+        """
         item_id = self.coordinator.current_item_id
         view = self.coordinator.current_view
         
@@ -325,8 +371,19 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"{item_type} ID {item_id} saved successfully.", 3000)
         # Note: Error messages are handled by the Coordinator via QMessageBox.
 
-    def _handle_chapter_loaded(self, chapter_id: int, content: str, tag_names: list) -> None:
-        """Receives loaded chapter data from coordinator and updates the editor/status."""
+    def _handle_chapter_loaded(self, chapter_id: int, content: str, tag_names: list[str]) -> None:
+        """
+        Receives loaded chapter data from coordinator and updates the editor/status.
+        
+        :param chapter_id: The ID of the chapter.
+        :type chapter: int
+        :param content: The content of the chapter.
+        :type content: str
+        :param tag_names: A list of all the tag names for the chapter.
+        :type tag_names: list[str]
+
+        :rtype: None
+        """
 
         if "Error Loading Chapter" in content:
             self.chapter_editor_panel.set_html_content(content)
@@ -339,8 +396,23 @@ class MainWindow(QMainWindow):
             self.chapter_editor_panel.mark_saved() # Reset dirtiness after load
             self.statusBar().showMessage(f"Chapter ID {chapter_id} selected and loaded.")
 
-    def _handle_lore_loaded(self, lore_id: int, title: str, category: str, content: str, tag_names: list) -> None:
-        """Receives loaded lore data from coordinator and updates the editor/status."""
+    def _handle_lore_loaded(self, lore_id: int, title: str, category: str, content: str, tag_names: list[str]) -> None:
+        """
+        Receives loaded lore data from coordinator and updates the editor/status.
+        
+        :param lore_id: The ID of the lore entry.
+        :type lore_id: int
+        :param title: The title of the lore entry.
+        :type title: str
+        :param category: The category of the lore entry.
+        :type category: str
+        :param content: The content of the lore entry.
+        :type content: str
+        :param tag_names: A list of all the tag names that the lore entry has.
+        :type tag_names: list[str]
+
+        :rtype: None
+        """
         
         if not title: # Check if loading failed
             self.lore_editor_panel.set_enabled(False)
@@ -354,7 +426,16 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Lore Entry ID {lore_id} selected and loaded.")
 
     def _update_lore_outline_title(self, lore_id: int, new_title: str) -> None:
-        """Updates the title in the LoreOutlineManager when the editor title changes (relayed by coordinator)."""
+        """
+        Updates the title in the LoreOutlineManager when the editor title changes (relayed by coordinator).
+        
+        :param lore_id: The ID of the lore entry.
+        :type lore_id: int
+        :param new_title: The new title of the lore entry.
+        :type new_title: str
+
+        :rtype: None
+        """
         if self.current_view == ViewType.LORE_EDITOR:
             # Note: Outline Manager must have a helper method to find the item by ID
             item = self.lore_outline_manager.find_lore_item_by_id(lore_id)
@@ -365,7 +446,20 @@ class MainWindow(QMainWindow):
                 self.lore_outline_manager.blockSignals(False)
 
     def _handle_character_loaded(self, char_id: int, name: str, description: str, status: str) -> None:
-        """Receives loaded character data from coordinator and updates the editor/status."""
+        """
+        Receives loaded character data from coordinator and updates the editor/status.
+        
+        :param char_id: The Character ID to load.
+        :type char_id: int
+        :param name: The name of the character.
+        :type name: str
+        :param description: The description of the character.
+        :type descriptionL str
+        :param status: The status of the character.
+        :type status: str
+
+        :rtype: None
+        """
 
         if not name:
             self.character_editor_panel.set_enabled(False)
@@ -378,7 +472,16 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Character ID {char_id} selected and loaded.")
 
     def _update_character_outline_name(self, char_id: int, new_name: str) -> None:
-        """Updates the name in the CharacterOutlineManager when the editor name changes (relayed by coordinator)."""
+        """
+        Updates the name in the CharacterOutlineManager when the editor name changes (relayed by coordinator).
+        
+        :param char_id: The ID of the Character.
+        :type char_id: int
+        :param new_name: The new name to set the Character to.
+        :type new_name: str
+
+        :rtype: None
+        """
         if self.current_view == ViewType.CHARACTER_EDITOR:
             item = self.character_outline_manager.find_character_item_by_id(char_id)
             if item:
@@ -393,8 +496,12 @@ class MainWindow(QMainWindow):
 
     def _export(self) -> None:
         """
-        Handles the export action by opening the ExporterDialog to let the user 
-        choose what to export and then delegating the process.
+        Opens the :py:class:`~app.ui.dialogs.ExporterDialog`. 
+        
+        If accepted, it delegates the export logic to the appropriate exporter 
+        class (:py:class:`~app.services.story_exporter.StoryExporter`, etc.).
+        
+        :rtype: None
         """
         # 1. Check for unsaved changes before exporting
         if not self.coordinator.check_and_save_dirty(parent=self):
@@ -413,9 +520,12 @@ class MainWindow(QMainWindow):
         """
         Delegates the export task based on the type selected in the dialog.
         
-        Args:
-            export_type (str): The type of content to export (e.g., 'Story (All Chapters)').
-            selected_ids (list): A list of integer IDs for selected items (empty for full story).
+        :param export_type: The type of content to export (e.g., 'Story (All Chapters)').
+        :type export_type: str
+        :param selected_ids: A list of integer IDs for selected items (empty for full story).
+        :type selected_ids: int
+
+        :rtype: int
         """
         success = False
         
@@ -450,7 +560,13 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"{export_type} exported successfully.", 5000)
 
     def _open_settings_dialog(self) -> None:
-        """Handles opening the settings dialog and applying changes."""
+        """
+        Opens the :py:class:`~app.ui.dialogs.SettingsDialog`. 
+        
+        If accepted, it saves the new settings and applies the new theme and geometry.
+        
+        :rtype: None
+        """
 
         dialog = SettingsDialog(
             current_settings=self.current_settings,
@@ -471,8 +587,10 @@ class MainWindow(QMainWindow):
         """
         Applies the loaded or newly changed settings to the application window
 
-        Args:
-            A dictionary of the new settings e.g {window_size: 800x600}
+        :param new_settings: A dictionary of the new settings e.g {window_size: 800x600}
+        :type new_settings: dict
+
+        :rtype: None
         """
         old_wpm = self.current_settings.get('words_per_minute', 250)
         new_wpm = new_settings.get('words_per_minute', 250)
@@ -504,7 +622,13 @@ class MainWindow(QMainWindow):
     def _save_geometry_to_settings(self):
         """
         Helper method to save the current window dimensions and position
-        to the settings manager.
+        to the internal settings dictionary.
+        
+        Note: This only updates the internal state; the settings are saved 
+        to disk upon application close or when explicitly requested via the 
+        Settings Dialog.
+        
+        :rtype: None
         """
         # Get the geometry of the non-frame window (content area)
         rect = self.geometry()

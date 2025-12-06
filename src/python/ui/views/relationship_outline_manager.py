@@ -6,13 +6,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6.QtGui import QColor
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from ...repository.relationship_repository import RelationshipRepository
-
-# Define the role for storing the custom data (Relationship Type ID)
-RELATIONSHIP_TYPE_ID_ROLE = Qt.ItemDataRole.UserRole + 1
+from ...repository.relationship_repository import RelationshipRepository
 
 class RelationshipOutlineManager(QWidget):
     """
@@ -23,6 +18,8 @@ class RelationshipOutlineManager(QWidget):
     This manager allows users to define/edit the fundamental properties of a 
     relationship type (name, color, line style, directionality).
     """
+    RELATIONSHIP_TYPE_ID_ROLE = Qt.ItemDataRole.UserRole + 1
+    """The :py:obj:`int` role used to store the database ID of a Relationship_Type on an item."""
 
     type_selected = pyqtSignal(int)
     """
@@ -104,7 +101,7 @@ class RelationshipOutlineManager(QWidget):
                 
                 item = QListWidgetItem(name)
                 # Store the Type ID and Color for later use
-                item.setData(RELATIONSHIP_TYPE_ID_ROLE, type_id)
+                item.setData(self.RELATIONSHIP_TYPE_ID_ROLE, type_id)
                 item.setForeground(QColor(color))
                 
                 self.list_widget.addItem(item)
@@ -122,7 +119,7 @@ class RelationshipOutlineManager(QWidget):
         
         :rtype: None
         """
-        type_id = item.data(RELATIONSHIP_TYPE_ID_ROLE)
+        type_id = item.data(self.RELATIONSHIP_TYPE_ID_ROLE)
         if type_id is not None:
             self.type_selected.emit(type_id)
 
@@ -173,7 +170,7 @@ class RelationshipOutlineManager(QWidget):
             QMessageBox.critical(self, "Error", "RelationshipRepository is missing.")
             return
 
-        type_id = item.data(RELATIONSHIP_TYPE_ID_ROLE)
+        type_id = item.data(self.RELATIONSHIP_TYPE_ID_ROLE)
         current_name = item.text()
         
         # 1. Get all details for editing (Requires new repo method)
@@ -302,7 +299,7 @@ class RelationshipOutlineManager(QWidget):
             QMessageBox.critical(self, "Error", "RelationshipRepository is missing.")
             return
             
-        type_id = item.data(RELATIONSHIP_TYPE_ID_ROLE)
+        type_id = item.data(self.RELATIONSHIP_TYPE_ID_ROLE)
         name = item.text()
         
         # Confirmation Dialog

@@ -9,9 +9,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QPointF, pyqtSignal, QRectF, QObject
 from PyQt6.QtGui import QColor, QPen, QBrush, QFont
 import math
-from typing import Any, TYPE_CHECKING
-if TYPE_CHECKING:
-    from ...services.app_coordinator import AppCoordinator
+from typing import Any
+from ...services.app_coordinator import AppCoordinator
 
 class CharacterNodeSignals(QObject):
     """
