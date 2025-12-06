@@ -34,17 +34,17 @@ Follow these steps to set up and run the application:
 1.**Clone the Repository** (if not already done).
 2.**Install Dependencies:**
 
-    ```
+    
     pip install -r requirements.txt
-    ```
+    
 
 ### Execution
 
 Run the application directly from the main module:
 
-    ```
+    
     python -m src.python.main
-    ```
+    
 
 
 ## Database
@@ -59,16 +59,16 @@ To view documentation of code.
 
 ### Build Documentation
 
-    Will build documentation using Sphinx.
+Will build documentation using Sphinx.
 
-    ```
+    
     python tools/build_docs.py
-    ```
+    
 
 ### View Documentation
 
     Will open documentation in web browser.
 
-    ```
+    
     python tools/view_docs.py
-    ```
+    
