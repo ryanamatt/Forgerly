@@ -67,7 +67,7 @@ Will build documentation using Sphinx.
 
 ### View Documentation
 
-    Will open documentation in web browser.
+Will open documentation in web browser.
 
     
     python tools/view_docs.py
