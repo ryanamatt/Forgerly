@@ -69,6 +69,7 @@ class CharacterOutlineManager(QWidget):
         self.tree_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree_widget.customContextMenuRequested.connect(self._show_context_menu)
         self.tree_widget.itemSelectionChanged.connect(self._handle_selection_change)
+        self.tree_widget.itemChanged.connect(self._handle_item_renamed)
 
         self.load_outline()
 
@@ -235,7 +236,7 @@ class CharacterOutlineManager(QWidget):
 
         :rtype: None
         """
-        item = self.itemAt(pos)
+        item = self.tree_widget.itemAt(pos)
 
         menu = QMenu(self)
 

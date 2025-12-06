@@ -69,6 +69,7 @@ class LoreOutlineManager(QWidget):
         self.tree_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree_widget.customContextMenuRequested.connect(self._show_context_menu)
         self.tree_widget.itemSelectionChanged.connect(self._handle_selection_change)
+        self.tree_widget.itemChanged.connect(self._handle_item_renamed)
 
         # Load the initial structure
         self.load_outline()
@@ -207,29 +208,34 @@ class LoreOutlineManager(QWidget):
         """
         lore_id = item.data(0, self.LORE_ID_ROLE)
         new_title = item.text(0).strip()
-
+        
+        # Handle missing repository or root item
         if not self.lore_repo:
             QMessageBox.critical(self, "Internal Error", "LoreRepository is missing.")
             return
-        
-        # Prevent actions if this is the root item or if the title is empty
-        if lore_id is not None or new_title:
-            if not new_title:
-                # If the title was cleared, revert the name (requires re-loading or smarter logic)
-                QMessageBox.warning(self, "Invalid Title", "Lore Entry title cannot be empty. Reverting.")
-                self.load_outline() 
+
+        # 1. Prevent action if this is the root item (ID is None)
+        if lore_id is None:
+            item.setText(0, "World Lore Base") # Revert name
             return
         
-        # Check if title actually changed
+        # 2. Handle empty title
+        if not new_title:
+            QMessageBox.warning(self, "Invalid Title", "Lore Entry title cannot be empty. Reverting.")
+            self.load_outline() 
+            return # Exit after handling invalid title
+        
+        # 3. Check if title actually changed
         current_db_title = self.lore_repo.get_lore_entry_title(lore_id)
         if current_db_title and current_db_title == new_title:
             return
         
-        success = self.lore_repo.update_lore_entry(lore_id, new_title)
+        # 4. Perform the database update
+        # Assuming your update method expects `id` and named parameters for updates
+        success = self.lore_repo.update_lore_entry_title(lore_id, new_title)
 
         if not success:
             QMessageBox.critical(self, "Database Error", "Failed to update Lore Entry title in the database.")
-            # Revert the item name visually if the DB update failed
             self.load_outline()
 
     def _show_context_menu(self, pos: QPoint) -> None:

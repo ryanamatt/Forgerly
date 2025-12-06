@@ -112,6 +112,22 @@ class LoreRepository:
         params = (title, content, category, lore_id)
         return self.db._execute_commit(query, params)
     
+    def update_lore_entry_title(self, lore_id: int, new_title: str) -> bool:
+        """
+        Updates only the Title of a Lore Entry in the database.
+        
+        :param lore_id: The ID of the lore entry to update.
+        :type lore_id: int
+        :param new_title: The new title for the Lore Entry.
+        :type new_title: str
+
+        :returns: True if successfully saved to database, otherwise False.
+        :rtype: bool
+        """
+        query = "UPDATE Lore_Entries SET Title = ? WHERE ID = ?;"
+        params = (new_title, lore_id)
+        return self.db._execute_commit(query, params)
+    
     def delete_lore_entry(self, lore_id: int) -> bool:
         """
         Deletes a lore entry.
