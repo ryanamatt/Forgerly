@@ -23,7 +23,34 @@ The application provides specialized views and editors to manage all aspects of 
 * **Data Export:** Export your story data into a shareable format (e.g., Markdown or text).
 * **Theming:** Supports custom themes, including **Dark**, **Light**, and **Green** styles.
 
----
+## 💾 Project Structure
+
+Narrative Forge uses a central projects folder to manage all your creative work. Each project resides in its own sub-directory and contains the following structure:
+
+    [ProjectName]/
+    ├── [ProjectName].db               # SQLite Database for all project data
+    ├── config/
+    |   └── Project_Settings.nfp       # Project-specific configuration (JSON file with fancy extension)
+    ├── assets/                        # Directory for project-related assets (e.g., images)
+    └── exports/   
+
+## 🗄️Database
+
+This application uses an SQLite Database to manager a project.
+
+See Schema in docs/EntityRelationshipDiagram or Click [Datbase Link](https://dbdiagram.io/d/NarrativeForge-692603ec7d9416ddff179d8c)
+
+## Documentation
+
+To view documentation of code.
+
+### Build Documentation
+
+Will build documentation using Sphinx.
+
+```Bash  
+python tools/build_docs.py
+```
 
 ## 🚀 Run
 
@@ -44,24 +71,6 @@ Run the application directly from the main module:
 
 ```Bash
 python -m src.python.main
-```
-
-## Database
-
-This application uses an SQLite Database to manager a project.
-
-See Schema in docs/EntityRelationshipDiagram or Click [Datbase Link](https://dbdiagram.io/d/NarrativeForge-692603ec7d9416ddff179d8c)
-
-## Documentation
-
-To view documentation of code.
-
-### Build Documentation
-
-Will build documentation using Sphinx.
-
-```Bash  
-python tools/build_docs.py
 ```
 
 ### View Documentation
