@@ -52,6 +52,36 @@ class ChapterRepository:
         ORDER BY Sort_Order ASC;
         """
         return self.db._execute_query(query, fetch_all=True)
+    
+    def get_chapter_content(self, chapter_id: int) -> str | None:
+        """
+        Retrieves the rich text content for a specific chapter ID
+        
+        Gathers only the text content of a chapter.
+
+        :param chapter_id: The chapted ID to get text content from.
+        :type chapter_id: int
+
+        :returns: Returns a str of the text content if successful, otherwise None
+        :rtype: str or None
+        
+        """
+        query = "SELECT Text_Content FROM Chapters WHERE ID = ?;"
+        result = self.db._execute_query(query, (chapter_id,), fetch_one=True)
+        return result['Text_Content'] if result else None
+    
+    def get_content_by_title(self, title: str) -> dict | None:
+        """
+        Retrieves full content for a chapter based on its title.
+        
+        :param title: The title of the chapter to get content for.
+        :type title: str
+
+        :returns: A dictionary of the chapter.
+        :rtype: dict or None
+        """ 
+        query = "SELECT ID, Title, Text_Content FROM CHAPTERS WHERE Title = ? COLLATE NOCASE;"
+        return self.db._execute_query(query, (title,), fetch_one=True)
 
     def create_chapter(self, title: str, sort_order: int, precursor_id: int | None = None) -> int | None:
         """
@@ -75,23 +105,6 @@ class ChapterRepository:
             query, (title, "<p></p>", sort_order, precursor_id), fetch_id=True
         )
         return chapter_id
-
-    def get_chapter_content(self, chapter_id: int) -> str | None:
-        """
-        Retrieves the rich text content for a specific chapter ID
-        
-        Gathers only the text content of a chapter.
-
-        :param chapter_id: The chapted ID to get text content from.
-        :type chapter_id: int
-
-        :returns: Returns a str of the text content if successful, otherwise None
-        :rtype: str or None
-        
-        """
-        query = "SELECT Text_Content FROM Chapters WHERE ID = ?;"
-        result = self.db._execute_query(query, (chapter_id,), fetch_one=True)
-        return result['Text_Content'] if result else None
     
     def update_chapter_content(self, chapter_id: int, content: str) -> bool:
         """

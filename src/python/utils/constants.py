@@ -15,6 +15,19 @@ class ViewType:
     RELATIONSHIP_GRAPH = 4
     """The graphical view for character relationships."""
 
+class EntityType:
+    """
+    Defines string constants for the data entities that can be looked up or linked.
+    """
+    CHAPTER = "Chapter"
+    """The Chapter Entity"""
+    LORE = "Lore Entry"
+    """The Lore Entry Entity"""
+    CHARACTER = "Character"
+    """The Character Entity"""
+    RELATIONSHIP = "Relationship"
+    """The Relationship Entity"""
+
 class ExportType:
     """
     Defines string constants for the categories of content that can be exported 

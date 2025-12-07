@@ -10,7 +10,7 @@ from ..repository.tag_repository import TagRepository
 from ..repository.character_repository import CharacterRepository
 from ..repository.relationship_repository import RelationshipRepository
 
-from ..utils.constants import ViewType
+from ..utils.constants import ViewType, EntityType
 
 from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
@@ -672,3 +672,36 @@ class AppCoordinator(QObject):
         :rtype: list[:py:obj:`Any`]
         """
         return self.lore_repo.get_lore_entries_for_export(lore_ids)
+    
+    # -----------------------------------
+    # Entity Lookup Methods
+    #------------------------------------
+
+    def lookup_entity_content_by_name(self, name: str) -> tuple[str, str, str] | None:
+        """
+        Sequentially looks up an entity by name/title across all relevant repositories.
+        
+        The lookup order (Character -> Lore -> Chapter) is strategic: characters and 
+        lore entries are usually more unique and concise than chapter titles.
+
+        :param name: The highlighted text string (e.g., "Sir Kaelan").
+        :type name: str
+
+        :returns: A tuple (EntityType, Title, Content) or None if not found.
+        :rtype: tuple[str, str, str]
+        """
+        name = name.strip()
+
+        # Start Searching For Characters
+        if hasattr(self, 'character_repo'):
+            data = self.character_repo.get_content_by_name(name=name)
+            if data: 
+                return (EntityType.CHARACTER, data['Name'], data.get('Description', ''))
+            
+        # Search Through Lore Entries
+        if hasattr(self, 'lore_repo'):
+            data = self.lore_repo.get_content_by_title(title=name)
+            if data: 
+                return (EntityType.CHARACTER, data['Title'], data.get('Content', ''))
+            
+        return None # Found Nothing

@@ -4,10 +4,10 @@ from PyQt6.QtWidgets import (
     QToolBar, QStyle, QFontComboBox, QComboBox, QColorDialog
 )
 from PyQt6.QtGui import (
-    QAction, QTextCharFormat, QFont, QTextCursor, 
+    QAction, QTextCharFormat, QFont, QTextCursor, QKeyEvent,
     QTextListFormat, QTextBlockFormat, QIcon, QBrush,
 )
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt, QSize, pyqtSignal
 
 from .basic_text_editor import BasicTextEditor
 
@@ -27,6 +27,12 @@ class RichTextEditor(BasicTextEditor):
     :vartype toolbar: :py:class:`PyQt6.QtWidgets.QToolBar`
     :ivar editor: The core text editor component inherited from BasicTextEditor.
     :vartype editor: :py:class:`PyQt6.QtWidgets.QTextEdit`
+    """
+
+    popup_lookup_requested = pyqtSignal(str)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (str): Emitted to when the user wants to lookup
+        something in the editor. Contains the Name of whatever it is they want to lookup.
     """
 
     def __init__(self, parent=None) -> None:
@@ -502,3 +508,30 @@ class RichTextEditor(BasicTextEditor):
         self.bold_action.setChecked(current_format.fontWeight() == QFont.Weight.Bold)
         self.italic_action.setChecked(current_format.fontItalic())
         self.underline_action.setChecked(current_format.fontUnderline())
+
+
+    # ---------------------------------
+    # Looukp Related Functions
+    # ---------------------------------
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        """
+        Overrides the key press event to detect the inter-entry lookup shortcut.
+        
+        :param event: The key event object.
+        :type event: :py:class:`PyQt6.QtGui.QKeyEvent`
+        :rtype: None
+        """
+        is_ctrl_shift = event.modifiers() == (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier)
+        is_L_key = event.key() == Qt.Key.Key_L
+
+        if is_ctrl_shift and is_L_key:
+            selected_text = self.get_selected_text().strip()
+
+            if selected_text:
+                self.popup_lookup_requested.emit(selected_text)
+
+                event.accept()
+                return
+            
+        super().keyPressEvent(event)
