@@ -1,3 +1,5 @@
+<# tree.ps1 #>
+# Prints the Tree Structure of the Dev File Tree
 $ExcludeList = "venv_dev", "venv_runtime", "__pycache__", ".pytest_cache", "documentation"
 $DepthValue = 5
 

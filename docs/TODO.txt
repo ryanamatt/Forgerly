@@ -5,15 +5,16 @@
 5. Inter-Entry Linking (Text in Chapter that exsits as Lore_Entries, Characters, etc. can be click
 on and open that charactacters editor and/or display a small window of info about that item.) -> (Look at using C/C++ for speed)
 6. Implement More Robust Error Handling/Logging (DEBUG MODE), Dedicated Error Handler
+7. Custom Icons
 
-7. Implement Locations Somehow
-8. Project Wide Statistics
-9. More Customization Options
-10. Add More Editing Boxes for CharacterEditor
-11. Add better exporting to more types (DOCX, rtf, etc.), and page size 
-12. Version Control (Maybe Use C/C++ for speed)
-13. Easy Switching between Multiple Projects (Recent Projects, etc.)
-14. Fix/Update Relationships Graph
+8. Implement Locations Somehow
+9. Project Wide Statistics
+10. More Customization Options
+11. Add More Editing Boxes for CharacterEditor
+12. Add better exporting to more types (DOCX, rtf, etc.), and page size 
+13. Version Control (Maybe Use C/C++ for speed)
+14. Easy Switching between Multiple Projects (Recent Projects, etc.)
+15. Fix/Update Relationships Graph
 
 Neat Things to Add in Future but not needed for release
 Add SpellChecker
