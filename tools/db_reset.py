@@ -1,19 +1,16 @@
 # tools/db_reset.py
-#
-# Utility script to delete the existing database file and recreate a fresh
-# database structure based on the schema_v1.sql file.
 
 import os
 import sys
 import sqlite3
+import argparse
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = PROJECT_ROOT / 'data'
-DB_PATH = DATA_DIR / 'narrative_forge.db'
+# DATA_DIR and DB_PATH constants are removed
 SCHEMA_PATH = PROJECT_ROOT / 'sql' / 'schema_v1.sql'
 
-def run_db_reset() -> bool:
+def run_db_reset(db_path: Path) -> bool:
     """
     Performs the full database reset operation.
     1. Deletes the existing database file.
@@ -25,16 +22,16 @@ def run_db_reset() -> bool:
     print("--- Narrative Forge Database Reset Utility ---")
     
     # --- Step 1: Delete existing database file ---
-    if DB_PATH.exists():
+    if db_path.exists():
         try:
-            os.remove(DB_PATH)
-            print(f"✅ Existing database deleted: {DB_PATH.name}")
+            os.remove(db_path)
+            print(f"✅ Existing database deleted: {db_path.name} in {db_path.parent.name}")
         except OSError as e:
             print(f"❌ ERROR: Could not delete database file. Is the application running?")
             print(f"         Error details: {e}")
             return False
     else:
-        print(f"ℹ️ Database file not found at {DB_PATH.name}. Proceeding to creation.")
+        print(f"ℹ️ Database file not found at {db_path}. Proceeding to creation.")
 
     # --- Step 2: Read SQL Schema ---
     if not SCHEMA_PATH.exists():
@@ -52,17 +49,14 @@ def run_db_reset() -> bool:
     # --- Step 3: Connect and Execute Schema ---
     conn = None
     try:
-        # Ensure the data directory exists before connecting
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
-        
         # Connect: This creates the file if it doesn't exist
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(db_path)
         
         # Execute the entire schema script
         conn.executescript(schema_sql)
         conn.commit()
         
-        print(f"🎉 SUCCESS: New database created and initialized at {DB_PATH.name}")
+        print(f"🎉 SUCCESS: New database created and initialized at {db_path.name}")
         return True
         
     except sqlite3.Error as e:
@@ -77,8 +71,29 @@ def run_db_reset() -> bool:
 if __name__ == '__main__':
     # Add project root to sys path so modules can be imported if needed
     sys.path.append(str(PROJECT_ROOT / 'src' / 'python'))
+
+    # --- Argument Parsing ---
+    parser = argparse.ArgumentParser(
+        description="Delete and recreate a project's database.",
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser.add_argument(
+        'project_path',
+        type=str,
+        help="The full path to the root project folder (e.g., /path/to/projects/MyProject)."
+    )
+    args = parser.parse_args()
+
+    # Determine database path
+    project_path = Path(args.project_path)
+    if not project_path.is_dir():
+        print(f"❌ ERROR: Project path not found or is not a directory: {project_path}")
+        sys.exit(1)
+
+    project_name = project_path.name
+    dynamic_db_path = project_path / f"{project_name}.db"
     
-    if run_db_reset():
+    if run_db_reset(dynamic_db_path):
         print("\nDatabase reset complete. Ready for fresh testing.")
     else:
         print("\nDatabase reset FAILED. Check console errors.")
