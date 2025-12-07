@@ -39,6 +39,20 @@ class LoreRepository:
         ORDER BY Title ASC;
         """
         return self.db._execute_query(query, fetch_all=True)
+    
+    def get_content_by_title(self, title: str) -> dict | None:
+        """
+        Retrieves full content for a Lore Entry based on its title.
+        
+        :param title: The title of the Lore Entry  to get content for.
+        :type title: str
+
+        :returns: A dictionary of the Lore Entry .
+        :rtype dict or None
+        """
+        query = "SELECT ID, Title, Content FROM Lore_Entries WHERE Title = ? COLLATE NOCASE;"
+        return self.db._execute_query(query, (title,), fetch_one=True)
+
 
     def create_lore_entry(self, title: str, content: str = "", category: str = "") -> int | None:
         """

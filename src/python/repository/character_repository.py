@@ -36,6 +36,50 @@ class CharacterRepository:
         query = "SELECT ID, Name FROM Characters ORDER BY Name ASC;"
         return self.db._execute_query(query, fetch_all=True)
     
+    def get_character_details(self, char_id: int) -> CharacterDetailsDict:
+        """
+        Retrieves the full details of a character (Name, Description, Status) for a specific ID.
+
+        :param char_id: The character id to get details for.
+        :type char_id: int
+
+        :returns a dictionary of the Character's details.
+        :rtype: :py:class:`~app.utils.types.CharacterDetailsDict`
+        """
+        query = """
+        SELECT ID, Name, Description, Status
+        FROM Characters
+        WHERE ID = ?;
+        """
+        return self.db._execute_query(query, (char_id,), fetch_one=True)
+    
+    def get_character_name(self, char_id) -> str | None:
+        """
+        Retrieves the character title by Character ID from the database.
+        
+        :param char_id; The ID of the character you want the title from.
+        :type char_id: int
+
+        :returns: The character title if found, otherwise False
+        :rtype: str or None
+        """
+        query = "SELECT Name FROM Characters WHERE ID = ?"
+        result = self.db._execute_query(query, (char_id,), fetch_one=True)
+        return result['Name'] if result else None
+    
+    def get_content_by_name(self, name: str) -> dict | None:
+        """
+        Retrieves full description for a character based on its title.
+        
+        :param title: The title of the character to get description for.
+        :type title: str
+
+        :returns: A dictionary of the character.
+        :rtype dict or None
+        """
+        query = "SELECT ID, Name, Description FROM Characters WHERE Name = ? COLLATE NOCASE;"
+        return self.db._execute_query(query, (name,), fetch_one=True)
+    
     def create_character(self, name: str, description: str = "", status: str = "") -> int | None:
         """
         Inserts a new chapter record into the database with a default empty content field.
@@ -54,23 +98,6 @@ class CharacterRepository:
         VALUES (?, ?, ?);
         """
         return self.db._execute_commit(query, (name, description, status), fetch_id=True)
-    
-    def get_character_details(self, char_id: int) -> CharacterDetailsDict:
-        """
-        Retrieves the full details of a character (Name, Description, Status) for a specific ID.
-
-        :param char_id: The character id to get details for.
-        :type char_id: int
-
-        :returns a dictionary of the Character's details.
-        :rtype: :py:class:`~app.utils.types.CharacterDetailsDict`
-        """
-        query = """
-        SELECT ID, Name, Description, Status
-        FROM Characters
-        WHERE ID = ?;
-        """
-        return self.db._execute_query(query, (char_id,), fetch_one=True)
     
     def update_character(self, char_id: int, name: str, description: str = "", status: str = "") -> bool:
         """
@@ -106,20 +133,6 @@ class CharacterRepository:
         """
         query = "DELETE FROM Characters WHERE ID = ?;"
         return self.db._execute_commit(query, (char_id,))
-    
-    def get_character_name(self, char_id) -> str | None:
-        """
-        Retrieves the character title by Character ID from the database.
-        
-        :param char_id; The ID of the character you want the title from.
-        :type char_id: int
-
-        :returns: The character title if found, otherwise False
-        :rtype: str or None
-        """
-        query = "SELECT Name FROM Characters WHERE ID = ?"
-        result = self.db._execute_query(query, (char_id,), fetch_one=True)
-        return result['Name'] if result else None
     
     def search_characters(self, user_query: str) -> CharacterBasicDict | None:
         """
