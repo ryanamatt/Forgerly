@@ -1,9 +1,11 @@
 # src/python/ui/outline_manager.py
 
 from PyQt6.QtWidgets import (
-    QTreeWidget, QTreeWidgetItem, QHeaderView, QStyle, QMenu, QInputDialog, QMessageBox
+    QTreeWidget, QTreeWidgetItem, QHeaderView, QStyle, QMenu, QInputDialog, QMessageBox,
+    QAbstractItemView
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
+from PyQt6.QtGui import QDropEvent, QDragMoveEvent
 
 from ...repository.chapter_repository import ChapterRepository 
 
@@ -53,6 +55,12 @@ class ChapterOutlineManager(QTreeWidget):
         self.setMidLineWidth(100)
         self.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+
+        # --- Enable Drag and Drop for Reordering
+        self.setDragEnabled(True)
+        self.setAcceptDrops(True)
+        self.setDropIndicatorShown(True)
+        self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
 
         # Connect Signals
         self.itemClicked.connect(self._handle_item_click)
@@ -109,6 +117,108 @@ class ChapterOutlineManager(QTreeWidget):
             first_child = self.project_root_item.child(0)
             self.setCurrentItem(first_child)
             self.chapter_selected.emit(first_child.data(0, self.CHAPTER_ID_ROLE))
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        """
+        Custom drop event to handle chapter reordering.
+
+        It performs the visual move first, then calculates the new sort order 
+        for all chapters in the new list, and updates the database.
+        
+        :param event: The drop event.
+        :type event: :py:class:`~PyQt6.QtGui.QDropEvent`
+        
+        :rtype: None
+        """
+        self.pre_chapter_change.emit()
+
+        # Get the item being dragged and the target item/position before the drop
+        dropped_item = self.currentItem()
+        target_item = self.itemAt(event.position().toPoint())
+        drop_pos = self.dropIndicatorPosition()
+
+        super().dropEvent(event)
+
+        if not dropped_item:
+            event.ignore()
+            return
+        
+        new_parent_item = dropped_item.parent()
+        
+        # 2. Correction Logic
+        
+        # Scenario A: Item was dropped 'OnItem' of another chapter (nesting)
+        # We must manually insert it above the target item.
+        is_nested_on_chapter = (
+            target_item and target_item is not self.project_root_item and drop_pos == QAbstractItemView.DropIndicatorPosition.OnItem
+        )
+        
+        if is_nested_on_chapter:
+            target_item.removeChild(dropped_item)
+            target_index = self.project_root_item.indexOfChild(target_item)
+            self.project_root_item.insertChild(target_index, dropped_item)
+            self.setCurrentItem(dropped_item)
+
+        # Scenario B: Item became a top-level item (parent is None) or was placed 
+        # outside the root's children, which is always an invalid location.
+        elif new_parent_item is not self.project_root_item:
+            
+            # If it became a top-level item (parent is None)
+            if new_parent_item is None:
+                index_of_top_level_item = self.indexOfTopLevelItem(dropped_item)
+                if index_of_top_level_item != -1:
+                    self.takeTopLevelItem(index_of_top_level_item)
+            # If it was nested under another item (this handles the general case 
+            # if the previous specific check wasn't met, though it should be)
+            elif new_parent_item:
+                new_parent_item.removeChild(dropped_item)
+            
+            # Place the item at the END of the valid list (the only safe fallback)
+            self.project_root_item.addChild(dropped_item)
+            self.setCurrentItem(dropped_item)
+            self.scrollToItem(dropped_item)
+
+        self._update_all_chapter_sort_orders()
+
+        event.accept()
+
+    def _update_all_chapter_sort_orders(self) -> None:
+        """
+        Calculates the new Sort_Order for all chapters based on their current 
+        visual position under the root item and updates the database via a 
+        single transaction.
+        
+        :rtype: None
+        """
+        if not self.chapter_repo or not self.project_root_item:
+            return
+
+        chapter_updates: list[tuple[int, int]] = []
+        
+        # Iterate through all children of the root item (which are the chapters)
+        # The index 'i' becomes the new Sort_Order (starting from 0, but we use 1-based index)
+        for i in range(self.project_root_item.childCount()):
+            item = self.project_root_item.child(i)
+            chapter_id = item.data(0, self.CHAPTER_ID_ROLE)
+            
+            # The database Sort_Order will be 1-based (i + 1)
+            new_sort_order = i + 1 
+
+            if chapter_id is not None:
+                chapter_updates.append((chapter_id, new_sort_order))
+
+        # Check if there are any updates to perform
+        if not chapter_updates:
+            return
+
+        # Perform the atomic database update
+        success = self.chapter_repo.reorder_chapters(chapter_updates)
+
+        if not success:
+            QMessageBox.critical(self, "Reordering Error", 
+                                 "Database update failed. Reverting chapter outline.")
+            # Reload the outline to revert the visual change if the database update failed
+            self.load_outline()
 
     def _handle_item_click(self, item: QTreeWidgetItem, column: int) -> None:
         """
