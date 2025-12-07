@@ -1,19 +1,18 @@
-1. Allow for Lore_Entries to contain other Lore_Entries as sub-items
-2. Create a Start Menu where user can create new project or open a project (Automatically Opens to last existing project if exists)
-3. Implement Autosave
-4. Implement UNDO/REDO
-5. Drag-And_Drop (on LoreOutlineManager) Lore_Entries including making sub-items and parent items
-6. Drag-And-Drop (on ChapterOutlineManager) Chapter for ChapterReordering
-7. Inter-Entry Linking (Text in Chapter that exsits as Lore_Entries, Characters, etc. can be click
+1. Create a Start Menu where user can create new project or open a project (Automatically Opens to last existing project if exists)
+2. Implement Autosave
+3. Implement UNDO/REDO
+4. Drag-And_Drop (on LoreOutlineManager) Lore_Entries including making sub-items and parent items
+5. Drag-And-Drop (on ChapterOutlineManager) Chapter for ChapterReordering
+6. Inter-Entry Linking (Text in Chapter that exsits as Lore_Entries, Characters, etc. can be click
 on and open that charactacters editor and/or display a small window of info about that item.) -> (Look at using C/C++ for speed)
-8. Implement Locations Somehow
-9. Project Wide Statistics
-10. More Customization Options
-11. Add More Editing Boxes for CharacterEditor
-12. Add better exporting to more types (DOCX, rtf, etc.), and page size 
-13. Version Control (Maybe Use C/C++ for speed)
-14. Easy Switching between Multiple Projects (Recent Projects, etc.)
-15. Fix/Update Relationships Graph
+7. Implement Locations Somehow
+8. Project Wide Statistics
+9. More Customization Options
+10. Add More Editing Boxes for CharacterEditor
+11. Add better exporting to more types (DOCX, rtf, etc.), and page size 
+12. Version Control (Maybe Use C/C++ for speed)
+13. Easy Switching between Multiple Projects (Recent Projects, etc.)
+14. Fix/Update Relationships Graph
 
 Neat Things to Add in Future but not needed for release
 Add SpellChecker

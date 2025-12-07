@@ -30,11 +30,11 @@ class LoreRepository:
         Manager, but excludes the full lore entry content.
 
         :returns: A list of dictionaries, each containing the lore entry's ID, Title, 
-            Content, and Category.
+            Category, and Parent_Lore_ID.
         :rtype: :py:class:`~app.utils.types.DBRowList`
         """
         query = """
-        SELECT ID, Title, Category
+        SELECT ID, Title, Category, Parent_Lore_ID
         FROM Lore_Entries
         ORDER BY Title ASC;
         """
@@ -127,6 +127,22 @@ class LoreRepository:
         query = "UPDATE Lore_Entries SET Title = ? WHERE ID = ?;"
         params = (new_title, lore_id)
         return self.db._execute_commit(query, params)
+    
+    def update_lore_entry_parent_id(self, lore_id: int, new_parent_id: int) -> bool:
+        """
+        Updates the Parent_Lore_ID for a specific Lore Entry.
+
+        :param lore_id: The ID of the lore entry to update.
+        :param new_parent_id: The ID of the new parent entry, or None to make it a root entry.
+
+        :returns: True on success, False otherwise.
+        """
+        query = """
+        UPDATE Lore_Entries
+        SET Parent_Lore_ID = ?
+        WHERE ID = ?;
+        """
+        return self.db._execute_commit(query, (new_parent_id, lore_id))
     
     def delete_lore_entry(self, lore_id: int) -> bool:
         """

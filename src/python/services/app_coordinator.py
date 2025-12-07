@@ -502,6 +502,25 @@ class AppCoordinator(QObject):
 
         self.char_loaded.emit(char_id, name, description, status)
 
+    # --- Updating Parent Lore ID ---
+
+    def update_lore_parent_id(self, lore_id: int, new_parent_id: int | None) -> bool:
+        """
+        Updates the parent ID of a Lore Entry via the repository.
+
+        :param lore_id: The ID of the lore entry to update.
+        :param new_parent_id: The ID of the new parent, or None.
+
+        :returns: True on successful database update, False otherwise.
+        """
+        result = self.lore_repo.update_lore_entry_parent_id(lore_id, new_parent_id)
+        if result:
+            # self.lore_parent_changed.emit(lore_id, new_parent_id)
+            pass
+        return result
+
+    # --- Relationship Graph Methods ---
+
     def load_relationship_graph_data(self) -> None:
         """
         Fetches all character nodes, relationship edges, and relationship types 

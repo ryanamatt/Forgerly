@@ -254,7 +254,7 @@ class MainWindow(QMainWindow):
         # 2. Instantiate Main Components
         self.chapter_outline_manager = ChapterOutlineManager(chapter_repository=self.chapter_repo)
         self.chapter_editor_panel = ChapterEditor(self.current_settings)
-        self.lore_outline_manager = LoreOutlineManager(lore_repository=self.lore_repo)
+        self.lore_outline_manager = LoreOutlineManager(lore_repository=self.lore_repo, coordinator=self.coordinator)
         self.lore_editor_panel = LoreEditor()
         self.character_outline_manager = CharacterOutlineManager(character_repository=self.char_repo)
         self.character_editor_panel = CharacterEditor()
