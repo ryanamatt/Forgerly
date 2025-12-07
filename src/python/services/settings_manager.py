@@ -43,6 +43,7 @@ class SettingsManager:
         if not os.path.exists(self._DEFAULT_FILE):
             # If Default file is missing create it
             default_data = {
+                "last_project_path": "",
                 "theme": "Dark",
                 "window_size": "1200x800",
                 "outline_width_pixels": 300,

@@ -3,3 +3,4 @@ venv_dev/
 __pycache__/
 .pytest_cache/
 documentation/_build/
+projects/
