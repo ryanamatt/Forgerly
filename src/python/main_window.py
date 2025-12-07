@@ -8,6 +8,7 @@ from PyQt6.QtGui import QCloseEvent, QResizeEvent, QMoveEvent, QIcon
 import os
 import sys
 import ctypes
+from typing import Any
 
 from .ui.menu.main_menu_bar import MainMenuBar
 from .ui.views.chapter_outline_manager import ChapterOutlineManager
@@ -54,7 +55,7 @@ class MainWindow(QMainWindow):
     The boolean payload is True for 'New Project', False for 'Open Project'.
     """
 
-    def __init__(self, project_path: str, settings_manager: SettingsManager, db_connector: DBConnector,
+    def __init__(self, project_settings: dict[str, Any], settings_manager: SettingsManager, db_connector: DBConnector,
                  parent=None) -> None:
         """
         Initializes the main window, connecting to the database and setting up 
@@ -70,8 +71,8 @@ class MainWindow(QMainWindow):
         :rtype: None
         """
         super().__init__(parent)
-
-        self.project_path = project_path
+        self.project_settings = project_settings
+        self.project_path = self.project_settings['project_path']
 
         # need to know if macOS for differences
         self.is_macos = sys.platform == 'darwin'
@@ -85,7 +86,7 @@ class MainWindow(QMainWindow):
                 pass
 
         # Temporary Project Title will need to be changed to actual users project title
-        self.project_title = "Project Title"
+        self.project_title = project_settings['project_name'] if project_settings['project_name'] != "" else "Project Title"
 
         self.setWindowTitle(f"The Narrative Forge v{__version__}")
         self.setGeometry(100, 100, 1200, 800)
@@ -271,7 +272,7 @@ class MainWindow(QMainWindow):
         self.relationship_repo = self.coordinator.relationship_repo
         
         # 2. Instantiate Main Components
-        self.chapter_outline_manager = ChapterOutlineManager(chapter_repository=self.chapter_repo)
+        self.chapter_outline_manager = ChapterOutlineManager(project_title=self.project_title, chapter_repository=self.chapter_repo)
         self.chapter_editor_panel = ChapterEditor(self.current_settings)
         self.lore_outline_manager = LoreOutlineManager(lore_repository=self.lore_repo, coordinator=self.coordinator)
         self.lore_editor_panel = LoreEditor()

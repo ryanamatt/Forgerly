@@ -37,7 +37,8 @@ class ChapterOutlineManager(QTreeWidget):
     selected, allowing the main window to save the current chapter state.
     """
 
-    def __init__(self, chapter_repository: ChapterRepository | None = None) -> None:
+    def __init__(self, project_title: str = "Narrative Forge Project",
+                  chapter_repository: ChapterRepository | None = None) -> None:
         """
         Initializes the ChapterOutlineManager.
         
@@ -45,6 +46,8 @@ class ChapterOutlineManager(QTreeWidget):
         :type chapter_repository: :py:class:`.ChapterRepository` or :py:obj:`None`, optional
         """
         super().__init__()
+        self.project_title = project_title
+
         # Renamed attribute to clearly show its new role
         self.chapter_repo = chapter_repository 
         self.project_root_item = None
@@ -88,9 +91,14 @@ class ChapterOutlineManager(QTreeWidget):
         self.blockSignals(True)
         
         # Root item for the Narrative (e.g. The Project)
-        self.project_root_item = QTreeWidgetItem(self, ["The Story of Narrative Forge"])
+        self.project_root_item = QTreeWidgetItem(self, [f"{self.project_title}"])
         # Mark as non-editable and assign the ROOT_ITEM_ROLE
-        self.project_root_item.setFlags(self.project_root_item.flags() & ~Qt.ItemFlag.ItemIsEditable) 
+        self.project_root_item.setFlags(
+            self.project_root_item.flags() & ~Qt.ItemFlag.ItemIsEditable
+            & ~Qt.ItemFlag.ItemIsSelectable
+            & ~Qt.ItemFlag.ItemIsEditable
+            & ~Qt.ItemFlag.ItemIsUserCheckable
+            ) 
         self.project_root_item.setData(0, self.ROOT_ITEM_ROLE, True)
 
         # Fetch the actual chapter data from the database using the Repository

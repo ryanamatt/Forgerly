@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 from PyQt6.QtWidgets import QApplication
 
 from .services.settings_manager import SettingsManager
@@ -80,19 +81,34 @@ class ApplicationFlowManager:
         self.settings ['last_project_path'] = project_path
         self.settings_manager.save_settings(self.settings)
         
-        # --- DBConnector Logic ---
-        # 2. Construct the project-specific database file path
-        # Project structure: [ProjectName]/[ProjectName].db
-        project_name = os.path.basename(project_path)
-        db_file_path = os.path.join(project_path, f"{project_name}.db")
+        # --- Project Configuration (NEW DICT APPROACH) ---
+        project_name_from_path = os.path.basename(project_path)
+        project_settings_file = os.path.join(project_path, "config", "Project_Settings.nfp")
         
-        # 3. Instantiate and connect the DBConnector for the new project
-        db_connector = DBConnector(db_path=db_file_path) 
+        project_config = {}
+        
+        try:
+            with open(project_settings_file, 'r', encoding='utf-8') as f:
+                project_config = json.load(f)
+        except Exception as e:
+            print(f"Warning: Could not read Project_Settings.nfp. Using defaults. Error: {e}")
+
+        # Construct the project settings dictionary
+        db_file_name = project_config.get('database_file', f"{project_name_from_path}.db")
+        
+        db_file_path = os.path.join(project_path, db_file_name)
+
+        project_config['project_path'] = project_path
+        project_config['db_file_path'] = db_file_path
+        
+        # --- DBConnector Logic ---
+        # Instantiate and connect the DBConnector for the new project
+        db_connector = DBConnector(db_path=project_config['db_file_path']) 
         db_connector.connect() # Assuming DBConnector has a connect method
 
-        # 4. Initialize and show the Main Window
+        # Initialize and show the Main Window
         self.main_window = MainWindow(
-            project_path=project_path,
+            project_settings=project_config,
             settings_manager=self.settings_manager,
             db_connector=db_connector
         )
