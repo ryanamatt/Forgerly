@@ -52,6 +52,18 @@ class MainMenuBar(QMenuBar):
     The integer payload corresponds to a member of :py:class:`~app.utils.constants.ViewType`.
     """
 
+    new_project_requested = pyqtSignal()
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int): Emitted when the user selected New Project button
+        in the File Menu.
+    """
+
+    open_project_requested = pyqtSignal()
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int): Emitted when the user selected Open Project button
+        in the File Menu.
+    """
+
     def __init__(self, current_view: ViewType, app_version: str, is_macos: bool, parent=None) -> None:
         """
         Initializes the main menu bar.
@@ -92,6 +104,17 @@ class MainMenuBar(QMenuBar):
         :rtype: None
         """
         file_menu = self.addMenu("&File")
+
+        # Project Actions
+        new_project_action = QAction("New Project", self)
+        new_project_action.triggered.connect(self.new_project_requested.emit)
+        file_menu.addAction(new_project_action)
+
+        open_project_action = QAction("Open Project", self)
+        open_project_action.triggered.connect(self.open_project_requested.emit)
+        file_menu.addAction(open_project_action)
+        
+        file_menu.addSeparator()
 
         # New Actions (connects directly to repository via MainWindow/Coordinator)
         new_chapter_action = QAction("New Chapter", self)
