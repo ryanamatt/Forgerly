@@ -48,9 +48,9 @@ To view documentation of code.
 
 Will build documentation using Sphinx.
 
-```Bash  
-python tools/build_docs.py
-```
+    ```Bash
+    python tools/build_docs.py
+    ```
 
 ## 🚀 Run
 
@@ -61,22 +61,22 @@ Follow these steps to set up and run the application:
 1.**Clone the Repository** (if not already done).
 2.**Install Dependencies:**
 
-```Bash
-pip install -r requirements.txt
-```
+    ```Bash
+    pip install -r requirements.txt
+    ```
 
 ### Execution
 
 Run the application directly from the main module:
 
-```Bash
-python -m src.python.main
-```
+    ```Bash
+    python -m src.python.main
+    ```
 
 ### View Documentation
 
 Will open documentation in web browser.
 
-```Bash
-python tools/view_docs.py
-```
+    ```Bash
+    python tools/view_docs.py
+    ```
