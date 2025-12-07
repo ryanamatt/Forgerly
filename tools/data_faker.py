@@ -10,12 +10,12 @@ from faker import Faker
 
 # --- Setup to allow module imports ---
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.append(str(PROJECT_ROOT / 'src' / 'python'))
+sys.path.append(str(PROJECT_ROOT))
 
-from db_connector import DBConnector
-from repository.chapter_repository import ChapterRepository
-from repository.character_repository import CharacterRepository
-from repository.lore_repository import LoreRepository
+from src.python.db_connector import DBConnector
+from src.python.repository.chapter_repository import ChapterRepository
+from src.python.repository.character_repository import CharacterRepository
+from src.python.repository.lore_repository import LoreRepository
 
 # --- Configuration Profiles ---
 # Defines the number of entities to generate for each profile size.
@@ -124,20 +124,37 @@ def run_data_faker():
         help="Execute the script without the interactive confirmation warning."
     )
     
+    # --- New Required Argument ---
+    parser.add_argument(
+        'project_path',
+        type=str,
+        help="The full path to the root project folder (e.g., /path/to/projects/MyProject)."
+    )
+    
     args = parser.parse_args()
+
+    # Determine database path
+    project_path = Path(args.project_path)
+    if not project_path.is_dir():
+        print(f"❌ ERROR: Project path not found or is not a directory: {project_path}")
+        sys.exit(1)
+
+    project_name = project_path.name
+    dynamic_db_path = project_path / f"{project_name}.db"
 
     # Safety Check
     if not args.force:
         print("\n⚠️ WARNING: This will add a large amount of test data to the current project.")
         print(f"Selected profile: {args.size.upper()} ({DATA_PROFILES[args.size]['chapters']} chapters, etc.).")
-        print("To proceed, run with the --force flag (e.g., python data_faker.py --size medium --force)")
+        print(f"Target DB: {dynamic_db_path}")
+        print("To proceed, run with the --force flag (e.g., python data_faker.py /path/to/project --force)")
         sys.exit(0)
 
-
-    db_connector = DBConnector(db_path=str(PROJECT_ROOT / 'data' / 'narrative_forge.db'))
+    # --- Use Dynamic Path for DBConnector ---
+    db_connector = DBConnector(db_path=str(dynamic_db_path))
     
     if not db_connector.connect():
-        print("❌ ERROR: Could not connect to the database. Run db_reset.py first.")
+        print("❌ ERROR: Could not connect to the database. Ensure the database has been reset first.")
         sys.exit(1)
         
     try:

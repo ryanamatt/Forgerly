@@ -1,13 +1,11 @@
 # tools/db_inspector.py
-#
-# Utility script to connect to the database and print out the schema,
-# table contents, and key entity counts for quick debugging and verification.
 
 import sqlite3
+import argparse
 from pathlib import Path
+import sys
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DB_PATH = PROJECT_ROOT / 'data' / 'narrative_forge.db'
 
 def print_table_structure(conn: sqlite3.Connection, table_name: str) -> None:
     """Prints the column names and data types for a given table."""
@@ -45,17 +43,17 @@ def print_table_data_summary(conn: sqlite3.Connection, table_name: str, limit: i
         if "no such table" not in str(e):
              print(f"Error accessing table {table_name}: {e}")
 
-def run_db_inspector():
+def run_db_inspector(db_path: Path): # Modified signature
     """Main function to run the database inspection."""
     print(f"--- Narrative Forge Database Inspector ---")
     
-    if not DB_PATH.exists():
-        print(f"❌ ERROR: Database file not found at {DB_PATH}. Run db_reset.py first.")
+    if not db_path.exists():
+        print(f"❌ ERROR: Database file not found at {db_path}.")
         return
 
     conn = None
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(db_path)
         
         # Get list of all user tables
         cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
@@ -79,4 +77,25 @@ def run_db_inspector():
             conn.close()
             
 if __name__ == '__main__':
-    run_db_inspector()
+    # --- New Argument Parsing ---
+    parser = argparse.ArgumentParser(
+        description="Inspect the schema and data of a project's database.",
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser.add_argument(
+        'project_path',
+        type=str,
+        help="The full path to the root project folder (e.g., /path/to/projects/MyProject)."
+    )
+    args = parser.parse_args()
+
+    # Determine database path
+    project_path = Path(args.project_path)
+    if not project_path.is_dir():
+        print(f"❌ ERROR: Project path not found or is not a directory: {project_path}")
+        sys.exit(1)
+
+    project_name = project_path.name
+    dynamic_db_path = project_path / f"{project_name}.db"
+    
+    run_db_inspector(dynamic_db_path)

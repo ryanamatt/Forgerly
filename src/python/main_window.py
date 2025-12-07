@@ -46,14 +46,24 @@ class MainWindow(QMainWindow):
     4. **Event Handling:** Intercepting window close events to check for unsaved changes.
     5. **Settings/Theming:** Loading and saving window geometry and applying the current theme.
     """
-    def __init__(self) -> None:
+    def __init__(self, project_path: str, settings_manager: SettingsManager, db_connector: DBConnector,
+                 parent=None) -> None:
         """
         Initializes the main window, connecting to the database and setting up 
         all sub-components and services.
         
+        :param project_path: The path to the narrative forge project.
+        :type project_path: str
+        :param settings_manager: The settings manager class to manage all settings.
+        :type settings_manager: :py:class:'~services.SettingsManager`
+        :param settings_manager: The database connector to connect to the database.
+        :type settings_manager: :py:class:'~DBConnectorr`
+
         :rtype: None
         """
-        super().__init__()
+        super().__init__(parent)
+
+        self.project_path = project_path
 
         # need to know if macOS for differences
         self.is_macos = sys.platform == 'darwin'
@@ -71,10 +81,10 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle(f"The Narrative Forge v{__version__}")
         self.setGeometry(100, 100, 1200, 800)
-        self.setWindowIcon(QIcon(os.path.join('assets', 'logo.ico')))
+        self.setWindowIcon(QIcon(os.path.join('resources', 'logo.ico')))
         
         # Initialize DB Connector
-        self.db_connector = DBConnector() 
+        self.db_connector = db_connector
         if self.db_connector.connect():
             self.db_connector.initialize_schema() 
             print("Application database setup verified.")
@@ -90,7 +100,7 @@ class MainWindow(QMainWindow):
         self.lore_exporter = LoreExporter(self.coordinator, self.project_title)
 
         # --- Settings and Theme Management ---
-        self.settings_manager = SettingsManager()
+        self.settings_manager = settings_manager
         self.current_settings = self.settings_manager.load_settings()
         self._apply_settings(self.current_settings)
 
@@ -149,6 +159,7 @@ class MainWindow(QMainWindow):
             current_sizes = self.main_splitter.sizes()
             outline_width = current_sizes[0]
             self.current_settings['outline_width_pixels'] = outline_width
+            self.current_settings['last_project_path'] = self.project_path
             self.settings_manager.save_settings(self.current_settings)
 
         if self.db_connector:
