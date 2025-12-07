@@ -37,9 +37,13 @@ class ApplicationFlowManager:
         else:
             self.show_main_window(last_project_path)
 
-    def show_start_menu(self) -> None:
+    def show_start_menu(self, is_new_project: bool = False) -> None:
         """
         Initializes and shows the StartMenuWindow.
+
+        param is_new_project: If True, immediately trigger the new project dialog 
+                               upon showing the start menu.
+        :type is_new_project: bool
         
         :rtype: None"""
         # Clean up any open windows
@@ -53,6 +57,9 @@ class ApplicationFlowManager:
         self.start_menu.project_opened.connect(self.show_main_window)
         
         self.start_menu.show()
+
+        if is_new_project:
+            self.start_menu.new_project_button.click()
 
     def show_main_window(self, project_path: str) -> None:
         """
@@ -89,7 +96,25 @@ class ApplicationFlowManager:
             settings_manager=self.settings_manager,
             db_connector=db_connector
         )
+
+        self.main_window.project_close_and_open_requested.connect(self._handle_project_switch_request)
+
         self.main_window.show()
+
+    def _handle_project_switch_request(self, is_new: bool) -> None:
+        """
+        Slot to handle the signal from MainWindow to switch back to the Start Menu.
+        
+        :param is_new: True if 'New Project' was requested, False if 'Open Project'.
+        :type is_new: bool
+
+        :rtype: None
+        """
+        # The MainWindow has already checked for and handled dirty state
+        
+        # 'show_start_menu' will close 'main_window' and clear 'last_project_path'
+        # The 'is_new' flag is passed to potentially open the dialog immediately
+        self.show_start_menu(is_new_project=is_new)
 
 
 def main() -> None:

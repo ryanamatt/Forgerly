@@ -3,8 +3,8 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QSplitter, QMessageBox, QDialog, QStackedWidget
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QCloseEvent, QAction, QResizeEvent, QMoveEvent, QIcon
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QCloseEvent, QResizeEvent, QMoveEvent, QIcon
 import os
 import sys
 import ctypes
@@ -46,6 +46,14 @@ class MainWindow(QMainWindow):
     4. **Event Handling:** Intercepting window close events to check for unsaved changes.
     5. **Settings/Theming:** Loading and saving window geometry and applying the current theme.
     """
+
+    project_close_and_open_requested = pyqtSignal(bool) 
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (bool): Emitted when the user selects 
+    'New Project' or 'Open Project' from the file menu. 
+    The boolean payload is True for 'New Project', False for 'Open Project'.
+    """
+
     def __init__(self, project_path: str, settings_manager: SettingsManager, db_connector: DBConnector,
                  parent=None) -> None:
         """
@@ -343,6 +351,10 @@ class MainWindow(QMainWindow):
         self.main_menu_bar.export_requested.connect(self._export)
         self.main_menu_bar.settings_requested.connect(self._open_settings_dialog)
 
+        # Connections for MainMenuBar Projects
+        self.main_menu_bar.new_project_requested.connect(lambda: self._request_project_switch(is_new=True))
+        self.main_menu_bar.open_project_requested.connect(lambda: self._request_project_switch(is_new=False))
+
         # Connect the view switching signal from the menu bar
         self.main_menu_bar.view_switch_requested.connect(self._switch_to_view)
         
@@ -354,6 +366,27 @@ class MainWindow(QMainWindow):
         self.coordinator.graph_data_loaded.connect(self.relationship_editor_panel.load_graph)
         
         self.relationship_outline_manager.relationship_types_updated.connect(self.coordinator.reload_relationship_graph_data)
+
+    # --- For Creating/Opening other Projects ---
+
+    def _request_project_switch(self, is_new: bool) -> None:
+        """
+        Handles the request to switch to a new project or open an existing one.
+        
+        First, checks for unsaved changes. If safe to proceed, emits a signal 
+        to the ApplicationFlowManager to handle the window switch.
+        
+        :param is_new: True if 'New Project' was requested, False if 'Open Project'.
+        :type is_new: bool
+
+        :rtype: None
+        """
+        # 1. Check for and save unsaved changes before switching
+        if not self.coordinator.check_and_save_dirty(parent=self):
+            return # User cancelled save dialog
+
+        # 2. Emit the signal to the ApplicationFlowManager
+        self.project_close_and_open_requested.emit(is_new)
 
     # -------------------------------------------------------------------------
     # Logic Delegation / Handlers
