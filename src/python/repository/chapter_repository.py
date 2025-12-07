@@ -78,8 +78,8 @@ class ChapterRepository:
         :type title: str
 
         :returns: A dictionary of the chapter.
-        :rtype dict or None
-        """
+        :rtype: dict or None
+        """ 
         query = "SELECT ID, Title, Text_Content FROM CHAPTERS WHERE Title = ? COLLATE NOCASE;"
         return self.db._execute_query(query, (title,), fetch_one=True)
 

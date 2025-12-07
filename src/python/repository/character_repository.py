@@ -75,8 +75,8 @@ class CharacterRepository:
         :type title: str
 
         :returns: A dictionary of the character.
-        :rtype dict or None
-        """
+        :rtype: dict or None
+        """ 
         query = "SELECT ID, Name, Description FROM Characters WHERE Name = ? COLLATE NOCASE;"
         return self.db._execute_query(query, (name,), fetch_one=True)
     

@@ -48,8 +48,8 @@ class LoreRepository:
         :type title: str
 
         :returns: A dictionary of the Lore Entry .
-        :rtype dict or None
-        """
+        :rtype: dict or None
+        """ 
         query = "SELECT ID, Title, Content FROM Lore_Entries WHERE Title = ? COLLATE NOCASE;"
         return self.db._execute_query(query, (title,), fetch_one=True)
 

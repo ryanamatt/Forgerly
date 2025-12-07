@@ -14,13 +14,13 @@ class ApplicationFlowManager:
     """
     def __init__(self, app: QApplication) -> None:
         """
-        Docstring for __init__
+        Instatiates the ApplicationFlowManager Class.
         
         :param app: Description
         :type app: :py:class:`~PyQt6.QtWidgets.QApplication`
 
         :rtype: None
-        """
+        """ 
         self.app = app
         
         # 1. Instantiate Application-wide Service
@@ -42,11 +42,12 @@ class ApplicationFlowManager:
         """
         Initializes and shows the StartMenuWindow.
 
-        param is_new_project: If True, immediately trigger the new project dialog 
+        :param is_new_project: If True, immediately trigger the new project dialog 
                                upon showing the start menu.
         :type is_new_project: bool
         
-        :rtype: None"""
+        :rtype: None
+        """
         # Clean up any open windows
         if self.main_window:
             self.main_window.close()
