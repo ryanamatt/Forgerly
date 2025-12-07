@@ -100,6 +100,30 @@ class SettingsManager:
         except IOError as e:
             print(f"Error saving user settings: {e}")
             return False
+        
+    def save_setting(self, key: str, value: Any) -> bool:
+        """
+        Saves a single setting key and saves the new user-level settings file.
+
+        This function first loads the existing user settings, updates the single key, 
+        then calls the main save_settings method to handle the comparison against defaults.
+        
+        :param key: The setting key to update (e.g., 'outline_width_pixels').
+        :type key: str
+        :param value: The new value for the setting.
+        :type value: Any
+        
+        :returns: True if the save operation was successful, False otherwise.
+        :rtype: bool
+        """
+        # Load the current merged settings
+        current_settings = self.load_settings()
+        
+        # Update the single key in memory
+        current_settings[key] = value
+        
+        # Use the existing save_settings logic to save only the change
+        return self.save_settings(current_settings)
 
     def get_default_settings(self) -> dict[str, Any]:
         """

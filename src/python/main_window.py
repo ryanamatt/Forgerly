@@ -81,7 +81,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle(f"The Narrative Forge v{__version__}")
         self.setGeometry(100, 100, 1200, 800)
-        self.setWindowIcon(QIcon(os.path.join('assets', 'logo.ico')))
+        self.setWindowIcon(QIcon(os.path.join('resources', 'logo.ico')))
         
         # Initialize DB Connector
         self.db_connector = db_connector
