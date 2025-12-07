@@ -50,8 +50,9 @@ class LoreRepository:
         :returns: A dictionary of the Lore Entry .
         :rtype: dict or None
         """ 
-        query = "SELECT ID, Title, Content FROM Lore_Entries WHERE Title = ? COLLATE NOCASE;"
-        return self.db._execute_query(query, (title,), fetch_one=True)
+        search_term = f"%{title.strip()}%"
+        query = "SELECT ID, Title, Content FROM Lore_Entries WHERE Title Like ? COLLATE NOCASE;"
+        return self.db._execute_query(query, (search_term,), fetch_one=True)
 
 
     def create_lore_entry(self, title: str, content: str = "", category: str = "") -> int | None:

@@ -77,8 +77,9 @@ class CharacterRepository:
         :returns: A dictionary of the character.
         :rtype: dict or None
         """ 
-        query = "SELECT ID, Name, Description FROM Characters WHERE Name = ? COLLATE NOCASE;"
-        return self.db._execute_query(query, (name,), fetch_one=True)
+        search_term = f"%{name.strip()}%"
+        query = "SELECT ID, Name, Description FROM Characters WHERE Name Like ? COLLATE NOCASE;"
+        return self.db._execute_query(query, (search_term,), fetch_one=True)
     
     def create_character(self, name: str, description: str = "", status: str = "") -> int | None:
         """
