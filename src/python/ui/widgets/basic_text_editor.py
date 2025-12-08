@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import pyqtSignal
 
 from ...utils.logger import get_logger
+from ...utils.exceptions import EditorContentError
 
 logger = get_logger(__name__)
 
@@ -111,15 +112,19 @@ class BasicTextEditor(QWidget):
 
         :rtype: None
         """
-        # Block signals to prevent _set_dirty from firing during load
-        self.editor.blockSignals(True) 
-        self.editor.setHtml(html_content)
-        self.editor.blockSignals(False) 
-        
-        # Manually reset the dirty state after a successful load
-        self.mark_saved()
 
-        logger.debug(f"BasicTextEditor content set and marked clean. Content length: {len(html_content)} bytes.")
+        try:
+            # Block signals to prevent _set_dirty from firing during load
+            self.editor.blockSignals(True) 
+            self.editor.setHtml(html_content)
+            self.editor.blockSignals(False) 
+            # Manually reset the dirty state after a successful load
+            self.mark_saved()
+            logger.debug(f"BasicTextEditor content set and marked clean. Content length: {len(html_content)} bytes.")
+        except Exception as e:
+            # Catch any underlying QWidget/PyQt error and re-raise it as EditorContentError
+            logger.error(f"FATAL: Failed to set HTML content in BasicTextEditor.", exc_info=True)
+            raise EditorContentError("Failed to display content in the editor due to an internal error.") from e
 
     def get_plain_text(self) -> str:
         """

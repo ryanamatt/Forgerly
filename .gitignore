@@ -4,3 +4,4 @@ __pycache__/
 .pytest_cache/
 documentation/_build/
 projects/
+logs/

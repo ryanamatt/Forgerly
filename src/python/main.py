@@ -8,6 +8,7 @@ from .db_connector import DBConnector
 from .main_window import MainWindow
 from .start_menu_window import StartMenuWindow
 from .utils.logger import setup_logger, get_logger
+from .utils.error_handler import install_system_exception_hook
 
 class ApplicationFlowManager:
     """
@@ -148,6 +149,9 @@ def main() -> None:
 
     setup_logger(debug_mode=DEBUG_MODE)
     logger = get_logger(__name__)
+
+    install_system_exception_hook()
+
     logger.info("Narrative Forge application is starting up.")
     if DEBUG_MODE:
         logger.debug(f"Debug Mode is active. Logging level set to DEBUG.")
