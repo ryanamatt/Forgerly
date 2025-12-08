@@ -7,12 +7,13 @@ from .services.settings_manager import SettingsManager
 from .db_connector import DBConnector
 from .main_window import MainWindow
 from .start_menu_window import StartMenuWindow
+from .utils.logger import setup_logger, get_logger
 
 class ApplicationFlowManager:
     """
     Manages the application flow, switching between the start menu and main window.
     """
-    def __init__(self, app: QApplication) -> None:
+    def __init__(self, app: QApplication, settings_manager: SettingsManager) -> None:
         """
         Instatiates the ApplicationFlowManager Class.
         
@@ -24,7 +25,7 @@ class ApplicationFlowManager:
         self.app = app
         
         # 1. Instantiate Application-wide Service
-        self.settings_manager = SettingsManager()
+        self.settings_manager = settings_manager
         self.settings = self.settings_manager.load_settings()
         last_project_path = self.settings['last_project_path']
 
@@ -140,10 +141,21 @@ def main() -> None:
     
     :rtype: None
     """
+
+    settings_manager = SettingsManager()
+    app_settings = settings_manager.load_settings()
+    DEBUG_MODE = app_settings.get("debug_mode", False)
+
+    setup_logger(debug_mode=DEBUG_MODE)
+    logger = get_logger(__name__)
+    logger.info("Narrative Forge application is starting up.")
+    if DEBUG_MODE:
+        logger.debug(f"Debug Mode is active. Logging level set to DEBUG.")
+
     app = QApplication(sys.argv)
 
     # Start the application flow
-    manager = ApplicationFlowManager(app)
+    manager = ApplicationFlowManager(app, settings_manager=settings_manager)
 
     sys.exit(app.exec())
 
