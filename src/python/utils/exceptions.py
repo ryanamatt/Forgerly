@@ -21,6 +21,13 @@ class ApplicationError(Exception):
         self.original_exception = original_exception
         self.user_message = message
 
+class DatabaseError(ApplicationError):
+    """
+    Raised for general issues with database operations, such as connection 
+    failures, SQL execution errors, or transaction failures.
+    """
+    pass
+
 class EditorContentError(ApplicationError):
     """
     Raised when there is an issue setting, parsing, or retrieving
