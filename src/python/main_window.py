@@ -3,7 +3,7 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QSplitter, QMessageBox, QDialog, QStackedWidget
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QCloseEvent, QResizeEvent, QMoveEvent, QIcon
 import os
 import sys
@@ -33,6 +33,10 @@ from .services.lore_exporter import LoreExporter
 from .utils._version import __version__
 from .utils.theme_utils import apply_theme
 from .utils.constants import ViewType, ExportType
+from .utils.exceptions import ConfigurationError, EditorContentError
+from .utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 class MainWindow(QMainWindow):
     """
@@ -71,18 +75,24 @@ class MainWindow(QMainWindow):
         :rtype: None
         """
         super().__init__(parent)
+        logger.debug("MainWindow initialization started.")
+
         self.project_settings = project_settings
         self.project_path = self.project_settings['project_path']
 
-        # need to know if macOS for differences
+        # need to know if macOS for differences with Ctrl or Cmd Key
         self.is_macos = sys.platform == 'darwin'
+        logger.debug(f"Platform detected: {'macOS' if self.is_macos else sys.platform}.")
 
         # This is a workaround to allow the taskbar to have the same icon as the window icon on windows
         if sys.platform.startswith('win'):
             try:
+                # We use an application ID to group windows under the correct icon on the taskbar
                 appID = f"narrative-forge.{__version__}"
                 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(appID)
+                logger.info(f"Windows AppUserModelID set to '{appID}'.")
             except AttributeError:
+                logger.warning("Failed to set Windows AppUserModelID (ctypes.windll.shell32 not available or AttributeError).")
                 pass
 
         # Temporary Project Title will need to be changed to actual users project title
@@ -91,27 +101,39 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"The Narrative Forge v{__version__}")
         self.setGeometry(100, 100, 1200, 800)
         self.setWindowIcon(QIcon(os.path.join('resources', 'logo.ico')))
+
+        # Flag to prevent geometry saving during initialization
+        self._is_ready_to_save_geometry = False
         
         # Initialize DB Connector
         self.db_connector = db_connector
-        if self.db_connector.connect():
-            self.db_connector.initialize_schema() 
-            print("Application database setup verified.")
-        else:
-            print("FATAL: Could not connect to database.")
+        try:
+            if self.db_connector.connect():
+                self.db_connector.initialize_schema() 
+                logger.info(f"Project database setup verified for: {self.project_title}.db.")
+            else:
+                # If connect() fails, raise a specific error to halt execution
+                raise ConfigurationError(f"Database connection failed for project: {self.project_title}")
+        except Exception as e:
+            logger.critical(f"FATAL: Failed to connect or initialize database schema at {self.db_connector.db_path}.", exc_info=True)
+            # Assuming ConfigurationError is a suitable application-level error wrapper
+            raise ConfigurationError("A critical error occurred while setting up the project database. See log for details.") from e
 
         # --- Initialize Coordinator & Repositories ---
         # Coordinator now manages all repositories and business logic
-        self.coordinator = AppCoordinator(self.db_connector) 
+        self.coordinator = AppCoordinator(self.db_connector)
+        logger.debug("AppCoordinator initialized.")
 
         self.story_exporter = StoryExporter(self.coordinator, self.project_title)
         self.character_exporter = CharacterExporter(self.coordinator, self.project_title)
         self.lore_exporter = LoreExporter(self.coordinator, self.project_title)
+        logger.debug("Exporters initialized.")
 
         # --- Settings and Theme Management ---
         self.settings_manager = settings_manager
         self.current_settings = self.settings_manager.load_settings()
         self._apply_settings(self.current_settings)
+        logger.info(f"Current theme applied: {self.current_settings.get('theme', 'N/A')}.")
 
         # State tracking now primarily managed by Coordinator, but keep a pointer to the ID for convenience
         self.current_view = ViewType.CHAPTER_EDITOR
@@ -127,6 +149,7 @@ class MainWindow(QMainWindow):
         }
         self.coordinator.set_editors(editor_map)
         self.coordinator.connect_signals()
+        logger.debug("Editors linked to Coordinator and signals connected.")
 
         self.main_menu_bar = MainMenuBar(
             current_view=self.current_view,
@@ -140,6 +163,17 @@ class MainWindow(QMainWindow):
 
         # Initially set the view to Chapters
         self._switch_to_view(ViewType.CHAPTER_EDITOR)
+
+        # Enable geometry saving after initial setup is complete
+        self._is_ready_to_save_geometry = True
+
+        logger.info("MainWindow initialized and default view set to Chapter Editor.")
+
+        # Geomtry Save Timer
+        self._geometry_save_timer = QTimer(self)
+        self._geometry_save_timer.setSingleShot(True)
+        # Connect the timer's timeout signal to the save method
+        self._geometry_save_timer.timeout.connect(self._save_geometry_to_settings)
 
     # -------------------------------------------------------------------------
     # System Events
@@ -158,21 +192,41 @@ class MainWindow(QMainWindow):
         :rtype: None
         """
 
+        # If check_and_save_dirty returns False, the user canceled the exit.
         if not self.coordinator.check_and_save_dirty(parent=self):
+            logger.debug("Close event ignored: User canceled due to unsaved changes.")
             event.ignore()
             return
         
-        self._save_geometry_to_settings()
+        try:
+            self._save_geometry_to_settings()
 
-        if self.main_splitter:
-            current_sizes = self.main_splitter.sizes()
-            outline_width = current_sizes[0]
-            self.current_settings['outline_width_pixels'] = outline_width
+            if hasattr(self, 'main_splitter') and self.main_splitter:
+                current_sizes = self.main_splitter.sizes()
+                if current_sizes:
+                    outline_width = current_sizes[0]
+                    self.current_settings['outline_width_pixels'] = outline_width
+                    logger.debug(f"Saved main splitter width: {outline_width} pixels.")
+
             self.current_settings['last_project_path'] = self.project_path
             self.settings_manager.save_settings(self.current_settings)
+            logger.info("Application settings (geometry, splitter size, last project) saved successfully.")
 
+        except Exception as e:
+            logger.error(f"Failed to save application settings during close. Proceeding with shutdown. Error: {e}", exc_info=True)
+
+
+        # Close the database connection
         if self.db_connector:
-            self.db_connector.close()
+            try:
+                self.db_connector.close()
+                logger.info("Project database connection closed.")
+            except Exception as e:
+                # Log the error but continue to allow the window to close
+                logger.error(f"Error closing database connection: {e}", exc_info=True)
+
+        # Accept the close event
+        logger.info("MainWindow successfully closed.")
         super().closeEvent(event)
 
     def resizeEvent(self, event: QResizeEvent) -> None:
@@ -186,20 +240,11 @@ class MainWindow(QMainWindow):
         :rtype: None
         """
         super().resizeEvent(event)
-        self._save_geometry_to_settings()
-
-    def moveEvent(self, event: QMoveEvent) -> None:
-        """
-        Overrides the standard window move event to automatically save the 
-        new window position to settings.
-        
-        :param event: The QMoveEvent object.
-        :type event: :py:class:`~PyQt6.QtGui.QMoveEvent`
-        
-        :rtype: None
-        """
-        super().moveEvent(event)
-        self._save_geometry_to_settings()
+        # If a new resize event arrives before the 500ms timeout, the timer 
+        # is reset, and the save operation is deferred.
+        if hasattr(self, '_geometry_save_timer'):
+            self._geometry_save_timer.start(500) 
+            logger.debug("Resize event received. Debouncing geometry save.")
 
     # -------------------------------------------------------------------------
     # View Management
@@ -214,43 +259,60 @@ class MainWindow(QMainWindow):
 
         :rtype: None
         """
+        logger.info(f"Requested view switch to: {view}")
+
         if not self.coordinator.check_and_save_dirty(parent=self):
+            logger.debug("View switch canceled by user due to unsaved changes.")
             return
         
-        # Inform the Coordinator of the view change
-        self.coordinator.set_current_view(view)
+        if self.current_view == view:
+            logger.debug(f"View is already set to {view}. Aborting switch.")
+            return
         
-        # Update MainWindow State (for local use)
+        # Update the view and notify coordinator
         self.current_view = view
+        self.coordinator.set_current_view(view)
+        logger.debug(f"MainWindow state updated to {view}.")
         
-        # Determine the index for the QStackedWidgets
-        view_index = -1
-        match self.current_view:
-            case ViewType.CHAPTER_EDITOR:
-                view_index = self._chapter_index # Should be 0
-            case ViewType.LORE_EDITOR:
-                view_index = self._lore_index    # Should be 1
-            case ViewType.CHARACTER_EDITOR:
-                view_index = self._character_index # Should be 2
-            case ViewType.RELATIONSHIP_GRAPH:
-                view_index = self._relationship_index # Should be 3
         
+        # Define a mapping from ViewType to the internal index property name for cleaner access
+        view_map = {
+            ViewType.CHAPTER_EDITOR: self._chapter_index,
+            ViewType.LORE_EDITOR: self._lore_index,
+            ViewType.CHARACTER_EDITOR: self._character_index,
+            ViewType.RELATIONSHIP_GRAPH: self._relationship_index,
+        }
+    
+        # Use .get() with a default value to handle unexpected or unhandled views safely
+        view_index = view_map.get(self.current_view, -1)
+            
         # Switch the QStackedWidgets to the correct panel index
         if view_index != -1:
             self.outline_stack.setCurrentIndex(view_index)
             self.editor_stack.setCurrentIndex(view_index)
-
-        self.main_menu_bar.update_view_checkmarks(self.current_view)
+            logger.debug(f"Switched outline and editor stacks to index {view_index}.")
+        else:
+            logger.error(f"Failed to find a stack index for ViewType: {self.current_view}")
         
         # 4. Disable the newly visible editor until an item is selected
         editor = self.coordinator.get_current_editor()
-        if editor:
-            # We don't disable the relationship editor, as it loads its own content
-            if self.current_view != ViewType.RELATIONSHIP_GRAPH:
-                editor.set_enabled(False)
-            # If it's the graph view, trigger a load (also handled in set_current_view)
-            else:
-                self.relationship_editor_panel.request_load_data.emit()
+        if not editor:
+            # This shouldn't happen if coordinator is set up correctly, but is a good safety check
+            logger.warning(f"Coordinator returned no editor for view: {self.current_view}")
+            return
+
+        if self.current_view == ViewType.RELATIONSHIP_GRAPH:
+            # The relationship editor typically manages its own loading logic
+            # and should remain enabled to show the graph.
+            self.relationship_editor_panel.request_load_data.emit()
+            # Ensure it is explicitly enabled (if it was disabled by a previous logic path)
+            editor.set_enabled(True) 
+            logger.debug("Requested data load for Relationship Graph and ensured it is enabled.")
+        else:
+            # Standard editors (Chapter, Lore, Character) should be disabled 
+            # until a specific item is selected from the outline.
+            editor.set_enabled(False)
+            logger.debug(f"{self.current_view.name} editor disabled (awaiting item selection).")
 
     # -------------------------------------------------------------------------
     # UI Setup
@@ -263,22 +325,16 @@ class MainWindow(QMainWindow):
         
         :rtype: None
         """
-        
-        # 1. Instantiate Repositories (Outline Managers still need a repo to handle CUD)
-        # Note: Outline Managers now only handle C/U/D, the Coordinator handles R/Update.
-        self.chapter_repo = self.coordinator.chapter_repo
-        self.lore_repo = self.coordinator.lore_repo
-        self.char_repo = self.coordinator.character_repo
-        self.relationship_repo = self.coordinator.relationship_repo
+        logger.info("Initializing main application UI structure.")
         
         # 2. Instantiate Main Components
-        self.chapter_outline_manager = ChapterOutlineManager(project_title=self.project_title, chapter_repository=self.chapter_repo)
+        self.chapter_outline_manager = ChapterOutlineManager(project_title=self.project_title, chapter_repository=self.coordinator.chapter_repo)
         self.chapter_editor_panel = ChapterEditor(self.current_settings, self.coordinator)
-        self.lore_outline_manager = LoreOutlineManager(lore_repository=self.lore_repo, coordinator=self.coordinator)
+        self.lore_outline_manager = LoreOutlineManager(lore_repository=self.coordinator.lore_repo, coordinator=self.coordinator)
         self.lore_editor_panel = LoreEditor()
-        self.character_outline_manager = CharacterOutlineManager(character_repository=self.char_repo)
+        self.character_outline_manager = CharacterOutlineManager(character_repository=self.coordinator.character_repo)
         self.character_editor_panel = CharacterEditor()
-        self.relationship_outline_manager = RelationshipOutlineManager(relationship_repository=self.relationship_repo)
+        self.relationship_outline_manager = RelationshipOutlineManager(relationship_repository=self.coordinator.relationship_repo)
         self.relationship_editor_panel = RelationshipEditor(coordinator=self.coordinator)
 
         # 3. Left Panel: Outline Stack
@@ -300,6 +356,7 @@ class MainWindow(QMainWindow):
         self._lore_index = 1
         self._character_index = 2
         self._relationship_index = 3
+        logger.debug(f"UI Stack Indices: Chapter={self._chapter_index}, Lore={self._lore_index}, Character={self._character_index}, Relationship={self._relationship_index}")
 
         # 5. Main Splitter
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -320,6 +377,8 @@ class MainWindow(QMainWindow):
         # Initialize relationship editor's signals
         self.relationship_editor_panel.set_coordinator_signals(self.coordinator)
 
+        logger.info("UI setup finalized.")
+
     # -------------------------------------------------------------------------
     # Signal Connections
     # -------------------------------------------------------------------------
@@ -330,7 +389,8 @@ class MainWindow(QMainWindow):
         
         :rtype: None
         """
-        
+        logger.info("Connecting all application UI and data components.")
+
         # --- Outline Managers (UI signal OUT -> Coordinator slot IN) ---
         # The outline manager now signals the coordinator to load data
         self.chapter_outline_manager.chapter_selected.connect(self.coordinator.load_chapter)
@@ -344,9 +404,9 @@ class MainWindow(QMainWindow):
         self.character_outline_manager.pre_char_change.connect(self._check_save_before_change)
 
         # --- MainMenuBar Connections (Menu signal OUT -> MainWindow slot IN) ---
-        self.main_menu_bar.new_chapter_requested.connect(self.chapter_repo.create_chapter)
-        self.main_menu_bar.new_lore_requested.connect(self.lore_repo.create_lore_entry)
-        self.main_menu_bar.new_character_requested.connect(self.char_repo.create_character)
+        self.main_menu_bar.new_chapter_requested.connect(self.coordinator.chapter_repo.create_chapter)
+        self.main_menu_bar.new_lore_requested.connect(self.coordinator.lore_repo.create_lore_entry)
+        self.main_menu_bar.new_character_requested.connect(self.coordinator.character_repo.create_character)
 
         self.main_menu_bar.save_requested.connect(self._save_current_item_wrapper)
         self.main_menu_bar.export_requested.connect(self._export)
@@ -368,6 +428,8 @@ class MainWindow(QMainWindow):
         
         self.relationship_outline_manager.relationship_types_updated.connect(self.coordinator.reload_relationship_graph_data)
 
+        logger.info("Component signal connections complete.")
+
     # --- For Creating/Opening other Projects ---
 
     def _request_project_switch(self, is_new: bool) -> None:
@@ -382,12 +444,21 @@ class MainWindow(QMainWindow):
 
         :rtype: None
         """
-        # 1. Check for and save unsaved changes before switching
+        action = "New Project" if is_new else "Open Existing Project"
+        logger.info(f"Project switch requested: {action}. Initiating dirty state check.")
+
+        # Check for and save unsaved changes before switching
+        # The coordinator handles the QMessageBox logic and returns False if the user cancels.
         if not self.coordinator.check_and_save_dirty(parent=self):
+            logger.info(f"User cancelled {action} action during save prompt. Aborting switch.")
             return # User cancelled save dialog
 
-        # 2. Emit the signal to the ApplicationFlowManager
+        logger.debug(f"Dirty check passed. Emitting project close and open signal for: {action}.")
+
+        # Emit the signal to the ApplicationFlowManager (slot: _handle_project_switch_request in main.py)
         self.project_close_and_open_requested.emit(is_new)
+
+        logger.debug(f"Signal emitted to ApplicationFlowManager. Current MainWindow is now closing.")
 
     # -------------------------------------------------------------------------
     # Logic Delegation / Handlers
@@ -400,7 +471,16 @@ class MainWindow(QMainWindow):
         :returns: Returns True if safe to proceed (saved or discarded), False otherwise.
         :rtype: bool
         """
-        return self.coordinator.check_and_save_dirty(parent=self)
+        logger.info("Checking for unsaved changes before selection change...")
+        # The coordinator handles the prompt and returns the result of the user's action
+        is_safe_to_proceed = self.coordinator.check_and_save_dirty(parent=self)
+        
+        if is_safe_to_proceed:
+            logger.debug("Dirty check passed. Safe to proceed with item change.")
+        else:
+            logger.info("Dirty check failed. Item change was cancelled by user.")
+            
+        return is_safe_to_proceed
 
     def _save_current_item_wrapper(self) -> None:
         """
@@ -411,10 +491,35 @@ class MainWindow(QMainWindow):
         item_id = self.coordinator.current_item_id
         view = self.coordinator.current_view
         
+        # Check if there is an active item to save before proceeding
+        if item_id is None:
+            self.statusBar().showMessage("No active item selected or loaded to save.", 3000)
+            logger.warning("Save requested, but no active item (ID is None). Operation aborted.")
+            return
+
+        logger.info(f"Save requested for item ID: {item_id} in view: {view}")
+        
+        # Delegate the save logic to the coordinator
         if self.coordinator.save_current_item(item_id, view, parent=self):
-            item_type = 'Chapter' if view == ViewType.CHAPTER_EDITOR else 'Lore Entry'
-            self.statusBar().showMessage(f"{item_type} ID {item_id} saved successfully.", 3000)
-        # Note: Error messages are handled by the Coordinator via QMessageBox.
+            # Determine the user-friendly name for the item type
+            if view == ViewType.CHAPTER_EDITOR:
+                item_type = 'Chapter'
+            elif view == ViewType.LORE_EDITOR:
+                item_type = 'Lore Entry'
+            elif view == ViewType.CHARACTER_EDITOR:
+                item_type = 'Character'
+            else:
+                item_type = 'Item' # Fallback for other views
+                
+            # Success message in status bar
+            message = f"{item_type} ID {item_id} saved successfully."
+            self.statusBar().showMessage(message, 3000)
+            logger.info(message)
+        else:
+            # Saving failed (e.g., database error). 
+            # Note: QMessageBox errors are handled by the Coordinator, so we just log here.
+            logger.error(f"Failed to save item ID: {item_id} in view: {view}. Check coordinator logs for details.")
+            self.statusBar().showMessage("Error: Failed to save the current item. See logs.", 5000)
 
     def _handle_chapter_loaded(self, chapter_id: int, content: str, tag_names: list[str]) -> None:
         """
@@ -429,17 +534,42 @@ class MainWindow(QMainWindow):
 
         :rtype: None
         """
+        logger.info(f"Chapter load attempt for ID: {chapter_id}.")
 
+        # --- Coordinator-Reported Error Check ---
+        # This check relies on the coordinator embedding a specific error string on failure.
         if "Error Loading Chapter" in content:
+            logger.warning(f"Coordinator signaled a load error for Chapter ID {chapter_id}.")
+            # Use the error content to display the issue directly to the user
             self.chapter_editor_panel.set_html_content(content)
             self.chapter_editor_panel.set_enabled(False)
-            self.statusBar().showMessage(f"Error loading Chapter ID {chapter_id}.")
-        else:
+            self.statusBar().showMessage(f"Error loading Chapter ID {chapter_id}. See editor for details.", 5000)
+            return
+
+        # --- Successful Load & UI Update ---
+        try:
             self.chapter_editor_panel.set_html_content(content)
             self.chapter_editor_panel.set_tags(tag_names)
             self.chapter_editor_panel.set_enabled(True)
-            self.chapter_editor_panel.mark_saved() # Reset dirtiness after load
-            self.statusBar().showMessage(f"Chapter ID {chapter_id} selected and loaded.")
+            self.chapter_editor_panel.mark_saved() # Important: Reset dirtiness after load
+
+            # Success update
+            self.statusBar().showMessage(f"Chapter ID {chapter_id} selected and loaded.", 3000)
+            logger.info(f"Chapter ID {chapter_id} successfully loaded into the editor (tags: {len(tag_names)}).")
+
+        except EditorContentError as e:
+            # --- Critical UI/Editor Error ---
+            # Catches failures that happen *within* the editor widget itself (e.g., malformed HTML)
+            error_message = f"FATAL UI Error loading Chapter ID {chapter_id}: Editor failed to render content."
+            logger.critical(error_message, exc_info=True)
+            
+            QMessageBox.critical(
+                self, 
+                "Editor Load Error", 
+                f"The editor failed to display content for Chapter ID {chapter_id} due to an internal UI issue. Please check the application log for details."
+            )
+            # Ensure the editor is disabled to prevent further interaction after a critical failure
+            self.chapter_editor_panel.set_enabled(False)
 
     def _handle_lore_loaded(self, lore_id: int, title: str, category: str, content: str, tag_names: list[str]) -> None:
         """
@@ -458,17 +588,43 @@ class MainWindow(QMainWindow):
 
         :rtype: None
         """
-        
-        if not title: # Check if loading failed
+        logger.info(f"Lore load attempt for ID: {lore_id}. Title: '{title}'.")
+
+        # Check for Coordinator-Reported Failure (e.g., item not found)
+        if not title: 
+            logger.warning(f"Coordinator signaled a load error for Lore ID {lore_id}. Title was empty.")
+            
+            # Disable the editor panel and report the failure
             self.lore_editor_panel.set_enabled(False)
-            self.statusBar().showMessage(f"Error loading Lore ID {lore_id}.")
+            self.statusBar().showMessage(f"Error: Lore Entry ID {lore_id} could not be loaded.", 5000)
             return
             
-        # The LoreEditor handles setting its internal state (title, category, etc.)
-        self.lore_editor_panel.load_lore(lore_id, title, category, content, tag_names)
-        self.lore_editor_panel.set_enabled(True)
-        self.lore_editor_panel.mark_saved()
-        self.statusBar().showMessage(f"Lore Entry ID {lore_id} selected and loaded.")
+        # Successful Load & UI Update
+        try:
+            # The LoreEditor handles setting its internal state (title, category, content, tags)
+            self.lore_editor_panel.load_lore(lore_id, title, category, content, tag_names)
+            
+            self.lore_editor_panel.set_enabled(True)
+            self.lore_editor_panel.mark_saved() # Reset dirtiness after load
+
+            # Success update
+            self.statusBar().showMessage(f"Lore Entry '{title}' (ID {lore_id}) selected and loaded.", 3000)
+            logger.info(f"Lore Entry ID {lore_id} ('{title}') successfully loaded.")
+            
+        except EditorContentError as e:
+            # Critical UI/Editor Error Handling
+            # Catches failures that happen *within* the editor widget itself (e.g., malformed HTML/UI issue)
+            error_message = f"FATAL UI Error loading Lore ID {lore_id} ('{title}'): Editor failed to render content."
+            logger.critical(error_message, exc_info=True)
+            
+            # Notify user with a critical message box
+            QMessageBox.critical(
+                self, 
+                "Editor Load Error", 
+                f"The editor failed to display content for Lore Entry ID {lore_id} due to an internal UI issue. Please check the application log for details."
+            )
+            # Ensure the editor is disabled to prevent further interaction
+            self.lore_editor_panel.set_enabled(False)
 
     def _update_lore_outline_title(self, lore_id: int, new_title: str) -> None:
         """
@@ -481,14 +637,34 @@ class MainWindow(QMainWindow):
 
         :rtype: None
         """
-        if self.current_view == ViewType.LORE_EDITOR:
-            # Note: Outline Manager must have a helper method to find the item by ID
-            item = self.lore_outline_manager.find_lore_item_by_id(lore_id)
-            if item:
-                # Block signals to prevent _handle_item_renamed from firing back to the repo
-                self.lore_outline_manager.blockSignals(True)
-                item.setText(0, new_title)
-                self.lore_outline_manager.blockSignals(False)
+        display_title = new_title.strip()
+    
+        if not display_title:
+            display_title = f"Untitled Lore Entry (ID {lore_id})"
+            logger.warning(f"Lore ID {lore_id} saved with an empty title. Using placeholder: '{display_title}'.")
+
+        logger.debug(f"Attempting to update outline title for Lore ID {lore_id} to '{display_title}'.")
+
+        # The outline update only needs to happen if the Lore panel is currently active.
+        # If the user is on the Lore view stack, the outline manager should be updated.
+        if self.current_view == ViewType.LORE_EDITOR: 
+            try:
+                item = self.lore_outline_manager.find_lore_item_by_id(lore_id)
+                
+                if item:
+                    # Block signals to prevent the outline's itemChanged signal from firing 
+                    # back to the coordinator/repository, causing a recursive update.
+                    self.lore_outline_manager.blockSignals(True)
+                    item.setText(0, display_title)
+                    self.lore_outline_manager.blockSignals(False)
+                    
+                    logger.info(f"Successfully synchronized Lore Outline title for ID {lore_id}.")
+                else:
+                    logger.warning(f"Lore Outline item not found for ID {lore_id}. Cannot update title.")
+            
+            except Exception as e:
+                # Catch any unexpected low-level GUI error during the update
+                logger.error(f"Critical error during Lore Outline title synchronization for ID {lore_id}.", exc_info=True)
 
     def _handle_character_loaded(self, char_id: int, name: str, description: str, status: str) -> None:
         """
@@ -506,15 +682,40 @@ class MainWindow(QMainWindow):
         :rtype: None
         """
 
+        logger.info(f"Character load attempt for ID: {char_id}. Name: '{name}'.")
+
+        # 1. Check for Coordinator-Reported Failure (e.g., item not found)
         if not name:
+            logger.warning(f"Coordinator signaled a load error for Character ID {char_id}. Name was empty.")
             self.character_editor_panel.set_enabled(False)
-            self.statusBar().showMessage(f"Error loading Character ID {char_id}.")
+            self.statusBar().showMessage(f"Error: Character ID {char_id} could not be loaded.", 5000)
             return
-        
-        self.character_editor_panel.load_character(char_id, name, description, status)
-        self.character_editor_panel.set_enabled(True)
-        self.character_editor_panel.mark_saved()
-        self.statusBar().showMessage(f"Character ID {char_id} selected and loaded.")
+            
+        # 2. Successful Load & UI Update
+        try:
+            # Delegate the actual setting of data (including rich-text description) to the panel
+            self.character_editor_panel.load_character(char_id, name, description, status)
+            
+            self.character_editor_panel.set_enabled(True)
+            self.character_editor_panel.mark_saved() # Reset dirtiness after load
+            
+            # Success update
+            self.statusBar().showMessage(f"Character '{name}' (ID {char_id}) selected and loaded.", 3000)
+            logger.info(f"Character ID {char_id} ('{name}') successfully loaded into the editor.")
+
+        except EditorContentError as e:
+            # 3. Critical UI/Editor Error Handling
+            # Catches failures that happen *within* the editor widget itself
+            error_message = f"FATAL UI Error loading Character ID {char_id} ('{name}'): Editor failed to render content."
+            logger.critical(error_message, exc_info=True)
+            
+            QMessageBox.critical(
+                self, 
+                "Editor Load Error", 
+                f"The editor failed to display content for Character '{name}' (ID {char_id}) due to an internal UI issue. Please check the application log for details."
+            )
+            # Ensure the editor is disabled to prevent further interaction
+            self.character_editor_panel.set_enabled(False)
 
     def _update_character_outline_name(self, char_id: int, new_name: str) -> None:
         """
@@ -527,13 +728,32 @@ class MainWindow(QMainWindow):
 
         :rtype: None
         """
+        display_name = new_name.strip()
+    
+        if not display_name:
+            display_name = f"Untitled Character (ID {char_id})"
+            logger.warning(f"Character ID {char_id} saved with an empty name. Using placeholder: '{display_name}'.")
+
+        logger.debug(f"Attempting to update outline name for Character ID {char_id} to '{display_name}'.")
+
         if self.current_view == ViewType.CHARACTER_EDITOR:
-            item = self.character_outline_manager.find_character_item_by_id(char_id)
-            if item:
-                # Block signals to prevent _handle_item_renamed from firing back to the repo
-                self.character_outline_manager.blockSignals(True)
-                item.setText(0, new_name)
-                self.character_outline_manager.blockSignals(False)
+            try:
+                item = self.character_outline_manager.find_character_item_by_id(char_id)
+                
+                if item:
+                    # Block signals to prevent the outline's itemChanged signal from firing 
+                    # back to the coordinator/repository, causing a recursive update loop.
+                    self.character_outline_manager.blockSignals(True)
+                    item.setText(0, display_name)
+                    self.character_outline_manager.blockSignals(False)
+                    
+                    logger.info(f"Successfully synchronized Character Outline name for ID {char_id}.")
+                else:
+                    logger.warning(f"Character Outline item not found for ID {char_id}. Cannot update name.")
+            
+            except Exception as e:
+                # Catch any unexpected low-level GUI error during the update
+                logger.error(f"Critical error during Character Outline name synchronization for ID {char_id}.", exc_info=True)
     
     # -------------------------------------------------------------------------
     # I/O Handlers (Export/Settings)
@@ -548,18 +768,40 @@ class MainWindow(QMainWindow):
         
         :rtype: None
         """
-        # 1. Check for unsaved changes before exporting
+        logger.info("Export process initiated.")
+        
+        # 1. Check for unsaved changes before exporting. 
+        # If check_and_save_dirty returns False, the user canceled the operation.
         if not self.coordinator.check_and_save_dirty(parent=self):
+            logger.info("Export canceled by user during unsaved changes check.")
+            self.statusBar().showMessage("Export canceled.", 3000)
             return
         
+        logger.debug("All data is saved or discarded. Proceeding to ExporterDialog.")
+            
         # 2. Open the new ExporterDialog
-        dialog = ExporterDialog(coordinator=self.coordinator, parent=self)
-        
-        # Connect the signal from the dialog to a slot in the main window
-        dialog.export_requested.connect(self._perform_export)
+        try:
+            dialog = ExporterDialog(coordinator=self.coordinator, parent=self)
+            
+            # Connect the signal from the dialog to a slot in the main window.
+            # This slot (e.g., `_perform_export`) will execute the export logic 
+            # when the user clicks 'Export' and the dialog closes with QDialog.Accepted.
+            dialog.export_requested.connect(self._perform_export)
 
-        dialog.exec()
-        # Dialog is closed and the signal is handled by _perform_export if accepted
+            # Execute the dialog modally. Control flow blocks until the user closes the dialog.
+            dialog.exec()
+            # The result (accepted/rejected) is handled by the connected signal and its slot.
+
+        except Exception as e:
+            # Catch critical errors during dialog creation or execution
+            logger.critical("FATAL UI Error: Failed to open or run ExporterDialog.", exc_info=True)
+            
+            # Notify the user that the setup failed
+            QMessageBox.critical(
+                self, 
+                "Export Setup Error", 
+                "The export dialogue failed to open due to an internal application error. Check the application log for details."
+            )
         
     def _perform_export(self, export_type: str, selected_ids: list) -> None:
         """
@@ -572,37 +814,65 @@ class MainWindow(QMainWindow):
 
         :rtype: int
         """
+        logger.info(f"Export delegation started: Type='{export_type}', Items selected: {len(selected_ids)}.")
         success = False
-        
-        # You will expand this logic when you introduce other specific exporters
-        match export_type:
-            case ExportType.STORY | ExportType.CHAPTERS:
-                if export_type == ExportType.STORY:
-                    success = self.story_exporter.export(parent=self)
-                else:
-                    if selected_ids:
-                        success = self.story_exporter.export(parent=self, selected_ids=selected_ids)
-                    else:
-                        QMessageBox.warning(self, "Export Error", "No chapters were selected for export.")
-            
-            case ExportType.LORE:
-                if selected_ids:
-                    success = self.lore_exporter.export(parent=self, selected_ids=selected_ids)
-                else:
-                    QMessageBox.warning(self, "Export Error", "No Lore Entries were selected for export.")
 
-            case ExportType.CHARACTERS:
-                if selected_ids:
-                    success = self.character_exporter.export(parent=self, selected_ids=selected_ids)
-                else:
+        try:
+            match export_type:
+                case ExportType.STORY | ExportType.CHAPTERS:
+                    if export_type == ExportType.STORY:
+                        logger.debug("Initiating full story export via StoryExporter.")
+                        success = self.story_exporter.export(parent=self)
+
+                    else:  # ExportType.CHAPTERS
+                        if selected_ids:
+                            logger.debug(f"Initiating chapter export for IDs: {selected_ids}.")
+                            success = self.story_exporter.export(parent=self, selected_ids=selected_ids)
+
+                        else:
+                            logger.warning("Chapter export requested, but no chapters were selected.")
+                            QMessageBox.warning(self, "Export Error", "No chapters were selected for export.")
+
+                case ExportType.LORE:
+                    if selected_ids:
+                        logger.debug(f"Initiating lore export for IDs: {selected_ids}.")
+                        success = self.lore_exporter.export(parent=self, selected_ids=selected_ids)
+
+                    else:
+                        logger.warning("Lore export requested, but no entries were selected.")
+                        QMessageBox.warning(self, "Export Error", "No Lore Entries were selected for export.")
+
+                case ExportType.CHARACTERS:
+                    if selected_ids:
+                        logger.debug(f"Initiating character export for IDs: {selected_ids}.")
+                        success = self.character_exporter.export(parent=self, selected_ids=selected_ids)
+
+                    else:
+                        logger.warning("Character export requested, but no characters were selected.")
                         QMessageBox.warning(self, "Export Error", "No Characters were selected for export.")
 
-            case _:
-                QMessageBox.critical(self, "Export Error", f"Unknown export type: {export_type}")
-                
-        
-        if success:
+                case _:
+                    logger.error(f"Unknown export type received: {export_type}")
+                    QMessageBox.critical(self, "Export Error", f"Unknown export type: {export_type}")
+                    
+        except Exception as e:
+            # Catch unexpected errors during the exporter service execution (e.g., I/O, database failure)
+            logger.critical(f"CRITICAL ERROR during export of type '{export_type}'.", exc_info=True)
+            QMessageBox.critical(
+                self, 
+                "Export Failed", 
+                f"A critical error occurred while exporting '{export_type}'. Check the application log for details."
+            )
+            success = False # Ensure failure state
+
+        # Report final status to the user
+        if success is True:
+            logger.info(f"Export of type '{export_type}' completed successfully.")
             self.statusBar().showMessage(f"{export_type} exported successfully.", 5000)
+        elif success is False:
+            # If success is False, it was either due to a critical error (already shown to user) 
+            # or a benign cancellation (e.g., closing the file dialog) or a handled error (shown as QMessageBox).
+            logger.debug(f"Export of '{export_type}' was canceled or failed gracefully.")
 
     def _open_settings_dialog(self) -> None:
         """
@@ -613,20 +883,51 @@ class MainWindow(QMainWindow):
         :rtype: None
         """
 
-        dialog = SettingsDialog(
-            current_settings=self.current_settings,
-            settings_manager=self.settings_manager,
-            parent=self
+        logger.info("Settings dialog opened.")
+
+        try:
+            # 1. Initialize the dialog with current settings
+            dialog = SettingsDialog(
+                current_settings=self.current_settings,
+                settings_manager=self.settings_manager,
+                parent=self
             )
 
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            new_settings = dialog.get_new_settings()
-            
-            self.settings_manager.save_settings(new_settings)
-            
-            self._apply_settings(new_settings)
-            
-            self.statusBar().showMessage(f"Settings saved and applied. Theme: {self.current_settings['theme']}.", 5000)
+            # 2. Execute the dialog and check the result
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                
+                new_settings = dialog.get_new_settings()
+                
+                # Log the change before committing
+                old_theme = self.current_settings.get('theme', 'N/A')
+                new_theme = new_settings.get('theme', 'N/A')
+                logger.info(f"Settings accepted by user. Theme change: {old_theme} -> {new_theme}.")
+                
+                # 3. Save new settings to disk and update internal reference
+                self.settings_manager.save_settings(new_settings)
+                
+                # CRITICAL: Update the internal reference (`self.current_settings`) 
+                # to point to the saved and returned dictionary, ensuring the main window 
+                # uses the latest values immediately.
+                self.current_settings = new_settings 
+                
+                # 4. Apply non-geometry settings (theme, etc.)
+                self._apply_settings(new_settings)
+                
+                # 5. Provide user feedback
+                self.statusBar().showMessage(f"Settings saved and applied. Theme: {self.current_settings['theme']}.", 5000)
+                
+            else:
+                logger.info("Settings dialog closed without saving (rejected or cancelled).")
+
+        except Exception as e:
+            # Catch unexpected errors during dialog creation or settings processing
+            logger.critical("FATAL ERROR: Failed to process SettingsDialog results.", exc_info=True)
+            QMessageBox.critical(
+                self, 
+                "Settings Error", 
+                "A critical error occurred while saving or applying settings. Changes may be lost. Check the application log."
+            )
 
     def _apply_settings(self, new_settings: dict) -> None:
         """
@@ -637,32 +938,64 @@ class MainWindow(QMainWindow):
 
         :rtype: None
         """
+        logger.info("Applying new application settings.")
+    
+        # 1. Apply component-specific settings (e.g., Words Per Minute)
         old_wpm = self.current_settings.get('words_per_minute', 250)
         new_wpm = new_settings.get('words_per_minute', 250)
 
         if old_wpm != new_wpm:
-            # Update the ChapterEditor with the new WPM setting
+            logger.debug(f"WPM setting changed: {old_wpm} -> {new_wpm}. Updating ChapterEditor.")
             self.chapter_editor_panel.set_wpm(new_wpm)
 
+        # CRITICAL: Update the main window's internal state to the new settings dictionary
         self.current_settings = new_settings
 
-        # Check if theme application was successful
-        if apply_theme(self, self.current_settings):
-            self.current_settings['theme'] = self.current_settings.get("theme", "Dark") 
+        # 2. Apply Theme
+        current_theme = self.current_settings.get('theme', 'Dark')
+        try:
+            # apply_theme utility function handles the heavy lifting
+            if apply_theme(self, self.current_settings):
+                logger.info(f"Theme '{current_theme}' applied successfully.")
+            else:
+                logger.warning(f"Failed to apply theme '{current_theme}'. Check theme utility/files.")
+            
+        except Exception as e:
+            logger.error(f"Critical error during theme application for '{current_theme}'.", exc_info=True)
 
-        window_width = self.current_settings.get('window_width')
-        window_height = self.current_settings.get('window_height')
-        window_pos_x = self.current_settings.get('window_pos_x', 100) # Use saved position, fallback to 100
-        window_pos_y = self.current_settings.get('window_pos_y', 100) # Use saved position, fallback to 100
+        # 3. Apply Window Geometry (Size and Position)
+        window_pos_x = self.current_settings.get('window_pos_x', 100) 
+        window_pos_y = self.current_settings.get('window_pos_y', 100) 
 
-        if window_width and window_height:
-            # Use the dynamically saved geometry (from manual resize/move)
-            self.setGeometry(window_pos_x, window_pos_y, window_width, window_height)
-        else:
-            # Fallback to the preset size string (e.g., '1200x800')
-            window_size_str = self.current_settings['window_size']
-            w, h = map(int, window_size_str.split('x'))
-            self.setGeometry(window_pos_x, window_pos_y, w, h)
+        try:
+            window_width = self.current_settings.get('window_width')
+            window_height = self.current_settings.get('window_height')
+            
+            target_width, target_height = None, None
+
+            if window_width and window_height:
+                # Use the dynamically saved geometry (from manual resize/move)
+                target_width = window_width
+                target_height = window_height
+            else:
+                # Fallback to the preset size string (e.g., '1200x800')
+                window_size_str = self.current_settings.get('window_size', '1200x800')
+                
+                # This is the vulnerable line for ValueError
+                w, h = map(int, window_size_str.split('x'))
+                target_width = w
+                target_height = h
+                
+            if target_width and target_height:
+                self.setGeometry(window_pos_x, window_pos_y, target_width, target_height)
+                logger.debug(f"Window geometry applied: {target_width}x{target_height} at ({window_pos_x}, {window_pos_y}).")
+
+        except ValueError:
+            # Catch errors if 'window_size' string is malformed (e.g., '1200_800' or missing 'x')
+            logger.error(f"Configuration Error: Window size format is malformed. Setting position only to ({window_pos_x}, {window_pos_y}).", exc_info=True)
+            self.move(window_pos_x, window_pos_y)
+        except Exception as e:
+            logger.critical("Unexpected error occurred while applying window geometry.", exc_info=True)
 
     def _save_geometry_to_settings(self):
         """
@@ -675,13 +1008,27 @@ class MainWindow(QMainWindow):
         
         :rtype: None
         """
+        # Defensive check: Ensure the window is fully initialized before trying to save geometry.
+        if not self._is_ready_to_save_geometry:
+            logger.debug("Attempted to save geometry before window was ready. Operation skipped.")
+            return
+
         # Get the geometry of the non-frame window (content area)
         rect = self.geometry()
+        
+        new_width = rect.width()
+        new_height = rect.height()
+        new_pos_x = rect.x()
+        new_pos_y = rect.y()
 
-        self.current_settings['window_width'] = rect.width()
-        self.current_settings['window_height'] = rect.height()
-        self.current_settings['window_pos_x'] = rect.x()
-        self.current_settings['window_pos_y'] = rect.y()
+        # Log the update for traceability (using DEBUG level as this happens frequently)
+        logger.debug(
+            f"Updating internal geometry state: WxH={new_width}x{new_height}, "
+            f"Pos=({new_pos_x}, {new_pos_y})."
+        )
 
-        # Persist the updated settings immediately
-        self.settings_manager.save_settings(self.current_settings)
+        # Update the internal settings dictionary
+        self.current_settings['window_width'] = new_width
+        self.current_settings['window_height'] = new_height
+        self.current_settings['window_pos_x'] = new_pos_x
+        self.current_settings['window_pos_y'] = new_pos_y
