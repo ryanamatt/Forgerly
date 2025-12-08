@@ -497,6 +497,11 @@ class MainWindow(QMainWindow):
         
         :rtype: None
         """
+
+        #________
+        # NOTE THIS FUNCTION FAILS TO SAVE TAGS  (TAGS)
+        # TREAT THEM AS VIEWS
+
         item_id = self.coordinator.current_item_id
         view = self.coordinator.current_view
         
