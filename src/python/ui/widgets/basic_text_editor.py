@@ -164,9 +164,9 @@ class BasicTextEditor(QWidget):
         
         :rtype: None
         """
-        content = self.editor.toPlainText()
-        logger.debug(f"Retrieving Plain Text content. Length: {len(content)} characters.")
-        return content
+        selected_text = self.editor.textCursor().selectedText()
+        logger.debug(f"Retrieving Selected Text content. Length: {len(selected_text)} characters.")
+        return selected_text
 
         # --- Loggers ---
     def _log_selection_change(self) -> None:

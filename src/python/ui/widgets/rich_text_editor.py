@@ -437,6 +437,9 @@ class RichTextEditor(BasicTextEditor):
 
         :rtype: None
         """
+        was_blocked = self.editor.signalsBlocked()
+        self.editor.blockSignals(True)
+
         try:
             format = self.editor.currentCharFormat()
             
@@ -459,6 +462,10 @@ class RichTextEditor(BasicTextEditor):
         except Exception as e:
             logger.warning(f"Failed to update toolbar: {e}", exc_info=True)
             QMessageBox.warning(self, "Update Toolbar Error", "Failed to Update Toolbar due to a UI issue.")
+
+        finally:
+            if not was_blocked:
+                self.editor.blockSignals(False)
 
     def _align_text(self, alignment: Qt.AlignmentFlag) -> None:
         """
