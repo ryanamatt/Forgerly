@@ -625,17 +625,27 @@ class RichTextEditor(BasicTextEditor):
         :type event: :py:class:`PyQt6.QtGui.QKeyEvent`
         :rtype: None
         """
-        is_ctrl_shift = event.modifiers() == (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier)
-        is_L_key = event.key() == Qt.Key.Key_L
+        try:
+            is_ctrl_shift = event.modifiers() == (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier)
+            is_L_key = event.key() == Qt.Key.Key_L
 
-        if is_ctrl_shift and is_L_key:
-            selected_text = self.get_selected_text().strip()
+            if is_ctrl_shift and is_L_key:
+                selected_text = self.get_selected_text().strip()
 
-            if selected_text:
-                self.popup_lookup_requested.emit(selected_text)
+                if selected_text:
+                    self.popup_lookup_requested.emit(selected_text)
 
-                event.accept()
-                logger.debug("Press Ctrl+Shft+L Lookup Key Sequence")
+                    event.accept()
+                    logger.debug(f"Lookup shortcut (Ctrl+Shift+L) activated for text: '{selected_text[:30]}...'")
+
+                else:
+                    logger.debug("Lookup shortcut pressed, but no text selected.")
+
                 return
-            
-        super().keyPressEvent(event)
+                
+            super().keyPressEvent(event)
+
+        except Exception as e:
+            # Catch errors only for the custom logic, not basic key events
+            logger.error(f"Error occurred in RichTextEditor keyPressEvent: {e}", exc_info=True)
+            event.ignore() # Ignore the event to prevent further processing
