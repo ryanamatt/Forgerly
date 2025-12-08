@@ -5,6 +5,10 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import pyqtSignal
 
+from ...utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 class BasicTextEditor(QWidget):
     """
     A composite :py:class:`~PyQt6.QtWidgets.QWidget` that serves as a basic
@@ -36,6 +40,8 @@ class BasicTextEditor(QWidget):
         """
         super().__init__(parent)
 
+        logger.debug("Initializing BasicTextEditor widget.")
+
         # State tracking for unsaved changes
         self._is_dirty = False
         self._last_saved_content = ""
@@ -64,6 +70,7 @@ class BasicTextEditor(QWidget):
         """
         if not self._is_dirty:
             self._is_dirty = True
+            logger.debug("BasicTextEditor content changed. Dirty flag set to True.")
 
     def is_dirty(self) -> bool:
         """
@@ -81,6 +88,7 @@ class BasicTextEditor(QWidget):
         """
         self._is_dirty = False
         self._last_saved_content = self.editor.toHtml()
+        logger.debug(f"BasicTextEditor content marked as saved.")
 
     # --- Public Accessors for Content ---
 
@@ -110,6 +118,8 @@ class BasicTextEditor(QWidget):
         
         # Manually reset the dirty state after a successful load
         self.mark_saved()
+
+        logger.debug(f"BasicTextEditor content set and marked clean. Content length: {len(html_content)} bytes.")
 
     def get_plain_text(self) -> str:
         """

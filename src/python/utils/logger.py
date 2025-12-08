@@ -9,6 +9,14 @@ LOG_FILE = os.path.join(LOG_DIR, 'application.log')
 LOG_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
 LOG_BACKUP_COUNT = 5
 
+def _clear_log_file() -> None:
+    """Deletes the existing log file to start a fresh log on startup."""
+    try:
+        if os.path.exists(LOG_FILE):
+            os.remove(LOG_FILE)
+    except Exception as e:
+        pass
+
 def setup_logger(debug_mode: bool | None = None) -> logging.Logger:
     """
     Configures and returns the application's central logger based on debug_mode.
@@ -20,6 +28,8 @@ def setup_logger(debug_mode: bool | None = None) -> logging.Logger:
     :rtype: :py:class:`~logging.Logger`
     """
     os.makedirs(LOG_DIR, exist_ok=True)
+
+    _clear_log_file()
 
     log_level = logging.DEBUG if debug_mode is True else logging.INFO
 
@@ -46,15 +56,15 @@ def setup_logger(debug_mode: bool | None = None) -> logging.Logger:
         encoding='utf-8'
     )
     # The file should always capture INFO and above for post-crash analysis
-    file_handler.setLevel(logging.INFO) 
+    file_handler.setLevel(log_level) 
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
 
     # Console Handler: for immediate, visible feedback
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(log_level) # Uses the determined level (DEBUG or INFO)
-    console_handler.setFormatter(console_formatter)
-    logger.addHandler(console_handler)
+    # console_handler = logging.StreamHandler()
+    # console_handler.setLevel(log_level) # Uses the determined level (DEBUG or INFO)
+    # console_handler.setFormatter(console_formatter)
+    # logger.addHandler(console_handler)
 
     return logger
 

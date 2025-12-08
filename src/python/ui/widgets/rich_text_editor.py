@@ -10,6 +10,9 @@ from PyQt6.QtGui import (
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
 
 from .basic_text_editor import BasicTextEditor
+from ...utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 class RichTextEditor(BasicTextEditor):
     """
@@ -45,6 +48,8 @@ class RichTextEditor(BasicTextEditor):
         :rtype: None
         """
         super().__init__(parent)
+
+        logger.debug("Initializing RichTextEditor (including its toolbar).")
 
         # Map display names to their corresponding QTextFormat block level
         self._block_style_map = {
@@ -273,6 +278,7 @@ class RichTextEditor(BasicTextEditor):
         format.setFontWeight(weight)
         self.editor.mergeCurrentCharFormat(format)
         self._set_dirty()
+        logger.debug("Toggle Bold")
         
     def _toggle_italic(self) -> None:
         """
@@ -284,6 +290,7 @@ class RichTextEditor(BasicTextEditor):
         format.setFontItalic(not format.fontItalic())
         self.editor.mergeCurrentCharFormat(format)
         self._set_dirty()
+        logger.debug("Toggle Italic")
 
     def _toggle_underline(self) -> None:
         """
@@ -295,6 +302,7 @@ class RichTextEditor(BasicTextEditor):
         format.setFontUnderline(not format.fontUnderline())
         self.editor.mergeCurrentCharFormat(format)
         self._set_dirty()
+        logger.debug("Toggle Underline")
 
     def _select_text_color(self) -> None:
         """
@@ -313,6 +321,7 @@ class RichTextEditor(BasicTextEditor):
             char_format.setForeground(QBrush(color))
             self.editor.textCursor().mergeCharFormat(char_format)
             self._set_dirty()
+            logger.debug("Select Text Color")
 
     def _select_highlight_color(self) -> None:
         """
@@ -332,6 +341,7 @@ class RichTextEditor(BasicTextEditor):
             char_format.setBackground(QBrush(color))
             self.editor.textCursor().mergeCharFormat(char_format)
             self._set_dirty()
+            logger.debug("Select Highlight Color")
          
 
     def _toggle_list(self, list_style: QTextListFormat.Style) -> None:
@@ -351,11 +361,13 @@ class RichTextEditor(BasicTextEditor):
             block_format = QTextBlockFormat()
             block_format.setIndent(0) # Remove list indentation
             cursor.setBlockFormat(block_format)
+            logger.debug("Un-Toggle Ordered List")
         else:
             # Apply the new list style
             list_format = QTextListFormat()
             list_format.setStyle(list_style)
             cursor.createList(list_format)
+            logger.debug("Toggle Ordered List")
 
     def _update_toolbar_state(self) -> None:
         """
@@ -391,6 +403,7 @@ class RichTextEditor(BasicTextEditor):
         """
         self.editor.setAlignment(alignment)
         self._set_dirty()
+        logger.debug("Align Text")
 
     def _adjust_indent(self, direction: int) -> None:
         """
@@ -422,6 +435,7 @@ class RichTextEditor(BasicTextEditor):
             cursor.setBlockFormat(block_format)
             self.editor.setTextCursor(cursor)
             self._set_dirty()
+            logger.debug("Adjust Indent")
 
     def _clear_formatting(self) -> None:
         """
@@ -455,6 +469,7 @@ class RichTextEditor(BasicTextEditor):
             
         self.editor.setTextCursor(cursor) 
         self._set_dirty()
+        logger.debug("Clear Formatting")
 
     def _update_format_controls(self) -> None:
         """
@@ -532,6 +547,7 @@ class RichTextEditor(BasicTextEditor):
                 self.popup_lookup_requested.emit(selected_text)
 
                 event.accept()
+                logger.debug("Press Ctrl+Shft+L Lookup Key Sequence")
                 return
             
         super().keyPressEvent(event)
