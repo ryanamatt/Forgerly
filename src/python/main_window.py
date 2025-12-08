@@ -52,11 +52,15 @@ class MainWindow(QMainWindow):
     5. **Settings/Theming:** Loading and saving window geometry and applying the current theme.
     """
 
-    project_close_and_open_requested = pyqtSignal(bool) 
+    project_open_requested = pyqtSignal() 
     """
     :py:class:`~PyQt6.QtCore.pyqtSignal` (bool): Emitted when the user selects 
-    'New Project' or 'Open Project' from the file menu. 
-    The boolean payload is True for 'New Project', False for 'Open Project'.
+    'Open Project' from the file menu. 
+    """
+    project_new_requested = pyqtSignal()
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (bool): Emitted when the user selects 
+    'New Project' from the file menu. 
     """
 
     def __init__(self, project_settings: dict[str, Any], settings_manager: SettingsManager, db_connector: DBConnector,
@@ -312,7 +316,9 @@ class MainWindow(QMainWindow):
             # Standard editors (Chapter, Lore, Character) should be disabled 
             # until a specific item is selected from the outline.
             editor.set_enabled(False)
-            logger.debug(f"{self.current_view.name} editor disabled (awaiting item selection).")
+            logger.debug(f"{self.current_view} editor disabled (awaiting item selection).")
+
+        self.main_menu_bar.update_view_checkmarks(current_view=self.current_view)
 
     # -------------------------------------------------------------------------
     # UI Setup
@@ -451,12 +457,15 @@ class MainWindow(QMainWindow):
         # The coordinator handles the QMessageBox logic and returns False if the user cancels.
         if not self.coordinator.check_and_save_dirty(parent=self):
             logger.info(f"User cancelled {action} action during save prompt. Aborting switch.")
-            return # User cancelled save dialog
+            return
 
         logger.debug(f"Dirty check passed. Emitting project close and open signal for: {action}.")
 
         # Emit the signal to the ApplicationFlowManager (slot: _handle_project_switch_request in main.py)
-        self.project_close_and_open_requested.emit(is_new)
+        if is_new:
+            self.project_new_requested.emit()
+        if is_new ==False:
+            self.project_open_requested.emit()
 
         logger.debug(f"Signal emitted to ApplicationFlowManager. Current MainWindow is now closing.")
 

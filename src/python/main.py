@@ -116,7 +116,8 @@ class ApplicationFlowManager:
             db_connector=db_connector
         )
 
-        self.main_window.project_close_and_open_requested.connect(self._handle_project_switch_request)
+        self.main_window.project_open_requested.connect(lambda: self._handle_project_switch_request(is_new=False))
+        self.main_window.project_new_requested.connect(lambda: self._handle_project_switch_request(is_new=True))
 
         self.main_window.show()
 
@@ -130,7 +131,7 @@ class ApplicationFlowManager:
         :rtype: None
         """
         # The MainWindow has already checked for and handled dirty state
-        
+
         # 'show_start_menu' will close 'main_window' and clear 'last_project_path'
         # The 'is_new' flag is passed to potentially open the dialog immediately
         self.show_start_menu(is_new_project=is_new)

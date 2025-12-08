@@ -14,6 +14,10 @@ from PyQt6.QtGui import QIcon
 from .services.settings_manager import SettingsManager
 
 from .utils._version import __version__
+from .utils.exceptions import ConfigurationError
+from .utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 class StartMenuWindow(QMainWindow):
     """
@@ -48,6 +52,8 @@ class StartMenuWindow(QMainWindow):
         self._create_widgets()
         self._create_layouts()
         self._create_signals()
+
+        logger.debug("Start Menu window initialized.")
 
     def _create_widgets(self) -> None:
         """
@@ -148,10 +154,12 @@ class StartMenuWindow(QMainWindow):
             (project_path / "config").mkdir(parents=True, exist_ok=True)
             (project_path / "assets").mkdir(parents=True, exist_ok=True)
             (project_path / "exports").mkdir(parents=True, exist_ok=True)
+            logger.debug("Subdirectories created.")
 
             # 2. Create database file (empty placeholder for now)
             db_path = project_path / f"{project_name}.db"
             db_path.touch()
+            logger.debug(f"Database file created at '{db_path}'.")
 
             # 3. Create config file (JSON with .nfp extension)
             config_path = project_path / "config" / "Project_Settings.nfp"
@@ -162,19 +170,22 @@ class StartMenuWindow(QMainWindow):
             }
             with open(config_path, 'w', encoding='utf-8') as f:
                 json.dump(initial_config, f, indent=4)
+            logger.debug(f"Configuration file created at '{config_path}'.")
 
             return True
 
         except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Project Creation Error",
-                f"Failed to create project files and folders at '{project_path}'.\nError: {e}"
-            )
-            # Clean up the partially created directory if possible
+            logger.error(f"Failed to scaffold project files for '{project_name}' at '{project_path}'", exc_info=True)
+            
             if project_path.is_dir():
-                shutil.rmtree(project_path)
-            return False
+                logger.warning(f"Attempting to clean up partially created directory: {project_path}")
+                shutil.rmtree(project_path, ignore_errors=True) 
+                logger.warning("Cleanup complete (or ignored errors).")
+                
+            raise ConfigurationError(
+                message="Failed to create project files (database, config, or subfolders). Check permissions or disk space.",
+                original_exception=e
+            )
 
     def _create_new_project(self) -> None:
         """
@@ -183,60 +194,80 @@ class StartMenuWindow(QMainWindow):
         
         :rtype: None
         """
-        # 1. Get the parent folder where the new project folder will be created.
-        parent_dir_str = QFileDialog.getExistingDirectory(
-            self,
-            "Select Parent Location for New Project Folder",
-            os.path.expanduser("~") # Starting directory
-        )
+        logger.info("New project creation initiated.")
 
-        if not parent_dir_str:
-            return # User cancelled directory selection
-
-        # 2. Prompt for the new project name
-        project_name, ok = QInputDialog.getText(
-            self,
-            "New Project Name",
-            "Enter the name for your new project:",
-            echo=QLineEdit.EchoMode.Normal,
-        )
-
-        if not ok or not project_name:
-            return # User cancelled or entered empty name
-
-        # Basic sanitization for directory name (replace spaces with underscores)
-        folder_name = project_name.strip().replace(" ", "_").replace("\\", "").replace("/", "")
-        if not folder_name:
-            QMessageBox.warning(self, "Invalid Name", "The project name resulted in an invalid folder name.")
-            return
-
-        # 3. Define the final project path
-        project_path = Path(parent_dir_str) / folder_name
-        
-        # Check if folder already exists
-        if project_path.exists():
-            QMessageBox.warning(
-                self, 
-                "Project Exists", 
-                f"A folder named '{folder_name}' already exists in the selected location. Please choose a different name or location."
-            )
-            return
-
-        # 4. Create the root project folder
         try:
+            # Get the parent folder where the new project folder will be created.
+            parent_dir_str = QFileDialog.getExistingDirectory(
+                self,
+                "Select Parent Location for New Project Folder",
+                os.path.expanduser("~") # Starting directory
+            )
+
+            if not parent_dir_str:
+                logger.info("New project creation cancelled during directory selection.")
+                return # User cancelled directory selection
+
+            # Prompt for the new project name
+            project_name, ok = QInputDialog.getText(
+                self,
+                "New Project Name",
+                "Enter the name for your new project:",
+                echo=QLineEdit.EchoMode.Normal,
+            )
+
+            if not ok or not project_name:
+                logger.info("New project creation cancelled during name input.")
+                return # User cancelled or entered empty name
+
+            # Basic sanitization for directory name (replace spaces with underscores)
+            folder_name = project_name.strip().replace(" ", "_").replace("\\", "").replace("/", "")
+            
+            if not folder_name:
+                logger.warning(f"Project name '{project_name}' resulted in an invalid folder name.")
+                QMessageBox.warning(self, "Invalid Name", "The project name resulted in an invalid folder name.")
+                return
+
+            # Define the final project path
+            project_path = Path(parent_dir_str) / folder_name
+            logger.debug(f"Target project path: {project_path}")
+            
+            # Check if folder already exists
+            if project_path.exists():
+                logger.warning(f"Target folder already exists: {project_path}")
+                QMessageBox.warning(
+                    self, 
+                    "Project Exists", 
+                    f"A folder named '{folder_name}' already exists in the selected location. Please choose a different name or location."
+                )
+                return
+
+            # Create the root project folder
             project_path.mkdir(parents=True, exist_ok=False)
+            logger.info(f"Project root folder created: {project_path}")
+
+            # Scaffold the internal structure
+            self._scaffold_project(project_path, project_name)
+
+            # Emit the signal with the path to the newly created project folder
+            logger.info(f"Successfully created and opening new project: {project_path}")
+            self.project_opened.emit(str(project_path))
+        
+        except ConfigurationError as ce:
+            # Catch ConfigurationError specifically from _scaffold_project
+            QMessageBox.critical(
+                self,
+                "Project Creation Error",
+                ce.user_message
+            )
         except Exception as e:
+            # Catch I/O, permissions, or disk errors during root folder creation
+            logger.error(f"Failed to create project folder or structure at '{project_path}'", exc_info=True)
             QMessageBox.critical(
                 self,
                 "Folder Creation Error",
-                f"Could not create the project folder at '{project_path}'.\nError: {e}"
+                f"Could not create the project folder at '{project_path}'.\nDetails: Please check write permissions and disk space."
             )
-            return
-
-        # 5. Scaffold the internal structure
-        if self._scaffold_project(project_path, project_name):
-            # 6. Emit the signal with the path to the newly created project folder
-            self.project_opened.emit(str(project_path))
 
     def _open_existing_project(self):
         """
@@ -244,7 +275,7 @@ class StartMenuWindow(QMainWindow):
         
         :rtype: None
         """
-        # We will use folder selection for simplicity, assuming the folder is the project root.
+        logger.info("Open existing project initiated.")
         project_path = QFileDialog.getExistingDirectory(
             self,
             "Select Existing Project Folder",
@@ -252,5 +283,8 @@ class StartMenuWindow(QMainWindow):
         )
 
         if project_path:
+            logger.info(f"Existing project folder selected: {project_path}")
             # The AppCoordinator will handle validating the path and opening the project.
             self.project_opened.emit(project_path)
+        else:
+            logger.info("Open existing project cancelled.")
