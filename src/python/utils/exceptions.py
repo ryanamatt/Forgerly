@@ -27,3 +27,10 @@ class EditorContentError(ApplicationError):
     content from a text editor (BasicTextEditor/RichTextEditor).
     """
     pass
+
+class ConfigurationError(ApplicationError):
+    """
+    Raised when there is an issue loading, saving, or parsing
+    application settings (e.g., malformed JSON, file permissions, I/O errors).
+    """
+    pass
