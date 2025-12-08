@@ -83,19 +83,24 @@ class SettingsManager:
         :returns: A dictionary containing the complete, merged application settings.
         :rtype: dict[str, Any]
         """
-        settings = self._load_json(self._DEFAULT_FILE)
-
-        try:
-            # Load user settings and update the defaults
-            if os.path.exists(self._USER_FILE):
-                user_settings = self._load_json(self._USER_FILE)
-                settings.update(user_settings)
-                
-            return settings
+        logger.debug("Attempting to load settings.")
         
-        except Exception as e:
-                logger.critical(f"FATAL: Failed to load from the settings file.", exc_info=True)
-                raise ConfigurationError("A critical application file is missing and cannot be created.") from e
+        # 1. Load Defaults (must exist and be valid)
+        default_settings = self.get_default_settings() 
+        
+        # 2. Load User Overrides (may not exist, handled by _load_json returning {})
+        user_settings = self._load_json(self._USER_FILE)
+        
+        # 3. Merge: Start with a copy of defaults and update with user overrides
+        merged_settings = default_settings.copy()
+        merged_settings.update(user_settings)
+        
+        logger.info(f"Settings loaded and merged successfully. Keys: {len(merged_settings)}.")
+        
+        # CRITICAL FIX: The save_settings call is absent here.
+        # This prevents the repetitive loading/saving loop.
+        
+        return merged_settings
     
     def save_settings(self, settings: dict[str, Any]) -> bool:
         """
@@ -110,18 +115,11 @@ class SettingsManager:
         :returns: True if the save operation was successful, False otherwise.
         :rtype: bool
         """
-        # Load defaults to only save *changes* in the user file
-        defaults = self.get_default_settings()
-        user_changes = {k: v for k, v in settings.items() if v != defaults.get(k)}
-        
         try:
+            logger.info(f"Attempting to save {len(settings)} user-defined settings to {self._USER_FILE}.")
             with open(self._USER_FILE, 'w') as f:
-                json.dump(user_changes, f, indent=4)
-
+                json.dump(settings, f, indent=4)
             logger.info("User settings saved successfully.")
-
-            return True
-
         except Exception as e:
             logger.error(f"CRITICAL: Failed to save user settings to {self._USER_FILE}.", exc_info=True)
             raise ConfigurationError("Failed to save application settings. Changes may be lost.") from e

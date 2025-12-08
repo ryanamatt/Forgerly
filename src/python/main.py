@@ -149,7 +149,6 @@ def main() -> None:
 
     setup_logger(debug_mode=DEBUG_MODE)
     logger = get_logger(__name__)
-
     install_system_exception_hook()
 
     logger.info("Narrative Forge application is starting up.")

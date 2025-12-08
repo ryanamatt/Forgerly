@@ -1,8 +1,12 @@
 {
+    "debug_mode": true,
     "last_project_path": "C:/Users/corym/OneDrive/Desktop/narrative-forge/projects/Test",
+    "theme": "Dark",
+    "window_size": "1200x800",
     "outline_width_pixels": 264,
     "window_width": 1221,
     "window_height": 741,
-    "window_pos_x": 319,
-    "window_pos_y": 185
+    "window_pos_x": 2094,
+    "window_pos_y": 253,
+    "words_per_minute": 250
 }
