@@ -4,6 +4,10 @@ from PyQt6.QtWidgets import QTreeWidget, QAbstractItemView, QTreeWidgetItem, QMe
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QDropEvent
 
+from ...utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 class LoreTreeWidget(QTreeWidget):
     """
     A custom :py:class:`~PyQt6.QtWidgets.TreeWidget` that is used to manage
@@ -36,30 +40,59 @@ class LoreTreeWidget(QTreeWidget):
         self.setDropIndicatorShown(True)
         self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
 
+        logger.debug(f"LoreTreeWidget initialized with ID role {self.id_role}")
+
     def dropEvent(self, event: QDropEvent) -> None:
         """
         Handles the drop event: moves the item visually and updates the database.
 
         :rtype: None
         """
-        super().dropEvent(event)
+        try:
+            # Allow the base QTreeWidget to handle the visual move
+            super().dropEvent(event)
+            logger.info("Lore item drop event handled visually.")
 
-        dropped_item: QTreeWidgetItem | None = self.currentItem()
+            # Get the item that was just dropped (it will be the current item)
+            dropped_item: QTreeWidgetItem | None = self.currentItem()
 
-        if not dropped_item: return
+            if not dropped_item: 
+                logger.debug("Drop event: No current item after drop. Ignoring.")
+                return
 
-        lore_id = dropped_item.data(0, self.id_role)
+            lore_id = dropped_item.data(0, self.id_role)
 
-        if lore_id is None: return
+            if lore_id is None: 
+                logger.warning(f"Drop event: Dropped item has no associated ID in role {self.id_role}. Ignoring.")
+                return
 
-        new_parent_item: QTreeWidgetItem | None = dropped_item.parent()
-        new_parent_id: int | None = None
+            # Determine the new parent
+            new_parent_item: QTreeWidgetItem | None = dropped_item.parent()
+            new_parent_id: int | None = None # The None value represents the root of the tree (NULL parent ID in DB)
 
-        if new_parent_item:
-            if new_parent_item.data(0, self.root_item_role):
-                new_parent_id = None
+            if new_parent_item:
+                # If the new parent item is the root placeholder, the ID should be NULL
+                if new_parent_item.data(0, self.id_role) == self.root_item_role:
+                    new_parent_id = None
+                    logger.debug(f"Lore ID {lore_id} dropped under the virtual root.")
+                else:
+                    # Otherwise, get the ID of the actual new parent lore entry
+                    new_parent_id = new_parent_item.data(0, self.id_role)
+                    logger.debug(f"Lore ID {lore_id} dropped under parent ID {new_parent_id}.")
             else:
-                new_parent_id = new_parent_item.data(0, self.id_role)
+                # Dropped at the top level (no parent item), which corresponds to the virtual root
+                new_parent_id = None
+                logger.debug(f"Lore ID {lore_id} dropped at the top level (None parent).")
 
-        if lore_id is not None:
+            # Emit the signal to notify the manager/repository to update the DB
+            logger.info(f"Signal: lore_parent_id_updated emitted (Lore ID: {lore_id}, New Parent ID: {new_parent_id})")
             self.lore_parent_id_updated.emit(lore_id, new_parent_id)
+        
+        except Exception as e:
+            logger.error(f"An unexpected error occurred during the drop operation on LoreTreeWidget.", exc_info=True)
+            # Display an error message to the user
+            QMessageBox.critical(
+                self,
+                "Lore Hierarchy Error",
+                "An internal error occurred while attempting to change the lore entry's hierarchy."
+            )
