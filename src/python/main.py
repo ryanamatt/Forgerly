@@ -159,7 +159,7 @@ def main() -> None:
     app = QApplication(sys.argv)
 
     # Start the application flow
-    ApplicationFlowManager(app, settings_manager=settings_manager)
+    appFlowManager = ApplicationFlowManager(app, settings_manager=settings_manager)
 
     sys.exit(app.exec())
 
