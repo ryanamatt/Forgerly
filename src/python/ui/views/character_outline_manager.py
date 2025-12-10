@@ -8,7 +8,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 
 from ...repository.character_repository import CharacterRepository
 
-class CharacterOutlineManager(QWidget):
+class CharacterOutlineManager(QTreeWidget):
     """
     A custom widget for managing the outline and hierarchy of Characters.
     
