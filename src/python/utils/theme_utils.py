@@ -74,7 +74,6 @@ def apply_theme(app_window: HasStyleSheet, settings: dict[str, Any]) -> bool:
                 # Apply the stylesheet to the QMainWindow
                 app_window.setStyleSheet(f.read())
             
-            print(f"Theme applied: {theme_name}")
             return True
 
         except Exception as e:

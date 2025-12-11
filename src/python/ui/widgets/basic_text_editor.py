@@ -1,9 +1,14 @@
 # src/python/basic_text_editor.py
 
 from PyQt6.QtWidgets import (
-    QTextEdit, QWidget, QVBoxLayout,
+    QTextEdit, QWidget, QVBoxLayout, QMessageBox
 )
 from PyQt6.QtCore import pyqtSignal
+
+from ...utils.logger import get_logger
+from ...utils.exceptions import EditorContentError
+
+logger = get_logger(__name__)
 
 class BasicTextEditor(QWidget):
     """
@@ -36,6 +41,8 @@ class BasicTextEditor(QWidget):
         """
         super().__init__(parent)
 
+        logger.debug("Initializing BasicTextEditor widget.")
+
         # State tracking for unsaved changes
         self._is_dirty = False
         self._last_saved_content = ""
@@ -53,6 +60,16 @@ class BasicTextEditor(QWidget):
         self.editor.textChanged.connect(self._set_dirty)
         self.editor.textChanged.connect(self.content_changed.emit)
         self.editor.selectionChanged.connect(self.selection_changed.emit)
+        self.editor.selectionChanged.connect(self._log_selection_change)
+
+    def __del__(self) -> None:
+        """
+        Logs the destruction of the widget.
+
+        :rtype: None
+        """
+        logger.debug(f"BasicTextEditor instance being destroyed (collected by GC or deleted).")
+        super().__del__()
 
     # --- Dirty Flag Management ---
 
@@ -64,6 +81,10 @@ class BasicTextEditor(QWidget):
         """
         if not self._is_dirty:
             self._is_dirty = True
+            self.content_changed.emit()
+            logger.debug("BasicTextEditor content changed. Dirty flag set to True.")
+        else:
+            logger.debug("BasicTextEditor content changed, but already dirty (state remains True).")
 
     def is_dirty(self) -> bool:
         """
@@ -79,8 +100,15 @@ class BasicTextEditor(QWidget):
         
         :rtype: None
         """
-        self._is_dirty = False
-        self._last_saved_content = self.editor.toHtml()
+        try:
+            self._is_dirty = False
+            self._last_saved_content = self.editor.toHtml()
+            logger.debug(f"BasicTextEditor content marked as saved.")
+
+        except Exception as e:
+            logger.warning(f"Failed to Mark the Text Editor as saved: {e}", exc_info=True)
+            QMessageBox.warning(self, "Mark Save Error", "Failed to Mark Saved due to a UI issue.")
+
 
     # --- Public Accessors for Content ---
 
@@ -90,7 +118,9 @@ class BasicTextEditor(QWidget):
         
         :rtype: str
         """
-        return self.editor.toHtml()
+        content = self.editor.toHtml()
+        logger.debug(f"Retrieving HTML content. Length: {len(content)} bytes.") 
+        return content
 
     def set_html_content(self, html_content: str) -> None:
         """
@@ -103,13 +133,22 @@ class BasicTextEditor(QWidget):
 
         :rtype: None
         """
-        # Block signals to prevent _set_dirty from firing during load
-        self.editor.blockSignals(True) 
-        self.editor.setHtml(html_content)
-        self.editor.blockSignals(False) 
-        
-        # Manually reset the dirty state after a successful load
-        self.mark_saved()
+        if not isinstance(html_content, str):
+            logger.error(f"FATAL: set_html_content received non-string content of type: {type(html_content)}.")
+            raise TypeError("Editor content must be a string (HTML or plain text).")
+
+        try:
+            # Block signals to prevent _set_dirty from firing during load
+            self.editor.blockSignals(True) 
+            self.editor.setHtml(html_content)
+            self.editor.blockSignals(False) 
+            # Manually reset the dirty state after a successful load
+            self.mark_saved()
+            logger.debug(f"BasicTextEditor content set and marked clean. Content length: {len(html_content)} bytes.")
+        except Exception as e:
+            # Catch any underlying QWidget/PyQt error and re-raise it as EditorContentError
+            logger.error(f"FATAL: Failed to set HTML content in BasicTextEditor.", exc_info=True)
+            raise EditorContentError("Failed to display content in the editor due to an internal error.") from e
 
     def get_plain_text(self) -> str:
         """
@@ -125,4 +164,21 @@ class BasicTextEditor(QWidget):
         
         :rtype: None
         """
-        return self.editor.textCursor().selectedText()
+        selected_text = self.editor.textCursor().selectedText()
+        logger.debug(f"Retrieving Selected Text content. Length: {len(selected_text)} characters.")
+        return selected_text
+
+        # --- Loggers ---
+    def _log_selection_change(self) -> None:
+        """
+        Helper to log selection changes before emitting the public signal.
+        
+        :rttype: None
+        """
+        # Check if the cursor is active/selected before emitting/logging
+        if self.editor.textCursor().hasSelection():
+            logger.debug("Text selection changed (active selection).")
+        else:
+            logger.debug("Cursor position changed (no active selection).")
+        
+        self.selection_changed.emit()

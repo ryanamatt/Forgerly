@@ -3,6 +3,10 @@
 import json
 import os
 from typing import Any
+from ..utils.logger import get_logger
+from ..utils.exceptions import ConfigurationError
+
+logger = get_logger(__name__)
 
 class SettingsManager:
     """
@@ -28,8 +32,15 @@ class SettingsManager:
         
         :rtype: None
         """
-        os.makedirs(self._CONFIG_DIR, exist_ok=True)
+        try:
+            os.makedirs(self._CONFIG_DIR, exist_ok=True)
+
+        except Exception as e:
+            logger.critical(f"FATAL: Failed to create config directory '{self._CONFIG_DIR}'. Check permissions.", exc_info=True)
+            raise ConfigurationError(f"Cannot initialize settings manager. Failed to create directory: {self._CONFIG_DIR}") from e
+
         self._ensure_default_settings()
+        logger.debug("SettingsManager initialized successfully.")
 
     def _ensure_default_settings(self) -> None:
         """
@@ -41,22 +52,27 @@ class SettingsManager:
         :rtype: None
         """
         if not os.path.exists(self._DEFAULT_FILE):
-            # If Default file is missing create it
-            default_data = {
-                "last_project_path": "",
-                "theme": "Dark",
-                "window_size": "1200x800",
-                "outline_width_pixels": 300,
-                "window_width": 1200,
-                "window_height": 800,
-                "window_pos_x": 100,
-                "window_pos_y": 100
-            }
+            logger.warning(f"Default settings file not found at {self._DEFAULT_FILE}. Creating minimal default file.")
             try:
+                default_data = {
+                    "last_project_path": "",
+                    "theme": "Dark",
+                    "window_size": "1200x800",
+                    "outline_width_pixels": 300,
+                    "window_width": 1200,
+                    "window_height": 800,
+                    "window_pos_x": 100,
+                    "window_pos_y": 100
+                }
+
                 with open(self._DEFAULT_FILE,'w') as f:
                     json.dump(default_data, f, indent=4)
-            except IOError as e:
-                print(f"FATAL: could not create default settings file: {e}")
+
+                logger.info(f"Created new default settings file at {self._DEFAULT_FILE}.")
+
+            except Exception as e:
+                logger.critical(f"FATAL: Failed to create a new default settings file.", exc_info=True)
+                raise ConfigurationError("A critical application file is missing and cannot be created.") from e
 
     def load_settings(self) -> dict[str, Any]:
         """
@@ -67,14 +83,24 @@ class SettingsManager:
         :returns: A dictionary containing the complete, merged application settings.
         :rtype: dict[str, Any]
         """
-        settings = self._load_json(self._DEFAULT_FILE)
-
-        # Load user settings and update the defaults
-        if os.path.exists(self._USER_FILE):
-            user_settings = self._load_json(self._USER_FILE)
-            settings.update(user_settings)
-            
-        return settings
+        logger.debug("Attempting to load settings.")
+        
+        # 1. Load Defaults (must exist and be valid)
+        default_settings = self.get_default_settings() 
+        
+        # 2. Load User Overrides (may not exist, handled by _load_json returning {})
+        user_settings = self._load_json(self._USER_FILE)
+        
+        # 3. Merge: Start with a copy of defaults and update with user overrides
+        merged_settings = default_settings.copy()
+        merged_settings.update(user_settings)
+        
+        logger.info(f"Settings loaded and merged successfully. Keys: {len(merged_settings)}.")
+        
+        # CRITICAL FIX: The save_settings call is absent here.
+        # This prevents the repetitive loading/saving loop.
+        
+        return merged_settings
     
     def save_settings(self, settings: dict[str, Any]) -> bool:
         """
@@ -89,17 +115,14 @@ class SettingsManager:
         :returns: True if the save operation was successful, False otherwise.
         :rtype: bool
         """
-        # Load defaults to only save *changes* in the user file
-        defaults = self.get_default_settings()
-        user_changes = {k: v for k, v in settings.items() if v != defaults.get(k)}
-        
         try:
+            logger.info(f"Attempting to save {len(settings)} user-defined settings to {self._USER_FILE}.")
             with open(self._USER_FILE, 'w') as f:
-                json.dump(user_changes, f, indent=4)
-            return True
-        except IOError as e:
-            print(f"Error saving user settings: {e}")
-            return False
+                json.dump(settings, f, indent=4)
+            logger.info("User settings saved successfully.")
+        except Exception as e:
+            logger.error(f"CRITICAL: Failed to save user settings to {self._USER_FILE}.", exc_info=True)
+            raise ConfigurationError("Failed to save application settings. Changes may be lost.") from e
         
     def save_setting(self, key: str, value: Any) -> bool:
         """
@@ -147,8 +170,10 @@ class SettingsManager:
         if os.path.exists(self._USER_FILE):
             try:
                 os.remove(self._USER_FILE)
+                logger.info(f"User settings file deleted: {self._USER_FILE}. Reverted to defaults.")
             except Exception as e:
-                print(f"Error deleting user settings file: {e}")
+                logger.error(f"Error deleting user settings file: {self._USER_FILE}. File may be locked or permissions denied.", exc_info=True)
+                raise ConfigurationError("Failed to reset user settings due to a file system error.") from e
                 
         # Return a fresh copy of the defaults
         return self.get_default_settings()
@@ -167,9 +192,26 @@ class SettingsManager:
         """
         try:
             with open(file_path, 'r') as f:
-                return json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
+                content = json.load(f)
+                logger.debug(f"Successfully loaded JSON from: {file_path}. Data keys: {list(content.keys())}")
+                return content
+            
+        except FileNotFoundError:
+            if file_path == self._DEFAULT_FILE:
+                # This should be caught by _ensure_default_settings, but acts as a final fail-safe
+                logger.critical(f"FATAL: Default settings file is missing at startup: {file_path}")
+                raise ConfigurationError("Critical default settings file is missing and cannot be loaded.")
+            
+            # User settings file missing is expected on first run, so it's logged as INFO
+            logger.info(f"User settings file not found: {file_path}. Returning empty dict.") 
             return {}
+        
+        except json.JSONDecodeError as e:
+            # CRITICAL: A configuration file is corrupt
+            logger.critical(f"FATAL: JSON format error in file: {file_path}.", exc_info=True)
+            raise ConfigurationError(f"Configuration file is corrupt: {file_path}") from e
+        
         except Exception as e:
-            print(f"Error loading {file_path}: {e}")
-            return {}
+            # Catch all other I/O errors (e.g., permissions, disk full)
+            logger.critical(f"FATAL: Failed to read file: {file_path}.", exc_info=True)
+            raise ConfigurationError(f"Failed to access configuration file: {file_path}") from e

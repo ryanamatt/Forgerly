@@ -4,6 +4,11 @@ import sqlite3
 import os
 from typing import Any
 
+from .utils.exceptions import DatabaseError
+from .utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 class DBConnector:
     """
     Handles the connection, initialization, and safe query execution for the 
@@ -59,11 +64,15 @@ class DBConnector:
             self.conn.execute("PRAGMA journal_mode = WAL;")
             self.conn.execute("PRAGMA synchronous=FULL;")
             self.conn.execute("PRAGMA foreign_keys = ON;")
+            logger.info(f"Successfully connected to database at: {self.db_path}")
             return True
         except sqlite3.Error as e:
-            print(f"Database connection error: {e}")
+            logger.error(f"Database connection error at {self.db_path}: {e}", exc_info=True)
             self.conn = None
-            return False
+            raise DatabaseError(
+                message=f"Failed to connect to the database at '{self.db_path}'.",
+                original_exception=e
+            ) from e
         
     def close(self) -> None:
         """
@@ -72,8 +81,13 @@ class DBConnector:
         :rtype: None
         """
         if self.conn:
-            self.conn.close()
-            self.conn = None
+            try:
+                self.conn.close()
+                self.conn = None
+                logger.info("Database connection closed successfully.")
+            except sqlite3.Error as e:
+                # While rare, guard for closing errors
+                logger.error(f"Error closing database connection: {e}", exc_info=True)
 
     def initialize_schema(self) -> None:
         """
@@ -85,19 +99,31 @@ class DBConnector:
         :rtype: bool
         """
         if not self.conn:
-            print("Error: Cannot initialize schema, database is not connected.")
-            return
+            # Raise an error if connection is missing
+            raise DatabaseError("Cannot initialize schema, database is not connected.")
 
         try:
             with open(self.schema_path, 'r', encoding='utf-8') as f:
                 schema_sql = f.read()
+                
             self.conn.executescript(schema_sql)
             self.conn.commit()
-            # print("Database schema initialized successfully.") # Debugging line
+            logger.info("Database schema initialized successfully.")
+            
         except sqlite3.Error as e:
-            print(f"SQL Error during schema initialization: {e}")
-        except FileNotFoundError:
-            print(f"Error: Schema file not found at {self.schema_path}")
+            # Log and raise on SQL execution error
+            logger.error(f"SQL Error during schema initialization: {e}", exc_info=True)
+            raise DatabaseError(
+                message="A SQL error occurred during schema initialization.",
+                original_exception=e
+            ) from e
+        except FileNotFoundError as e:
+            # Log and raise on missing schema file
+            logger.error(f"Schema file not found at {self.schema_path}", exc_info=True)
+            raise DatabaseError(
+                message=f"Schema file not found at '{self.schema_path}'.",
+                original_exception=e
+            ) from e
 
     # --- Core Execution Methods (Used by all Repositories) ---
 
@@ -124,28 +150,30 @@ class DBConnector:
         :rtype: Any
         """
         if not self.conn:
-            print("ERROR: DB not connected for query.")
-            return None
+            # Raise an error if connection is missing
+            raise DatabaseError("DB not connected for query execution.")
 
         try:
             cursor = self.conn.execute(sql, params or ())
             
             if fetch_one:
                 row = cursor.fetchone()
-                # Return dict-like object (sqlite3.Row) or None
                 return dict(row) if row and not as_list else (tuple(row) if row and as_list else None)
             
             if fetch_all:
                 rows = cursor.fetchall()
-                # Convert sqlite3.Row objects to standard dicts or lists of tuples
                 if as_list:
                     return [tuple(row) for row in rows]
                 return [dict(row) for row in rows]
             
-            return None # Should not happen for SELECT queries
+            return None # Should not happen for SELECT queries, but handles non-select
         except sqlite3.Error as e:
-            print(f"Database Query Error: {e}\nSQL: {sql}\nParams: {params}")
-            return None
+            # Log and raise on SQL query error
+            logger.error(f"Database Query Error: {e}\nSQL: {sql}\nParams: {params}", exc_info=True)
+            raise DatabaseError(
+                message=f"Error executing query: {sql}.",
+                original_exception=e
+            ) from e
 
     def _execute_commit(self, sql: str, params: tuple | None = None, fetch_id: bool = False) -> bool | int | None:
         """
@@ -164,23 +192,25 @@ class DBConnector:
 
         """
         if not self.conn:
-            print("ERROR: DB not connected for commit.")
-            return False
+            # Raise an error if connection is missing
+            raise DatabaseError("DB not connected for commit operation.")
 
         try:
             cursor = self.conn.execute(sql, params or ())
             self.conn.commit()
             
             if fetch_id:
-                # Used for INSERT operations to return the new row ID
                 return cursor.lastrowid
             
-            # Return True for successful UPDATE/DELETE
             return True
         except sqlite3.Error as e:
-            print(f"Database Commit Error: {e}\nSQL: {sql}\nParams: {params}")
+            # Log, rollback, and raise on SQL commit error
+            logger.error(f"Database Commit Error: {e}\nSQL: {sql}\nParams: {params}", exc_info=True)
             self.conn.rollback()
-            return False
+            raise DatabaseError(
+                message=f"Error executing database modification (INSERT/UPDATE/DELETE). Transaction rolled back.",
+                original_exception=e
+            ) from e
         
     def _execute_transaction(self, operations: list[tuple[str, tuple | None]]) -> bool:
         """
@@ -195,8 +225,8 @@ class DBConnector:
         :rtype: bool
         """
         if not self.conn:
-            print("ERROR: DB not connected for transaction.")
-            return False
+            # Raise an error if connection is missing
+            raise DatabaseError("DB not connected for transaction.")
         
         try:
             for sql, params in operations:
@@ -206,6 +236,10 @@ class DBConnector:
             return True
         
         except sqlite3.Error as e:
-            print(f"Database Transaction Error: {e}\nOperations: {operations}")
+            # Log, rollback, and raise on transaction error
+            logger.error(f"Database Transaction Error: {e}\nOperations: {operations}", exc_info=True)
             self.conn.rollback()
-            return False
+            raise DatabaseError(
+                message="Error executing database transaction. All operations rolled back.",
+                original_exception=e
+            ) from e

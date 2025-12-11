@@ -7,12 +7,14 @@ from .services.settings_manager import SettingsManager
 from .db_connector import DBConnector
 from .main_window import MainWindow
 from .start_menu_window import StartMenuWindow
+from .utils.logger import setup_logger, get_logger
+from .utils.error_handler import install_system_exception_hook
 
 class ApplicationFlowManager:
     """
     Manages the application flow, switching between the start menu and main window.
     """
-    def __init__(self, app: QApplication) -> None:
+    def __init__(self, app: QApplication, settings_manager: SettingsManager) -> None:
         """
         Instatiates the ApplicationFlowManager Class.
         
@@ -24,7 +26,7 @@ class ApplicationFlowManager:
         self.app = app
         
         # 1. Instantiate Application-wide Service
-        self.settings_manager = SettingsManager()
+        self.settings_manager = settings_manager
         self.settings = self.settings_manager.load_settings()
         last_project_path = self.settings['last_project_path']
 
@@ -114,7 +116,8 @@ class ApplicationFlowManager:
             db_connector=db_connector
         )
 
-        self.main_window.project_close_and_open_requested.connect(self._handle_project_switch_request)
+        self.main_window.project_open_requested.connect(lambda: self._handle_project_switch_request(is_new=False))
+        self.main_window.project_new_requested.connect(lambda: self._handle_project_switch_request(is_new=True))
 
         self.main_window.show()
 
@@ -128,7 +131,7 @@ class ApplicationFlowManager:
         :rtype: None
         """
         # The MainWindow has already checked for and handled dirty state
-        
+
         # 'show_start_menu' will close 'main_window' and clear 'last_project_path'
         # The 'is_new' flag is passed to potentially open the dialog immediately
         self.show_start_menu(is_new_project=is_new)
@@ -140,10 +143,23 @@ def main() -> None:
     
     :rtype: None
     """
+
+    settings_manager = SettingsManager()
+    app_settings = settings_manager.load_settings()
+    DEBUG_MODE = app_settings.get("debug_mode", False)
+
+    setup_logger(debug_mode=DEBUG_MODE)
+    logger = get_logger(__name__)
+    install_system_exception_hook()
+
+    logger.info("Narrative Forge application is starting up.")
+    if DEBUG_MODE:
+        logger.debug(f"Debug Mode is active. Logging level set to DEBUG.")
+
     app = QApplication(sys.argv)
 
     # Start the application flow
-    manager = ApplicationFlowManager(app)
+    appFlowManager = ApplicationFlowManager(app, settings_manager=settings_manager)
 
     sys.exit(app.exec())
 

@@ -1,12 +1,15 @@
 # src/python/ui/tag_widget.py
 
 from PyQt6.QtWidgets import (
-    QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, 
-    QPushButton, QLabel, QSizePolicy
+    QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QMessageBox, 
+    QPushButton, QLabel, QSizePolicy, QLayoutItem
 )
 from PyQt6.QtCore import QSize, pyqtSignal
 
 from .flow_layout import QFlowLayout
+from ...utils.logger import get_logger #
+
+logger = get_logger(__name__)
     
 class TagLabel(QWidget):
     """
@@ -35,6 +38,8 @@ class TagLabel(QWidget):
         """
         super().__init__(parent)
         self.tag_name = tag_name
+
+        logger.debug(f"TagLabel initialized for tag: '{tag_name}'")
         
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         
@@ -136,6 +141,8 @@ class TagManagerWidget(QWidget):
         if initial_tags:
             self.set_tags(initial_tags)
 
+        logger.debug("TagManagerWidget initialized.")
+
     def is_dirty(self) -> bool:
         """
         Checks if the tags have unsaved changes since the last mark_saved call.
@@ -151,7 +158,15 @@ class TagManagerWidget(QWidget):
         
         :rtype: None
         """
-        self._is_dirty = False
+        try:
+            if self._is_dirty:
+                self._is_dirty = False
+                logger.info("TagWidget state set to clean (saved).")
+            else:
+                logger.debug("TagWidget state already clean, 'mark_saved' skipped.")
+                
+        except Exception as e:
+            logger.error(f"Error occurred during mark_saved operation: {e}", exc_info=True)
         
     def _set_dirty(self) -> None:
         """
@@ -160,10 +175,18 @@ class TagManagerWidget(QWidget):
 
         :rtype: None
         """
-        if not self._is_dirty:
-            self._is_dirty = True
-            # The signal is emitted here, which will be handled by MainWindow
-            self.tags_changed.emit(self.get_tags())
+        try:
+            if not self._is_dirty:
+                self._is_dirty = True
+                
+                self.tags_changed.emit(self.get_tags())
+                logger.info("TagWidget state transitioned from clean to dirty. Signal emitted.")
+            else:
+
+                logger.debug("TagWidget state already dirty, no signal emitted.")
+        
+        except Exception as e:
+            logger.error(f"Error occurred during _set_dirty operation: {e}", exc_info=True)
 
     def _add_tag_from_input(self) -> None:
         """
@@ -175,28 +198,60 @@ class TagManagerWidget(QWidget):
         :rtype: None
         """
         input_text = self.tag_input.text().strip()
+    
+        logger.debug(f"Attempting to process tag input: '{input_text}'")
+
         if not input_text:
+            logger.debug("Input is empty after stripping, skipping tag addition.")
             return
 
         # Split input by commas or semicolons
         raw_tags = input_text.replace(';', ',').split(',')
         
         new_tags_added = False
-        for tag in raw_tags:
-            clean_tag = tag.strip().lower()
-            if clean_tag and clean_tag not in self.tags:
-                self.tags.add(clean_tag)
-                self._create_tag_label(clean_tag)
-                new_tags_added = True
+        
+        try:
+            for tag in raw_tags:
+                clean_tag = tag.strip().lower()
+                
+                if not clean_tag:
+                    logger.debug("Skipping empty tag from split result.")
+                    continue
 
+                if clean_tag in self.tags:
+                    logger.debug(f"Tag '{clean_tag}' already exists, skipping.")
+                    continue
+
+                # Add tag and create UI element
+                self.tags.add(clean_tag)
+                # Assuming this private method creates the TagLabel and adds it to the layout.
+                self._create_tag_label(clean_tag) 
+                new_tags_added = True
+                logger.info(f"Added new tag: '{clean_tag}'.")
+
+        except Exception as e:
+            logger.error(
+                f"Error processing tag input '{input_text}'. Tag processing may be incomplete.", 
+                exc_info=True
+            )
+            # Display a user-friendly error message
+            QMessageBox.critical(
+                self,
+                "Tag Input Error",
+                "An error occurred while trying to process the tags you entered. Please try again."
+            )
+
+        # Final actions after processing the input list
+        self.tag_input.clear()
+        logger.debug("Input line cleared.")
+        
         if new_tags_added:
             self.tags_changed.emit(self.get_tags())
-        
-        if clean_tag and clean_tag not in self.tags:
-            self.tags.add(clean_tag)
-            self._create_tag_label(clean_tag)
-            self.tag_input.clear()
-            self._set_dirty()
+            # Assuming _set_dirty is intended to be called once upon successful addition
+            self._set_dirty() 
+            logger.info(f"Tags changed signal emitted. Total tags: {len(self.tags)}")
+        else:
+            logger.debug("No new unique tags were added.")
         
     def _create_tag_label(self, tag_name: str) -> None:
         """
@@ -207,10 +262,25 @@ class TagManagerWidget(QWidget):
 
         :rtype: None
         """
-        tag_label = TagLabel(tag_name)
-        # Connect the custom signal for removal
-        tag_label.tag_removed.connect(self._remove_tag)
-        self.tag_flow_layout.addWidget(tag_label)
+        logger.debug(f"Attempting to create TagLabel for: '{tag_name}'")
+        try:
+            tag_label = TagLabel(tag_name)
+            
+            tag_label.tag_removed.connect(self._remove_tag)
+            
+            self.tag_flow_layout.addWidget(tag_label)
+            
+            logger.info(f"Successfully created and added TagLabel for: '{tag_name}'.")
+            
+        except Exception as e:
+            # Log the specific failure for this UI operation
+            logger.error(
+                f"Failed to create, connect, or add TagLabel for '{tag_name}'.", 
+                exc_info=True
+            )
+            # Re-raise the exception to allow the calling method to handle the failure 
+            # (e.g., rolling back the addition to self.tags).
+            raise
 
     def _remove_tag(self, tag_name: str) -> None:
         """
@@ -222,19 +292,37 @@ class TagManagerWidget(QWidget):
         :type tag_name: str
         :rtype: :py:obj:`None`
         """
-        if tag_name in self.tags:
-            self.tags.remove(tag_name)
+        logger.debug(f"Received signal to remove tag: '{tag_name}'")
+        
+        try:
+            # 1. Remove from internal set
+            if tag_name in self.tags:
+                self.tags.remove(tag_name)
+            else:
+                logger.warning(f"Attempted to remove non-existent tag: '{tag_name}'. Ignoring removal from set.")
             
-            # Find the widget and remove it from the layout
-            for i in range(self.tag_flow_layout.count()):
-                item = self.tag_flow_layout.itemAt(i)
-                widget = item.widget()
-                if isinstance(widget, TagLabel) and widget.tag_name == tag_name:
-                    self.tag_flow_layout.takeAt(i) # Remove from layout
-                    widget.deleteLater()          # Delete the widget
-                    break
+            # 2. Remove the widget from the layout
+            i = 0
+            while i < self.tag_flow_layout.count():
+                item: QLayoutItem | None = self.tag_flow_layout.itemAt(i)
+                if item:
+                    widget = item.widget()
+                    if isinstance(widget, TagLabel) and widget.tag_name == tag_name:
+                        # Remove the item from the layout and delete the widget
+                        self.tag_flow_layout.takeAt(i)
+                        widget.deleteLater() 
+                        logger.debug(f"Removed widget for tag: '{tag_name}' at index {i}")
+                        
+                        # Notify of change and exit the loop
+                        self.tags_changed.emit(self.get_tags())
+                        logger.info(f"Tag '{tag_name}' successfully removed. Total tags: {len(self.tags)}")
+                        return 
+                i += 1
             
-            self.tags_changed.emit(self.get_tags())
+            logger.warning(f"Could not find widget for tag '{tag_name}' in the layout.")
+            
+        except Exception as e:
+            logger.error(f"Error processing tag removal for '{tag_name}': {e}", exc_info=True)
 
     def get_tags(self) -> list[str]:
         """
@@ -243,8 +331,9 @@ class TagManagerWidget(QWidget):
         :return: A list of unique tags, sorted alphabetically.
         :rtype: list[str]
         """
-        # Convert the set back to a list for a stable, user-friendly order
-        return sorted(list(self.tags))
+        sorted_tags = sorted(list(self.tags))
+        logger.debug(f"Returning {len(sorted_tags)} tags.")
+        return sorted(sorted_tags)
 
     def set_tags(self, tag_names: list[str]) -> None:
         """
@@ -255,29 +344,54 @@ class TagManagerWidget(QWidget):
 
         :rtype: None
         """
-        # This prevents the initial loading process from firing the tags_changed signal.
+        logger.debug(f"Setting tags from list of size: {len(tag_names)}")
+        
+        # This prevents the change process from firing the tags_changed signal repeatedly.
         self.blockSignals(True) 
-
-        # Clear existing tags and widgets
-        while self.tag_flow_layout.count():
-            item = self.tag_flow_layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
         
-        self.tags.clear()
-        
-        # Add new tags
-        for tag_name in tag_names:
-            clean_tag = tag_name.strip().lower()
+        try:
+            # Clear existing tags and widgets
+            while self.tag_flow_layout.count():
+                item = self.tag_flow_layout.takeAt(0)
+                if item:
+                    widget = item.widget()
+                    if widget:
+                        widget.deleteLater() 
+                
+            self.tags.clear()
+            logger.debug("Cleared existing tags and widgets.")
             
-            # Check to make sure we're not adding empty tags
-            if clean_tag == "": continue 
+            # Add new tags
+            for tag_entry in tag_names:
+                if isinstance(tag_entry, (tuple, list)) and len(tag_entry) >= 2:
+                    tag_name_str = str(tag_entry[1]) 
+                elif isinstance(tag_entry, dict) and 'Name' in tag_entry:
+                    tag_name_str = str(tag_entry['Name'])             
+                elif isinstance(tag_entry, str):
+                    tag_name_str = tag_entry
+                else:
+                    logger.warning(f"Skipping tag with unexpected format: {tag_entry}")
+                    continue
 
-            if clean_tag and clean_tag not in self.tags:
-                self.tags.add(clean_tag)
-                self._create_tag_label(clean_tag)
+                clean_tag = tag_name_str.strip().lower()
+                
+                if clean_tag not in self.tags:
+                    self.tags.add(clean_tag)
+                    
+                    tag_label_widget = TagLabel(clean_tag)
+                    tag_label_widget.tag_removed.connect(self._remove_tag)
+                    self.tag_flow_layout.addWidget(tag_label_widget)
+                    
+            logger.info(f"Successfully set tags. Total tags: {len(self.tags)}")
+                    
+            logger.info(f"Successfully set tags. Total tags: {len(self.tags)}")
+            
+        except Exception as e:
+            logger.error(f"Critical error during set_tags operation: {e}", exc_info=True)
+            # Application flow should continue, but state might be visually incorrect.
         
-        # Restore signals and explicitly mark clean ---
-        self.blockSignals(False) 
-        self.mark_saved()
+        finally:
+            self.blockSignals(False) # Re-enable signals
+            
+            # Emit signal once after all tags are set
+            self.tags_changed.emit(self.get_tags())

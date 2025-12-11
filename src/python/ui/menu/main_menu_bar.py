@@ -5,6 +5,9 @@ from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QAction
 
 from ...utils.constants import ViewType
+from ...utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 class MainMenuBar(QMenuBar):
     """
@@ -87,6 +90,8 @@ class MainMenuBar(QMenuBar):
 
         self._setup_menus()
 
+        logger.debug("Main Menu Bar initialized.")
+
     def _setup_menus(self) -> None:
         """
         Sets up the File, View, and Help menus by calling their respective setup methods.
@@ -159,6 +164,8 @@ class MainMenuBar(QMenuBar):
         exit_action.triggered.connect(self.parent().close) # Use parent() close for convenience
         file_menu.addAction(exit_action)
 
+        logger.debug("All QActions created and connected.")
+
     def _setup_view_menu(self) -> None:
         """
         Sets up the 'View' menu which allows switching between the main application panels.
@@ -218,6 +225,7 @@ class MainMenuBar(QMenuBar):
         
         :rtype: None
         """
+        logger.info("Displaying About Dialog.")
         QMessageBox.about(
             self,
             f"About The Narrative Forge v{self.app_version}",
@@ -238,6 +246,7 @@ class MainMenuBar(QMenuBar):
         
         :rtype: None
         """
+        logger.debug(f"Updating view checkmarks to: {current_view}")
         self.view_chapter_action.setChecked(current_view == ViewType.CHAPTER_EDITOR)
         self.view_lore_action.setChecked(current_view == ViewType.LORE_EDITOR)
         self.view_character_action.setChecked(current_view == ViewType.CHARACTER_EDITOR)
