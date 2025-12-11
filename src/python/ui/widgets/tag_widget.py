@@ -362,20 +362,27 @@ class TagManagerWidget(QWidget):
             logger.debug("Cleared existing tags and widgets.")
             
             # Add new tags
-            for tag_name in tag_names:
-                clean_tag = tag_name.strip().lower()
-                
-                # Check to make sure we're not adding empty tags or duplicates
-                if clean_tag == "": 
-                    logger.debug("Skipping empty tag.")
-                    continue 
+            for tag_entry in tag_names:
+                if isinstance(tag_entry, (tuple, list)) and len(tag_entry) >= 2:
+                    tag_name_str = str(tag_entry[1]) 
+                elif isinstance(tag_entry, dict) and 'Name' in tag_entry:
+                    tag_name_str = str(tag_entry['Name'])             
+                elif isinstance(tag_entry, str):
+                    tag_name_str = tag_entry
+                else:
+                    logger.warning(f"Skipping tag with unexpected format: {tag_entry}")
+                    continue
+
+                clean_tag = tag_name_str.strip().lower()
                 
                 if clean_tag not in self.tags:
                     self.tags.add(clean_tag)
                     
                     tag_label_widget = TagLabel(clean_tag)
-                    tag_label_widget.tag_removed.connect(self._on_tag_removed)
+                    tag_label_widget.tag_removed.connect(self._remove_tag)
                     self.tag_flow_layout.addWidget(tag_label_widget)
+                    
+            logger.info(f"Successfully set tags. Total tags: {len(self.tags)}")
                     
             logger.info(f"Successfully set tags. Total tags: {len(self.tags)}")
             

@@ -1,3 +1,2 @@
 KNOWN BUGS
 
-Bug When Loading Chapter Tags (Tags appear to save correctly just not loading onto the ChapterEditor)

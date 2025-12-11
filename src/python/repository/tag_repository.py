@@ -54,10 +54,11 @@ class TagRepository:
         query = "SELECT ID FROM Tags WHERE Name = ?;"
         try:
             result = self.db._execute_query(query, (clean_name,), fetch_one=True)
-            id = result['ID']
             if result:
-                logger.info(f"Retrieve Tag ID: {id} by name: {tag_name}")
-            return id if id else None
+                tag_id = result['ID']
+                logger.info(f"Retrieve Tag ID: {tag_id} by name: {tag_name}")
+                return tag_id
+            return None
         except DatabaseError as e:
             logger.error("Failed to get Tag ID by name.", exc_info=True)
             raise e

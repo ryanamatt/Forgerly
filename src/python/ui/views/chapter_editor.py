@@ -147,7 +147,7 @@ class ChapterEditor(QWidget):
         if new_wpm <= 0:
             new_wpm = 250
         self.wpm = new_wpm
-        self._update_stats_display
+        self._update_stats_display()
 
     def _handle_tag_change(self):
         """
