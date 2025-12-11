@@ -9,6 +9,11 @@
 #include <algorithm>
 #include <random>
 
+struct Point {
+    double x;
+    double y;
+};
+
 // --- Data Structures for Exchage
 
 // Represents an input Node
@@ -49,6 +54,7 @@ private:
     std::vector<NodeInput> input_nodes_;
     std::vector<EdgeInput> input_edges_;
     std::map<int, NodeOutput> node_positions_; // Stores current X, Y for calculation
+    std::map<int, Point> node_displacements_; // Stores temporary displacement vectors
 
     // Simulation Parameters
     double W_; // Width of the simulation area (e.g., QGraphicsView size)

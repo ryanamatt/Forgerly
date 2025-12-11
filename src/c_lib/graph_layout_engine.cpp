@@ -74,18 +74,19 @@ void GraphLayoutEngine::initialize_positions() {
 
 // --- Core Algorithm Steps ---
 
-void GraphLayoutEngine::apply_attractive_forces() {
-    // Stores the displacedment vector for each node
-    std::map<int, QPointF> displacements;
+void GraphLayoutEngine::apply_repulsive_forces() {
+    // Stores the displacement vector for each node. Reset for this iteration.
+    node_displacements_.clear();
+    for (const auto& node : input_nodes_) {
+        // Initialize displacement for all nodes
+        node_displacements_[node.id] = {0.0, 0.0}; 
+    }
 
-    // O(N^2) loop for all pairs of nodes (BOTTLENECK)
-    for (size_t i = 0; i < input_nodes_.size(); i++) {
+    // O(N^2) loop for all pairs of nodes (bottleneck for large N)
+    for (size_t i = 0; i < input_nodes_.size(); ++i) {
         int u_id = input_nodes_[i].id;
-        displacements[u_id] = {0.0, 0.0};
 
-        if (input_nodes_[i].is_fixed) continue;
-
-        for (size_t j = i + 1; j < input_nodes_.size(); j++) {
+        for (size_t j = i + 1; j < input_nodes_.size(); ++j) {
             int v_id = input_nodes_[j].id;
 
             const auto& u_pos = node_positions_[u_id];
@@ -95,36 +96,43 @@ void GraphLayoutEngine::apply_attractive_forces() {
             double delta_y = u_pos.y_pos - v_pos.y_pos;
             double dist = distance(u_pos.x_pos, u_pos.y_pos, v_pos.x_pos, v_pos.y_pos);
 
+            // Calculate repulsive force magnitude
             double force = force_rep(dist);
 
+            // Calculate the repulsive vector components
             double dx = delta_x / dist * force * C_REPEL;
             double dy = delta_y / dist * force * C_REPEL;
 
             // Apply displacement: Nodes push away from each other
-            displacements[u_id].rx() += dx;
-            displacements[u_id].ry() += dy;
-
+            if (!input_nodes_[i].is_fixed) {
+                node_displacements_[u_id].x += dx; // Push u away from v
+                node_displacements_[u_id].y += dy;
+            }
+            
             if (!input_nodes_[j].is_fixed) {
-                displacements[v_id].rx() -= dx;
-                displacements[v_id].ry() -= dy;
+                node_displacements_[v_id].x -= dx; // Push v away from u
+                node_displacements_[v_id].y -= dy;
             }
         }
     }
-
+    
     // Update node positions based on repulsive displacements
     for (auto& pair : node_positions_) {
         int id = pair.first;
         if (!input_nodes_[id].is_fixed) {
-            pair.second.x_pos += displacements[id].x();
-            pair.second.y_pos += displacements[id].y();
+            // Apply displacement limited by temperature (t_)
+            double disp_x = node_displacements_[id].x;
+            double disp_y = node_displacements_[id].y;
+            double disp_mag = std::sqrt(disp_x*disp_x + disp_y*disp_y);
+
+            // Limit displacement by current temperature and apply
+            pair.second.x_pos += disp_x / disp_mag * std::min(disp_mag, t_);
+            pair.second.y_pos += disp_y / disp_mag * std::min(disp_mag, t_);
         }
     }
 }
 
 void GraphLayoutEngine::apply_attractive_forces() {
-    // Stores the displacement vector for each node
-    std::map<int, QPointF> displacements; 
-
     // O(M) loop, where M is the number of edges
     for (const auto& edge : input_edges_) {
         int u_id = edge.node_a_id;
@@ -146,22 +154,28 @@ void GraphLayoutEngine::apply_attractive_forces() {
 
         // Apply displacement: Nodes pull towards each other
         if (!input_nodes_[u_id].is_fixed) {
-            displacements[u_id].rx() -= dx;
-            displacements[u_id].ry() -= dy;
+            node_displacements_[u_id].x -= dx; // Pull u towards v
+            node_displacements_[u_id].y -= dy;
         }
 
         if (!input_nodes_[v_id].is_fixed) {
-            displacements[v_id].rx() += dx;
-            displacements[v_id].ry() += dy;
+            node_displacements_[v_id].x += dx; // Pull v towards u
+            node_displacements_[v_id].y += dy;
         }
     }
     
-    // Update node positions based on attractive displacements
+    // Update node positions based on combined displacements (Repulsive + Attractive)
     for (auto& pair : node_positions_) {
         int id = pair.first;
         if (!input_nodes_[id].is_fixed) {
-            pair.second.x_pos += displacements[id].x();
-            pair.second.y_pos += displacements[id].y();
+            // Re-apply displacement limiting using the combined force vector.
+            double disp_x = node_displacements_[id].x;
+            double disp_y = node_displacements_[id].y;
+            double disp_mag = std::sqrt(disp_x*disp_x + disp_y*disp_y);
+
+            // Limit displacement by current temperature and apply
+            pair.second.x_pos += disp_x / disp_mag * std::min(disp_mag, t_);
+            pair.second.y_pos += disp_y / disp_mag * std::min(disp_mag, t_);
         }
     }
 }
@@ -188,4 +202,9 @@ std::vector<NodeOutput> GraphLayoutEngine::computeLayout(int max_iterations, dou
         final_positions.push_back(pair.second);
     }
     return final_positions;
+}
+
+int main ()
+{
+    return 0;
 }
