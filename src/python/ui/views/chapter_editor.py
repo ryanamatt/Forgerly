@@ -9,7 +9,7 @@ from PyQt6.QtCore import Qt
 from ...services.app_coordinator import AppCoordinator
 from ...ui.widgets.tag_widget import TagManagerWidget
 from ...ui.widgets.rich_text_editor import RichTextEditor
-from ...utils.chapter_utils import calculate_word_count, calculate_character_count, calculate_read_time
+from ...utils.text_stats_wrapper import calculate_word_count, calculate_character_count, calculate_read_time
 
 class ChapterEditor(QWidget):
     """
