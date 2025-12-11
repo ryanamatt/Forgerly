@@ -47,7 +47,6 @@ CREATE TABLE IF NOT EXISTS Characters (
     Gender_Identity         TEXT,
     Ethnicity_Background    TEXT,
     Occupation_School       TEXT,
-    Hometown_City           TEXT,
     Physical_Description    TEXT
 );
 
@@ -157,6 +156,18 @@ CREATE TABLE IF NOT EXISTS Chapter_Locations (
     FOREIGN KEY (Location_ID) REFERENCES Locations(ID) ON DELETE CASCADE
 );
 
+-- CHARACTER_LOCATIONS: Links characters to significant locations.
+CREATE TABLE IF NOT EXISTS Character_Locations (
+    Character_ID            INTEGER NOT NULL,
+    Location_ID             INTEGER NOT NULL,
+    Location_Role           TEXT,               -- e.g., 'Hometown', 'Current Residence', 'Place of Work'
+    Is_Primary              INTEGER DEFAULT 0,  -- 1 for the most important location (e.g., Hometown)
+
+    PRIMARY KEY (Character_ID, Location_ID),
+    FOREIGN KEY (Character_ID) REFERENCES Characters(ID) ON DELETE CASCADE,
+    FOREIGN KEY (Location_ID) REFERENCES Locations(ID) ON DELETE CASCADE
+);
+
 -- -----------------------------------------------------------------------------
 -- 3. Supporting Tables
 -- -----------------------------------------------------------------------------
@@ -235,12 +246,18 @@ CREATE INDEX IF NOT EXISTS idx_relationships_lore ON Character_Relationships (Lo
 -- Node positions index
 CREATE INDEX IF NOT EXISTS idx_node_positions_char ON Character_Node_Positions (Character_ID);
 
--- Existing indexes
+-- Lore indexes
 CREATE INDEX IF NOT EXISTS idx_chapter_tags_tag ON Chapter_Tags (Tag_ID);
 CREATE INDEX IF NOT EXISTS idx_lore_tags_tag ON Lore_Tags (Tag_ID);
 CREATE INDEX IF NOT EXISTS idx_lore_locations_location on LORE_Locations (Location_ID);
 CREATE INDEX IF NOT EXISTS vix_lore_title ON Lore_Entries(Title);
 CREATE INDEX IF NOT EXISTS idx_lore_category ON Lore_Entries (Category);
+
+-- Index for quick lookup of locations by character
+CREATE INDEX IF NOT EXISTS idx_char_locations_char ON Character_Locations (Character_ID);
+
+-- Index for quick lookup of characters by location
+CREATE INDEX IF NOT EXISTS idx_char_locations_loc ON Character_Locations (Location_ID);
 
 -- Index for quick look up of Chapters by Title (e.g., for search/autocomplete)
 CREATE INDEX IF NOT EXISTS idx_chapters_title ON Chapters (Title);

@@ -1,7 +1,5 @@
-1. Implement More Robust Error Handling/Logging (DEBUG MODE), Dedicated Error Handler
-2. Custom Icons
+1. Custom Icons
 
-# Create First Build
 
 1. Implement Locations Somehow
 2. Project Wide Statistics

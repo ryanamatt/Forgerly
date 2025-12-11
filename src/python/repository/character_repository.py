@@ -236,7 +236,7 @@ class CharacterRepository:
         query = """
         SELECT ID, Name, Description, Status, Age, Date_Of_Birth, Pronouns,
         Sexual_Orientation, Gender_Identity, Ethnicity_Background, Occupation_School,
-        Hometown_City, Physical_Description
+        Physical_Description
         FROM Characters
         """
         params = ()
