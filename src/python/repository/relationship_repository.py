@@ -2,6 +2,10 @@
 
 from ..utils.types import DBRow, DBRowList
 from ..db_connector import DBConnector
+from ..utils.logger import get_logger
+from ..utils.exceptions import DatabaseError
+
+logger = get_logger(__name__)
 
 class RelationshipRepository:
     """
@@ -24,6 +28,7 @@ class RelationshipRepository:
         :rtype: None
         """
         self.db = db_connector
+        logger.debug("RelationshipRepository initialized.")
 
     # =========================================================================
     # Character Relationships (Edges)
@@ -60,7 +65,13 @@ class RelationshipRepository:
         JOIN Characters CB ON CR.Character_B_ID = CB.ID
         JOIN Relationship_Types RT ON CR.Type_ID = RT.ID;
         """
-        return self.db._execute_query(query, fetch_all=True)
+        try:
+            results = self.db._execute_query(query, fetch_all=True)
+            logger.info(f"Retrieved {len(results)} character relationships for the graph.")
+            return results
+        except DatabaseError as e:
+            logger.error("Failed to retrieve all character relationships for graph.", exc_info=True)
+            raise e
     
     def create_relationship(self, char_a_id: int, char_b_id: int, type_id: int, lore_id: int | None = None,
                             description: str = "", intensity: int = 50, start_chapter_id: int | None = None, 
@@ -94,7 +105,14 @@ class RelationshipRepository:
         VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         """
         params = (char_a_id, char_b_id, type_id, lore_id, description, intensity, start_chapter_id, end_chapter_id)
-        return self.db._execute_commit(query, params, fetch_id=True)
+        try:
+            relationship_id = self.db._execute_commit(query, params, fetch_id=True)
+            if relationship_id:
+                logger.info(f"Created new relationship: ID={relationship_id}, Type_ID={type_id} between Char {char_a_id} and Char {char_b_id}.")
+            return relationship_id
+        except DatabaseError as e:
+            logger.error(f"Failed to create relationship between {char_a_id} and {char_b_id} with Type ID {type_id}.", exc_info=True)
+            raise e
 
     def delete_relationship(self, relationship_id: int) -> bool:
         """
@@ -107,7 +125,14 @@ class RelationshipRepository:
         :rtype: bool
         """
         query = "DELETE FROM Character_Relationships WHERE ID = ?;"
-        return self.db._execute_commit(query, (relationship_id,))
+        try:
+            success = self.db._execute_commit(query, (relationship_id,))
+            if success:
+                logger.info(f"Character relationship deleted: ID={relationship_id}.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to delete relationship ID: {relationship_id}.", exc_info=True)
+            raise e
 
     def update_relationship_details(self, relationship_id: int, type_id: int, description: str, 
                                     intensity: int, lore_id: int | None, start_chapter_id: int | None, 
@@ -124,7 +149,16 @@ class RelationshipRepository:
         WHERE ID = ?;
         """
         params = (type_id, description, intensity, lore_id, start_chapter_id, end_chapter_id, relationship_id)
-        return self.db._execute_commit(query, params)
+        try:
+            success = self.db._execute_commit(query, params)
+            if success:
+                logger.info(f"Character relationship details updated: ID={relationship_id}.")
+            return success
+
+        except DatabaseError as e:
+            logger.error(f"Failed to update relationship details, ID: {relationship_id}.", exc_info=True)
+            raise e
+         
 
     # =========================================================================
     # Character Node Positions and UI Attributes
@@ -148,7 +182,13 @@ class RelationshipRepository:
             Is_Hidden
         FROM Character_Node_Positions;
         """
-        return self.db._execute_query(query, fetch_all=True)
+        try:
+            results = self.db._execute_query(query, fetch_all=True)
+            logger.debug(f"Retrieved {len(results)} node positions.")
+            return results
+        except DatabaseError as e:
+            logger.error("Failed to retrieve all character node positions.", exc_info=True)
+            raise e
 
     def save_node_attributes(self, character_id: int, x_pos: float, y_pos: float, 
                            node_color: str, node_shape: str, is_hidden: int) -> bool:
@@ -178,7 +218,14 @@ class RelationshipRepository:
         VALUES (?, ?, ?, ?, ?, ?);
         """
         params = (character_id, x_pos, y_pos, node_color, node_shape, is_hidden)
-        return self.db._execute_commit(query, params)
+        try:
+            success = self.db._execute_commit(query, params)
+            if success:
+                logger.info(f"Successfully saved node attributes, Char_ID: {character_id}")
+            return success
+        except DatabaseError as e:
+            logger.warning("Failed to save character node attributes", exc_info=True)
+            raise e
 
     # =========================================================================
     # Relationship Types (Configuration)
@@ -196,7 +243,13 @@ class RelationshipRepository:
         FROM Relationship_Types
         ORDER BY Type_Name ASC;
         """
-        return self.db._execute_query(query, fetch_all=True)
+        try:
+            results = self.db._execute_query(query, fetch_all=True)
+            logger.debug(f"Retrieved {len(results)} relationship types.")
+            return results
+        except DatabaseError as e:
+            logger.error("Failed to retrieve all relationship types.", exc_info=True)
+            raise e
     
     def get_relationship_type_details(self, type_id: int) -> DBRow | None:
         """
@@ -213,7 +266,15 @@ class RelationshipRepository:
         FROM Relationship_Types
         WHERE ID = ?;
         """
-        return self.db._execute_query(query, (type_id,), fetch_one=True)
+        try:
+            success = self.db._execute_query(query, (type_id,), fetch_one=True)
+            if success:
+                logger.info(f"Successfully got relationship types for {len(success)} character nodes.")
+            return success
+        except DatabaseError as e:
+            logger.error("Failed to retrieve relationship types details.", exc_info=True)
+            raise e
+    
 
     def create_relationship_type(self, type_name: str, short_label: str = "", default_color: str = "#FFFFFF", is_directed: int = 0, line_style: str = "Solid") -> int | None:
         """
@@ -239,7 +300,14 @@ class RelationshipRepository:
         VALUES (?, ?, ?, ?, ?);
         """
         params = (type_name, short_label, default_color, is_directed, line_style)
-        return self.db._execute_commit(query, params, fetch_id=True)
+        try:
+            type_id = self.db._execute_commit(query, params, fetch_id=True)
+            if type_id:
+                logger.info(f"Created new relationship type: ID={type_id}, Name='{type_name}'.")
+            return type_id
+        except DatabaseError as e:
+            logger.error(f"Failed to create new relationship type with name: '{type_name}'.", exc_info=True)
+            raise e
 
     def update_relationship_type(self, type_id: int, type_name: str, short_label: str, default_color: str, is_directed: int, line_style: str) -> bool:
         """
@@ -270,7 +338,14 @@ class RelationshipRepository:
         WHERE ID = ?;
         """
         params = (type_name, short_label, default_color, is_directed, line_style, type_id)
-        return self.db._execute_commit(query, params)
+        try:
+            success = self.db._execute_commit(query, params)
+            if success:
+                logger.info(f"Updated relationship type ID: {type_id}. New Name: '{type_name}'.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to update relationship type ID: {type_id} with name '{type_name}'.", exc_info=True)
+            raise e
 
     def delete_relationship_type(self, type_id: int) -> bool:
         """
@@ -280,4 +355,11 @@ class RelationshipRepository:
         :rtype: bool
         """
         query = "DELETE FROM Relationship_Types WHERE ID = ?;"
-        return self.db._execute_commit(query, (type_id,))
+        try:
+            success = self.db._execute_commit(query, (type_id,))
+            if success:
+                logger.warning(f"Relationship type deleted: ID={type_id}. Associated relationships were also deleted.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to delete relationship type ID: {type_id}.", exc_info=True)
+            raise e

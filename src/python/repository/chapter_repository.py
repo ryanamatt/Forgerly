@@ -1,7 +1,11 @@
 # src/python/chapter_repository.py
 
 from ..utils.types import ChapterContentDict, ChapterBasicDict
+from ..utils.logger import get_logger
+from ..utils.exceptions import DatabaseError
 from ..db_connector import DBConnector
+
+logger = get_logger(__name__)
 
 class ChapterRepository:
     """
@@ -21,6 +25,7 @@ class ChapterRepository:
         :rtype: None
         """
         self.db = db_connector
+        logger.debug("ChapterRepository initialized.")
 
     def get_all_chapters(self) -> ChapterBasicDict:
         """
@@ -38,7 +43,13 @@ class ChapterRepository:
         FROM Chapters
         ORDER BY Sort_Order ASC;
         """
-        return self.db._execute_query(query, fetch_all=True)
+        try:
+            results = self.db._execute_query(query, fetch_all=True)
+            logger.info(f"Retrieved {len(results)} basic chapter records.")
+            return results
+        except DatabaseError as e:
+            logger.error("Failed to retrieve all basic chapters.", exc_info=True)
+            raise e
 
     def get_all_chapters_with_content(self) -> ChapterContentDict:
         """
@@ -51,7 +62,13 @@ class ChapterRepository:
         FROM Chapters
         ORDER BY Sort_Order ASC;
         """
-        return self.db._execute_query(query, fetch_all=True)
+        try:
+            results = self.db._execute_query(query, fetch_all=True)
+            logger.info(f"Retrieved {len(results)} chapters with full content.")
+            return results
+        except DatabaseError as e:
+            logger.error("Failed to retrieve all chapters with content.", exc_info=True)
+            raise e
     
     def get_chapter_content(self, chapter_id: int) -> str | None:
         """
@@ -67,8 +84,14 @@ class ChapterRepository:
         
         """
         query = "SELECT Text_Content FROM Chapters WHERE ID = ?;"
-        result = self.db._execute_query(query, (chapter_id,), fetch_one=True)
-        return result['Text_Content'] if result else None
+        try:
+            result = self.db._execute_query(query, (chapter_id,), fetch_one=True)
+            content = result['Text_Content'] if result else None
+            logger.debug(f"Retrieved content for chapter ID: {chapter_id}. Found: {content is not None}")
+            return content
+        except DatabaseError as e:
+            logger.error(f"Failed to retrieve content for chapter ID: {chapter_id}.", exc_info=True)
+            raise e
     
     def get_content_by_title(self, title: str) -> dict | None:
         """
@@ -81,7 +104,13 @@ class ChapterRepository:
         :rtype: dict or None
         """ 
         query = "SELECT ID, Title, Text_Content FROM CHAPTERS WHERE Title = ? COLLATE NOCASE;"
-        return self.db._execute_query(query, (title,), fetch_one=True)
+        try:
+            result = self.db._execute_query(query, (title,), fetch_one=True)
+            logger.debug(f"Retrieved content by title: '{title}'. Found: {result is not None}")
+            return result
+        except DatabaseError as e:
+            logger.error(f"Failed to retrieve content for chapter title: '{title}'.", exc_info=True)
+            raise e
 
     def create_chapter(self, title: str, sort_order: int, precursor_id: int | None = None) -> int | None:
         """
@@ -101,10 +130,16 @@ class ChapterRepository:
         INSERT INTO Chapters (Title, Text_Content, Sort_Order, Precursor_Chapter_ID)
         VALUES (?, ?, ?, ?);
         """
-        chapter_id = self.db._execute_commit(
-            query, (title, "<p></p>", sort_order, precursor_id), fetch_id=True
-        )
-        return chapter_id
+        try:
+            chapter_id = self.db._execute_commit(
+                query, (title, "<p></p>", sort_order, precursor_id), fetch_id=True
+            )
+            if chapter_id:
+                logger.info(f"Created new chapter: ID={chapter_id}, Title='{title}', SortOrder={sort_order}.")
+            return chapter_id
+        except DatabaseError as e:
+            logger.error(f"Failed to create new chapter with title: '{title}'.", exc_info=True)
+            raise e
     
     def update_chapter_content(self, chapter_id: int, content: str) -> bool:
         """
@@ -119,7 +154,14 @@ class ChapterRepository:
         :rtype: bool
         """
         query = "UPDATE Chapters SET Text_Content = ? WHERE ID = ?;"
-        return self.db._execute_commit(query, (content, chapter_id))
+        try:
+            success = self.db._execute_commit(query, (content, chapter_id))
+            if success:
+                logger.info(f"Content updated for chapter ID: {chapter_id}.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to update content for chapter ID: {chapter_id}.", exc_info=True)
+            raise e
     
     def delete_chapter(self, chapter_id: int) -> bool:
         """
@@ -132,7 +174,14 @@ class ChapterRepository:
         :rtype: bool
         """
         query = "DELETE FROM Chapters WHERE ID = ?;"
-        return self.db._execute_commit(query, (chapter_id,))
+        try:
+            success = self.db._execute_commit(query, (chapter_id,))
+            if success:
+                logger.warning(f"Chapter deleted: ID={chapter_id}.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to delete chapter ID: {chapter_id}.", exc_info=True)
+            raise e
     
     def get_chapter_title(self, chapter_id: int) -> str | None:
         """
@@ -145,8 +194,14 @@ class ChapterRepository:
         :rtype: str or None
         """
         query = "SELECT Title FROM Chapters WHERE ID = ?;"
-        result = self.db._execute_query(query, (chapter_id,), fetch_one=True)
-        return result['Title'] if result else None
+        try:
+            result = self.db._execute_query(query, (chapter_id,), fetch_one=True)
+            title = result['Title'] if result else None
+            logger.debug(f"Retrieved title for chapter ID: {chapter_id}. Title: {title}")
+            return title
+        except DatabaseError as e:
+            logger.error(f"Failed to retrieve title for chapter ID: {chapter_id}.", exc_info=True)
+            raise e
 
     def update_chapter_title(self, chapter_id: int, title: str) -> bool:
         """
@@ -161,7 +216,14 @@ class ChapterRepository:
         :rtype: bool
         """
         query = "UPDATE Chapters SET Title = ? WHERE ID = ?;"
-        return self.db._execute_commit(query, (title, chapter_id))
+        try:
+            success = self.db._execute_commit(query, (title, chapter_id))
+            if success:
+                logger.info(f"Title updated for chapter ID: {chapter_id}. New title: '{title}'.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to update title for chapter ID: {chapter_id}.", exc_info=True)
+            raise e
     
     def get_all_chapters_for_export(self, chapter_ids: list[int] = None) -> list[dict]:
         """
@@ -181,25 +243,31 @@ class ChapterRepository:
         """
         params = ()
 
-        # 1. Modify the query if specific IDs are requested
+        # Modify the query if specific IDs are requested
         if chapter_ids is not None and chapter_ids:
             # Ensure IDs are unique and sorted for consistent query execution
-            unique_ids = sorted(list(set(chapter_ids))) 
-            
+            unique_ids = sorted(list(set(chapter_ids)))
+
             # Create placeholders for the IN clause (e.g., ?, ?, ?)
             placeholders = ', '.join(['?'] * len(unique_ids))
-            
+
             query += f" WHERE ID IN ({placeholders})"
-            # The IDs become the parameters for the query
             params = tuple(unique_ids)
 
-        # 2. Add final ordering clause
+        # Add final ordering clause
         query += " ORDER BY Sort_Order ASC;"
 
-        # 3. Execute the query using the DBConnector helper method
-        results = self.db._execute_query(query, params, fetch_all=True)
-
-        return results if results else []
+        # Execute the query using the DBConnector helper method
+        try:
+            results = self.db._execute_query(query, params, fetch_all=True)
+            if chapter_ids:
+                logger.info(f"Retrieved {len(results)} chapters for export from a list of {len(chapter_ids)} IDs.")
+            else:
+                logger.info(f"Retrieved all {len(results)} chapters for export.")
+            return results if results else []
+        except DatabaseError as e:
+            logger.error("Failed to retrieve chapters for export.", exc_info=True)
+            raise e
     
     def reorder_chapters(self, chapter_updates: list[tuple[int, int]]) -> bool:
         """
@@ -221,4 +289,11 @@ class ChapterRepository:
             operations.append((query, (new_sort_order, chapter_id)))
 
         # Execute all operations in a single transaction
-        return self.db._execute_transaction(operations)
+        try:
+            success = self.db._execute_transaction(operations)
+            if success:
+                logger.info(f"Successfully reordered {len(operations)} chapters.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to reorder chapters. Attempted updates: {chapter_updates}.", exc_info=True)
+            raise e

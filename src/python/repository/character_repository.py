@@ -2,6 +2,10 @@
 
 from ..utils.types import DBRowList, CharacterDetailsDict, CharacterBasicDict
 from ..db_connector import DBConnector
+from ..utils.logger import get_logger
+from ..utils.exceptions import DatabaseError
+
+logger = get_logger(__name__)
 
 class CharacterRepository:
     """
@@ -21,6 +25,7 @@ class CharacterRepository:
         :rtype: None
         """
         self.db = db_connector
+        logger.debug("CharacterRepository initialized.")
 
     def get_all_characters(self) -> DBRowList | None:
         """"
@@ -34,7 +39,13 @@ class CharacterRepository:
         :rtype: :py:class:`~app.utils.types.DBRowList`
         """
         query = "SELECT ID, Name FROM Characters ORDER BY Name ASC;"
-        return self.db._execute_query(query, fetch_all=True)
+        try:
+            results = self.db._execute_query(query, fetch_all=True)
+            logger.info(f"Retrieved {len(results)} basic character records.")
+            return results
+        except DatabaseError as e:
+            logger.error("Failed to retrieve all characters.", exc_info=True)
+            raise e
     
     def get_character_details(self, char_id: int) -> CharacterDetailsDict:
         """
@@ -51,7 +62,13 @@ class CharacterRepository:
         FROM Characters
         WHERE ID = ?;
         """
-        return self.db._execute_query(query, (char_id,), fetch_one=True)
+        try:
+            details = self.db._execute_query(query, (char_id,), fetch_one=True)
+            logger.debug(f"Retrieved details for character ID: {char_id}. Found: {details is not None}")
+            return details
+        except DatabaseError as e:
+            logger.error(f"Failed to retrieve details for character ID: {char_id}.", exc_info=True)
+            raise e
     
     def get_character_name(self, char_id) -> str | None:
         """
@@ -64,8 +81,14 @@ class CharacterRepository:
         :rtype: str or None
         """
         query = "SELECT Name FROM Characters WHERE ID = ?"
-        result = self.db._execute_query(query, (char_id,), fetch_one=True)
-        return result['Name'] if result else None
+        try:
+            result = self.db._execute_query(query, (char_id,), fetch_one=True)
+            name = result['Name'] if result else None
+            logger.debug(f"Retrieved name for character ID: {char_id}. Name: {name}")
+            return name
+        except DatabaseError as e:
+            logger.error(f"Failed to retrieve name for character ID: {char_id}.", exc_info=True)
+            raise e
     
     def get_content_by_name(self, name: str) -> dict | None:
         """
@@ -79,7 +102,15 @@ class CharacterRepository:
         """ 
         search_term = f"%{name.strip()}%"
         query = "SELECT ID, Name, Description FROM Characters WHERE Name Like ? COLLATE NOCASE;"
-        return self.db._execute_query(query, (search_term,), fetch_one=True)
+        search_term = f"%{name.strip()}%"
+        query = "SELECT ID, Name, Description FROM Characters WHERE Name Like ? COLLATE NOCASE;"
+        try:
+            result = self.db._execute_query(query, (search_term,), fetch_one=True)
+            logger.debug(f"Retrieved content by name search: '{name}'. Found: {result is not None}")
+            return result
+        except DatabaseError as e:
+            logger.error(f"Failed to retrieve content for character name: '{name}'.", exc_info=True)
+            raise e
     
     def create_character(self, name: str, description: str = "", status: str = "") -> int | None:
         """
@@ -95,10 +126,15 @@ class CharacterRepository:
         :returns: The ID of the newly created chapter if successful, otherwise None.
         :rtype: int or None
         """
-        query = """INSERT INTO Characters (Name, Description, Status) 
-        VALUES (?, ?, ?);
-        """
-        return self.db._execute_commit(query, (name, description, status), fetch_id=True)
+        query = "INSERT INTO Characters (Name, Description, Status) VALUES (?, ?, ?);"
+        try:
+            char_id = self.db._execute_commit(query, (name, description, status), fetch_id=True)
+            if char_id:
+                logger.info(f"Created new character: ID={char_id}, Name='{name}'.")
+            return char_id
+        except DatabaseError as e:
+            logger.error(f"Failed to create new character with name: '{name}'.", exc_info=True)
+            raise e
     
     def update_character(self, char_id: int, name: str, description: str = "", status: str = "") -> bool:
         """
@@ -120,7 +156,14 @@ class CharacterRepository:
         UPDATE Characters SET Name = ?, Description = ?, Status = ?
         WHERE ID = ?;
         """
-        return self.db._execute_commit(query, (name, description, status, char_id))
+        try:
+            success = self.db._execute_commit(query, (name, description, status, char_id))
+            if success:
+                logger.info(f"Updated character ID: {char_id}. New Name: '{name}'.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to update character ID: {char_id} with name '{name}'.", exc_info=True)
+            raise e
 
     def delete_character(self, char_id) -> bool:
         """
@@ -133,7 +176,14 @@ class CharacterRepository:
         :rtype: bool
         """
         query = "DELETE FROM Characters WHERE ID = ?;"
-        return self.db._execute_commit(query, (char_id,))
+        try:
+            success = self.db._execute_commit(query, (char_id,))
+            if success:
+                logger.warning(f"Character deleted: ID={char_id}.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to delete character ID: {char_id}.", exc_info=True)
+            raise e
     
     def search_characters(self, user_query: str) -> CharacterBasicDict | None:
         """
@@ -164,7 +214,13 @@ class CharacterRepository:
         ORDER BY Name ASC;
         """
         params = (like_pattern, like_pattern)
-        return self.db._execute_query(query, params, fetch_all=True)
+        try:
+            results = self.db._execute_query(query, params, fetch_all=True)
+            logger.info(f"Character search for '{clean_query}' returned {len(results)} results.")
+            return results
+        except DatabaseError as e:
+            logger.error(f"Failed to execute search for characters with query: '{clean_query}'.", exc_info=True)
+            raise e
     
     def get_all_characters_for_export(self, character_ids: list[int] = []) -> CharacterDetailsDict:
         """
@@ -185,7 +241,7 @@ class CharacterRepository:
         """
         params = ()
 
-        # 1. Modify the query if specific IDs are requested
+        # Modify the query if specific IDs are requested
         if character_ids is not None and character_ids:
             # Ensure IDs are unique and sorted for consistent query execution
             unique_ids = sorted(list(set(character_ids))) 
@@ -194,11 +250,18 @@ class CharacterRepository:
             placeholders = ', '.join(['?'] * len(unique_ids))
             
             query += f" WHERE ID IN ({placeholders})"
-            # The IDs become the parameters for the query
             params = tuple(unique_ids)
 
-        # 2. Add final ordering clause
+        # Add final ordering clause
         query += " ORDER BY Name ASC;"
 
-        results = self.db._execute_query(query, params, fetch_all=True)
-        return results if results else []
+        try:
+            results = self.db._execute_query(query, params, fetch_all=True)
+            if character_ids:
+                logger.info(f"Retrieved {len(results)} characters for export from a list of {len(character_ids)} IDs.")
+            else:
+                logger.info(f"Retrieved all {len(results)} characters for export.")
+            return results if results else []
+        except DatabaseError as e:
+            logger.error("Failed to retrieve characters for export.", exc_info=True)
+            raise e

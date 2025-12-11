@@ -2,6 +2,10 @@
 
 from ..utils.types import TagTuple, TagTupleList
 from ..db_connector import DBConnector
+from ..utils.logger import get_logger
+from ..utils.exceptions import DatabaseError
+
+logger = get_logger(__name__)
 
 class TagRepository:
     """
@@ -22,6 +26,7 @@ class TagRepository:
         :rtype: None
         """
         self.db = db_connector
+        logger.debug("TagRepository initialized.")
 
     def _normalize_tag_name(self, tag_name: str) -> str:
         """
@@ -47,8 +52,15 @@ class TagRepository:
         """
         clean_name = self._normalize_tag_name(tag_name)
         query = "SELECT ID FROM Tags WHERE Name = ?;"
-        result = self.db._execute_query(query, (clean_name,), fetch_one=True)
-        return result['ID'] if result else None
+        try:
+            result = self.db._execute_query(query, (clean_name,), fetch_one=True)
+            id = result['ID']
+            if result:
+                logger.info(f"Retrieve Tag ID: {id} by name: {tag_name}")
+            return id if id else None
+        except DatabaseError as e:
+            logger.error("Failed to get Tag ID by name.", exc_info=True)
+            raise e
     
     def _create_tag(self, tag_name: str) -> int | None:
         """
@@ -66,7 +78,14 @@ class TagRepository:
         
         clean_name = self._normalize_tag_name(tag_name)
         query = "INSERT INTO Tags (Name) VALUES (?);"
-        return self.db._execute_commit(query, (clean_name,), fetch_id=True)
+        try:
+            success =  self.db._execute_commit(query, (clean_name,), fetch_id=True)
+            if success:
+                logger.info(f"Created tag with new ID {success}")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to create new tag.", exc_info=True)
+            raise e
     
     # --- Chapter Tag Methods ---
 
@@ -87,7 +106,13 @@ class TagRepository:
         WHERE ct.Chapter_ID = ?
         ORDER BY t.Name ASC;
         """
-        return self.db._execute_query(query, (chapter_id,), fetch_all=True, as_list=True)
+        try:
+            results = self.db._execute_query(query, (chapter_id,), fetch_all=True, as_list=True)
+            logger.debug(f"Retrieved {len(results)} tags for chapter ID: {chapter_id}.")
+            return results
+        except DatabaseError as e:
+            logger.error(f"Failed to retrieve tags for chapter ID: {chapter_id}.", exc_info=True)
+            raise e
     
     def set_tags_for_chapter(self, chapter_id: int, tag_names: list[str]) -> bool:
         """
@@ -113,7 +138,14 @@ class TagRepository:
                 insert_query = "INSERT OR IGNORE INTO Chapter_Tags (Chapter_ID, Tag_ID) VALUES (?, ?)"
                 operations.append((insert_query, (chapter_id, tag_id)))
         
-        return self.db._execute_transaction(operations)
+        try:
+            success = self.db._execute_transaction(operations)
+            if success:
+                logger.info(f"Successfully set {len(tag_names)} tags for chapter ID: {chapter_id}.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to set tags for chapter ID: {chapter_id}. Tag list: {tag_names}", exc_info=True)
+            raise e
         
     # --- Tags for Lore ---
     def get_tags_for_lore_entry(self, lore_id: int) -> TagTupleList:
@@ -133,7 +165,13 @@ class TagRepository:
         WHERE lt.Lore_ID = ?
         ORDER BY t.Name ASC;
         """
-        return self.db._execute_query(query, (lore_id,), fetch_all=True, as_list=True)
+        try:
+            results = self.db._execute_query(query, (lore_id,), fetch_all=True, as_list=True)
+            logger.debug(f"Retrieved {len(results)} tags for lore entry ID: {lore_id}.")
+            return results
+        except DatabaseError as e:
+            logger.error(f"Failed to retrieve tags for lore entry ID: {lore_id}.", exc_info=True)
+            raise e
     
     def set_tags_for_lore_entry(self, lore_id: int, tag_names: list[str]) -> bool:
         """
@@ -159,4 +197,11 @@ class TagRepository:
                 insert_query = "INSERT OR IGNORE INTO Lore_Tags (Lore_ID, Tag_ID) VALUES (?, ?)"
                 operations.append((insert_query, (lore_id, tag_id)))
         
-        return self.db._execute_transaction(operations)
+        try:
+            success = self.db._execute_transaction(operations)
+            if success:
+                logger.info(f"Successfully set {len(tag_names)} tags for lore entry ID: {lore_id}.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to set tags for lore entry ID: {lore_id}. Tag list: {tag_names}", exc_info=True)
+            raise e

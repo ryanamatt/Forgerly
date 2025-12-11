@@ -2,6 +2,10 @@
 
 from ..utils.types import LoreEntryDict, LoreSearchResultDict, DBRowList
 from ..db_connector import DBConnector
+from ..utils.logger import get_logger
+from ..utils.exceptions import DatabaseError
+
+logger = get_logger(__name__)
 
 class LoreRepository:
     """
@@ -21,6 +25,7 @@ class LoreRepository:
         :rtype: None
         """
         self.db = db_connector
+        logger.debug("LoreRepository initialized.")
 
     def get_all_lore_entries(self) -> DBRowList | None:
         """"
@@ -38,7 +43,13 @@ class LoreRepository:
         FROM Lore_Entries
         ORDER BY Title ASC;
         """
-        return self.db._execute_query(query, fetch_all=True)
+        try:
+            results = self.db._execute_query(query, fetch_all=True)
+            logger.info(f"Retrieved {len(results)} basic lore entry records.")
+            return results
+        except DatabaseError as e:
+            logger.error("Failed to retrieve all lore entries.", exc_info=True)
+            raise e
     
     def get_content_by_title(self, title: str) -> dict | None:
         """
@@ -52,7 +63,13 @@ class LoreRepository:
         """ 
         search_term = f"%{title.strip()}%"
         query = "SELECT ID, Title, Content FROM Lore_Entries WHERE Title Like ? COLLATE NOCASE;"
-        return self.db._execute_query(query, (search_term,), fetch_one=True)
+        try:
+            result = self.db._execute_query(query, (search_term,), fetch_one=True)
+            logger.debug(f"Retrieved content by title search: '{title}'. Found: {result is not None}")
+            return result
+        except DatabaseError as e:
+            logger.error(f"Failed to retrieve content for lore entry title search: '{title}'.", exc_info=True)
+            raise e
 
 
     def create_lore_entry(self, title: str, content: str = "", category: str = "") -> int | None:
@@ -73,8 +90,14 @@ class LoreRepository:
         INSERT INTO Lore_Entries (Title, Content, Category)
         VALUES (?, ?, ?)
         """
-        lore_id = self.db._execute_commit(query, (title, content, category), fetch_id=True)
-        return lore_id
+        try:
+            lore_id = self.db._execute_commit(query, (title, content, category), fetch_id=True)
+            if lore_id:
+                logger.info(f"Created new lore entry: ID={lore_id}, Title='{title}'.")
+            return lore_id
+        except DatabaseError as e:
+            logger.error(f"Failed to create new lore entry with title: '{title}'.", exc_info=True)
+            raise e
     
     def get_lore_entry_title(self, lore_id: int) -> str | None:
         """
@@ -87,8 +110,14 @@ class LoreRepository:
         :rtype: str or None
         """
         query = "SELECT Title FROM Lore_Entries WHERE ID = ?"
-        result =  self.db._execute_query(query, (lore_id,), fetch_one=True)
-        return result['Title'] if result else None
+        try:
+            result =  self.db._execute_query(query, (lore_id,), fetch_one=True)
+            title = result['Title'] if result else None
+            logger.debug(f"Retrieved title for lore entry ID: {lore_id}. Title: {title}")
+            return title
+        except DatabaseError as e:
+            logger.error(f"Failed to retrieve title for lore entry ID: {lore_id}.", exc_info=True)
+            raise e
     
     def get_lore_entry_details(self, lore_id: int) -> LoreEntryDict | None:
         """
@@ -105,7 +134,13 @@ class LoreRepository:
         FROM Lore_Entries
         WHERE ID = ?;
         """
-        return self.db._execute_query(query, (lore_id,), fetch_one=True)
+        try:
+            details = self.db._execute_query(query, (lore_id,), fetch_one=True)
+            logger.debug(f"Retrieved details for lore entry ID: {lore_id}. Found: {details is not None}")
+            return details
+        except DatabaseError as e:
+            logger.error(f"Failed to retrieve details for lore entry ID: {lore_id}.", exc_info=True)
+            raise e
 
     def update_lore_entry(self, lore_id: int, title: str, content: str = "", category: str = "") -> bool:
         """
@@ -125,7 +160,14 @@ class LoreRepository:
         """
         query = query = "UPDATE Lore_Entries SET Title = ?, Content = ?, Category = ? WHERE ID = ?;"
         params = (title, content, category, lore_id)
-        return self.db._execute_commit(query, params)
+        try:
+            success = self.db._execute_commit(query, params)
+            if success:
+                logger.info(f"Updated lore entry ID: {lore_id}. New Title: '{title}'.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to update lore entry ID: {lore_id} with title '{title}'.", exc_info=True)
+            raise e
     
     def update_lore_entry_title(self, lore_id: int, new_title: str) -> bool:
         """
@@ -141,7 +183,14 @@ class LoreRepository:
         """
         query = "UPDATE Lore_Entries SET Title = ? WHERE ID = ?;"
         params = (new_title, lore_id)
-        return self.db._execute_commit(query, params)
+        try:
+            success = self.db._execute_commit(query, params)
+            if success:
+                logger.info(f"Updated title for lore entry ID: {lore_id}. New title: '{new_title}'.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to update title for lore entry ID: {lore_id} to '{new_title}'.", exc_info=True)
+            raise e
     
     def update_lore_entry_parent_id(self, lore_id: int, new_parent_id: int) -> bool:
         """
@@ -157,7 +206,14 @@ class LoreRepository:
         SET Parent_Lore_ID = ?
         WHERE ID = ?;
         """
-        return self.db._execute_commit(query, (new_parent_id, lore_id))
+        try:
+            success = self.db._execute_commit(query, (new_parent_id, lore_id))
+            if success:
+                logger.info(f"Updated parent ID for lore entry ID: {lore_id} to {new_parent_id}.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to update parent ID for lore entry ID: {lore_id} to {new_parent_id}.", exc_info=True)
+            raise e
     
     def delete_lore_entry(self, lore_id: int) -> bool:
         """
@@ -170,7 +226,14 @@ class LoreRepository:
         :rtype: bool
         """
         query = "DELETE FROM Lore_Entries WHERE ID = ?;"
-        return self.db._execute_commit(query, (lore_id,))
+        try:
+            success = self.db._execute_commit(query, (lore_id,))
+            if success:
+                logger.warning(f"Lore entry deleted: ID={lore_id}.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to delete lore entry ID: {lore_id}.", exc_info=True)
+            raise e
     
     def search_lore_entries(self, user_query: str) -> list[LoreSearchResultDict] | None:
         """
@@ -206,7 +269,13 @@ class LoreRepository:
         ORDER BY LE.Title ASC;
         """
         params = (like_pattern, like_pattern, like_pattern, like_pattern)
-        return self.db._execute_query(query, params, fetch_all=True)
+        try:
+            results = self.db._execute_query(query, params, fetch_all=True)
+            logger.info(f"Lore search for '{clean_query}' returned {len(results)} results.")
+            return results
+        except DatabaseError as e:
+            logger.error(f"Failed to execute search for lore entries with query: '{clean_query}'.", exc_info=True)
+            raise e
     
     def get_lore_entries_for_export(self, lore_ids: list[int] = None) -> list[dict]:
         """
@@ -225,7 +294,7 @@ class LoreRepository:
         """
         params = ()
 
-        # 1. Modify the query if specific IDs are requested
+        # Modify the query if specific IDs are requested
         if lore_ids is not None and lore_ids:
             # Ensure IDs are unique and sorted for consistent query execution
             unique_ids = sorted(list(set(lore_ids))) 
@@ -234,13 +303,19 @@ class LoreRepository:
             placeholders = ', '.join(['?'] * len(unique_ids))
             
             query += f" WHERE ID IN ({placeholders})"
-            # The IDs become the parameters for the query
             params = tuple(unique_ids)
 
-        # 2. Add final ordering clause
+        # Add final ordering clause
         query += " ORDER BY Title ASC;"
 
-        # 3. Execute the query using the DBConnector helper method
-        results = self.db._execute_query(query, params, fetch_all=True)
-
-        return results if results else []
+        # Execute the query using the DBConnector helper method
+        try:
+            results = self.db._execute_query(query, params, fetch_all=True)
+            if lore_ids:
+                logger.info(f"Retrieved {len(results)} lore entries for export from a list of {len(lore_ids)} IDs.")
+            else:
+                logger.info(f"Retrieved all {len(results)} lore entries for export.")
+            return results if results else []
+        except DatabaseError as e:
+            logger.error("Failed to retrieve lore entries for export.", exc_info=True)
+            raise e
