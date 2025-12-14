@@ -18,12 +18,10 @@ class ProjectStatsDialog(QDialog):
     A modal dialog window used to display project-wide statistics, such as 
     total word count, character count, and estimated read time.
     """
-    def __init__(self, coordinator: AppCoordinator, wpm: int, parent=None) -> None:
+    def __init__(self, project_stats: dict, user_settings: dict, parent=None) -> None:
         """
         Initializes the :py:class:`.ProjectStatsDialog`.
 
-        :param coordinator: The application coordinator for data access.
-        :type coordinator: :py:class:`~services.app_coordinator.AppCoordinator`
         :param wpm: Words Per Minute setting, used for read time calculation.
         :type wpm: int
         :param parent: The parent Qt widget.
@@ -32,46 +30,15 @@ class ProjectStatsDialog(QDialog):
         :rtype: None
         """
         super().__init__(parent)
-        self.coordinator = coordinator 
-        self.wpm = wpm
+        self.project_stats = project_stats
+        self.wpm = user_settings['words_per_minute']
         
         self.setWindowTitle("Project Statistics")
         self.setGeometry(200, 200, 500, 300) 
 
-        self._stats = self._calculate_project_stats()
+        self._stats = project_stats
+
         self._setup_ui()
-
-    def _calculate_project_stats(self) -> dict:
-        """
-        Fetches all relevant project text content and calculates overall statistics.
-        
-        NOTE: In a real implementation, you would use `self.coordinator` to 
-        fetch all chapter and lore content from the database.
-        
-        :returns: A dictionary of calculated statistics.
-        :rtype: dict
-        """
-        logger.info("Calculating project statistics...")
-
-        mock_text_content = (
-            "The quick brown fox jumps over the lazy dog. " * 50 +
-            "A writer's work is never done! " * 20
-        )
-
-        total_word_count = calculate_word_count(mock_text_content)
-        total_char_count_with_spaces = calculate_character_count(mock_text_content, include_spaces=True)
-        total_char_count_no_spaces = calculate_character_count(mock_text_content, include_spaces=False)
-        read_time = calculate_read_time(total_word_count, self.wpm)
-
-        return {
-            "total_word_count": f"{total_word_count:,}",
-            "char_count_with_spaces": f"{total_char_count_with_spaces:,}",
-            "char_count_no_spaces": f"{total_char_count_no_spaces:,}",
-            "read_time": read_time,
-            "chapter_count": "5",     # Mock Entity Count
-            "lore_count": "42",       # Mock Entity Count
-            "character_count": "15",  # Mock Entity Count
-        }
 
     def _setup_ui(self) -> None:
         """
@@ -93,11 +60,7 @@ class ProjectStatsDialog(QDialog):
         content_layout.addWidget(QLabel("Characters (No Spaces):"), 1, 0)
         content_layout.addWidget(QLabel(self._stats["char_count_no_spaces"]), 1, 1)
         
-        # Row 3: Characters (With Spaces)
-        content_layout.addWidget(QLabel("Characters (With Spaces):"), 2, 0)
-        content_layout.addWidget(QLabel(self._stats["char_count_with_spaces"]), 2, 1)
-
-        # Row 4: Estimated Read Time
+        # Row 3: Estimated Read Time
         content_layout.addWidget(QLabel("Estimated Read Time:"), 3, 0)
         content_layout.addWidget(QLabel(f"{self._stats['read_time']} (at {self.wpm} WPM)"), 3, 1)
         

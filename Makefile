@@ -4,8 +4,8 @@
 CXX         = g++
 CXXFLAGS    = -std=c++17 -Wall -Wextra -Wpedantic
 LDFLAGS     = -shared
-# Flags to statically link libstdc++ and libgcc (as in your command)
-STATIC_LIBS = -static-libstdc++ -static-libgcc
+# Flags to statically link libstdc++ and libgcc
+STATIC_LIBS = -Isrc/c_lib -std=c++17     -Wl,--out-implib,src/c_lib/libtext_stats_engine.a     -static-libstdc++ -static-libgcc -static
 
 # Source and Output Paths
 SRC_DIR     = src/c_lib

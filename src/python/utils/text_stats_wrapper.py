@@ -44,12 +44,7 @@ try:
     
     # const char* calculate_read_time_c(int word_count, int wpm); 
     _stats_engine.calculate_read_time_c.argtypes = [ctypes.c_int, ctypes.c_int]
-    _stats_engine.calculate_read_time_c.restype = ctypes.c_char_p # Correct: C string pointer
-
-    # void free_string_c(const char* ptr); 
-    # NEW: Function to manage memory allocated by the C++ side
-    _stats_engine.free_string_c.argtypes = [ctypes.c_char_p]
-    _stats_engine.free_string_c.restype = None
+    _stats_engine.calculate_read_time_c.restype = ctypes.c_char_p
     
 except Exception as e:
     # We raise an ImportError to make it explicit that the dependency
@@ -61,20 +56,48 @@ except Exception as e:
 # --- Public Wrapper Functions (Only call C++ engine) ---
 
 def calculate_word_count(text: str) -> int:
-    """Calculates the word count using the C++ engine."""
+    """
+    Calculates the word count using the C++ engine.
+    
+    :param text: The text to calculate the word count for.
+    :type text: str
+
+    :returns: The word count of the text.
+    :rtype: int
+    """
     # Encode Python string to bytes (UTF-8) for C's const char*
     text_bytes = text.encode('utf-8')
     return _stats_engine.calculate_word_count_c(text_bytes)
 
 def calculate_character_count(text: str, include_spaces: bool = True) -> int:
-    """Calculates the character count using the C++ engine."""
+    """
+    Calculates the character count using the C++ engine.
+    
+    :param text: The text to calculate word count for.
+    :type text: str
+    :param include_spaces: Whether or not to include spaces as characters.
+    :type: bool
+
+    :returns: The number of characters in the text.
+    :rtype: int
+    """
     text_bytes = text.encode('utf-8')
     # Cast boolean to C integer (1 or 0)
     c_include_spaces = 1 if include_spaces else 0
     return _stats_engine.calculate_character_count_c(text_bytes, c_include_spaces)
 
 def calculate_read_time(word_count: int, wpm: int = 250) -> str:
-    """Calculates the estimated read time using the C++ engine."""
+    """
+    Calculates the estimated read time using the C++ engine.
+    
+    :param word_count: The word count.
+    :type word_count: str
+    :param wpm: The words per minute to calculate the read time. Default 250.
+    :type wpm: int
+
+    :returns the Read in format "int min"
+    :rtype: str
+    """
     # Call the C++ function, which returns a const char* pointer
     result_ptr = _stats_engine.calculate_read_time_c(word_count, wpm)
 

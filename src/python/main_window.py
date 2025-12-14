@@ -1057,6 +1057,8 @@ class MainWindow(QMainWindow):
                 
         :rtype: None
         """
-        stats_dialog = ProjectStatsDialog(coordinator=self.coordinator, wpm = self.current_settings['words_per_minute'], parent=self)
+        project_stats = self.coordinator.get_project_stats(wpm=self.current_settings['words_per_minute'])
+
+        stats_dialog = ProjectStatsDialog(project_stats=project_stats, user_settings=self.current_settings, parent=self)
 
         stats_dialog.exec()
