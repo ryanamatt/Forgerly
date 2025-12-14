@@ -10,32 +10,34 @@ function f r
 2
 /z end ;
 for i := 1 to iterations do begin
-{ calculate repulsive forces}
-for v in V do begin
-{ each vertex has two vectors: .pos and .disp }
-v.disp := 0;
-for u in V d o
-if (u # v) then begin
-{ D is short hand for the difference}
-{ vector between the positions of the two vertices )
-D := v.pos - u.pos;
-v.disp := v.disp + ( D /| D |) * fr (| D |)
-end
-e n d
-{ calculate attractive forces }
-for e in E do begin
-{ each edge is an ordered pair of vertices .v and .u }
-D := e.v.pos – e.u.pos
-e.v.disp := e.v.disp – ( D/| D |) * fa (| D |);
-e.u. disp := e.u.disp + ( D /| D |) * fa (| D |)
-end
-{ limit the maximum displacement to the temperature t }
-{ and then prevent from being displaced outside frame}
-for v in V do begin
-v.pos := v.pos + ( v. disp/ |v.disp|) * min ( v.disp, t );
-v.pos.x := min(W/2, max(-W/2, v.pos.x));
-v.pos.y := min(L/2, max(–L/2, v.pos.y))
-end
-{ reduce the temperature as the layout approaches a better configuration }
-t := cool(t)
+    { calculate repulsive forces}
+    for v in V do begin
+        { each vertex has two vectors: .pos and .disp }
+        v.disp := 0;
+        for u in V d o
+            if (u # v) then begin
+            { D is short hand for the difference}
+            { vector between the positions of the two vertices )
+                D := v.pos - u.pos;
+                v.disp := v.disp + ( D /| D |) * fr (| D |)
+        end
+    e n d
+    { calculate attractive forces }
+    
+    for e in E do begin
+    { each edge is an ordered pair of vertices .v and .u }
+        D := e.v.pos – e.u.pos
+        e.v.disp := e.v.disp – ( D/| D |) * fa (| D |);
+        e.u. disp := e.u.disp + ( D /| D |) * fa (| D |)
+    end
+    { limit the maximum displacement to the temperature t }
+    { and then prevent from being displaced outside frame}
+
+    for v in V do begin
+        v.pos := v.pos + ( v. disp/ |v.disp|) * min ( v.disp, t );
+        v.pos.x := min(W/2, max(-W/2, v.pos.x));
+        v.pos.y := min(L/2, max(–L/2, v.pos.y))
+    end
+    { reduce the temperature as the layout approaches a better configuration }
+    t := cool(t)
 end
