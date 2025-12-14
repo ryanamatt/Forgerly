@@ -17,8 +17,8 @@ class DBConnector:
     This class is solely responsible for database connection management, 
     while Repositories handle application-specific data access logic.
     """
-    def __init__(self, db_path : str = os.path.join('data', 'narrative_forge.db'), 
-                 schema_path: str = os.path.join('sql', 'schema_v1.sql')) -> None:
+    def __init__(self, db_path : str, 
+                 schema_path: str = os.path.join('src', 'sql', 'schema_v1.sql')) -> None:
         """
         Initializes file paths and the connection attribute. Does not establish 
         a connection immediately.
@@ -33,20 +33,6 @@ class DBConnector:
         self.db_path = db_path
         self.schema_path = schema_path
         self.conn = None
-        self.initialize_directories()
-
-    def initialize_directories(self) -> None:
-        """
-        Ensures the 'data' and 'sql' directories, required for the database 
-        and schema files, exist on the filesystem.
-        
-        :rtype: None
-        """
-        data_dir = os.path.dirname(self.db_path) or os.path.join('data')
-        sql_dir = os.path.dirname(self.schema_path) or os.path.join('sql')
-
-        os.makedirs(data_dir, exist_ok=True)
-        os.makedirs(sql_dir, exist_ok=True)
 
     def connect(self) -> bool:
         """

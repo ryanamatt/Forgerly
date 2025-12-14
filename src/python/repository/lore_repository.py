@@ -215,7 +215,7 @@ class LoreRepository:
             logger.error(f"Failed to update title for lore entry ID: {lore_id} to '{new_title}'.", exc_info=True)
             raise e
     
-    def update_lore_entry_parent_id(self, lore_id: int, new_parent_id: int) -> bool:
+    def update_lore_entry_parent_id(self, lore_id: int, new_parent_id: int | None) -> bool:
         """
         Updates the Parent_Lore_ID for a specific Lore Entry.
 

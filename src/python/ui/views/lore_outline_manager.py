@@ -66,7 +66,7 @@ class LoreOutlineManager(QWidget):
         self.search_input.textChanged.connect(self._handle_search_input)
 
         # The actual tree widget is a child
-        self.tree_widget = LoreTreeWidget(self.LORE_ID_ROLE, self.ROOT_ITEM_ROLE, self)
+        self.tree_widget = LoreTreeWidget(id_role=self.LORE_ID_ROLE, root_item_role=self.ROOT_ITEM_ROLE, parent=self)
         self.tree_widget.setHeaderLabels(["Lore Items"])
 
         main_layout.addWidget(self.search_input)
@@ -119,6 +119,7 @@ class LoreOutlineManager(QWidget):
         for entry in lore_entries:
             item = QTreeWidgetItem([entry['Title']])
             item.setData(0, self.LORE_ID_ROLE, entry['ID'])
+            item.setData(0, self.ROOT_ITEM_ROLE, False)
             item_map[entry['ID']] = item
 
         for entry in lore_entries:
@@ -126,17 +127,21 @@ class LoreOutlineManager(QWidget):
             parent_id = entry['Parent_Lore_ID']
 
             child_item = item_map.get(lore_id)
+
+            # Default to the project root
+            parent_to_attach_to = self.project_root_item 
+
+            # Check if there is a parent and if that parent exists in the fetched list
             if parent_id is not None:
                 parent_item = item_map.get(parent_id)
 
-                # Attach Child to Parent
-                if child_item and parent_item:
-                    parent_item.addChild(child_item)
-
-            else:
-                if child_item:
-                    self.project_root_item.addChild(child_item)
-
+                # If parent exists, use it instead of the project root
+                if parent_item:
+                    parent_to_attach_to = parent_item
+            
+            # Attach the child item to the determined parent/root
+            if child_item:
+                parent_to_attach_to.addChild(child_item)
                 
         self.tree_widget.expandAll()
         self.tree_widget.setCurrentItem(self.project_root_item)
