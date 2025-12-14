@@ -1,4 +1,2 @@
 src/sql/*.sql linguist-detectable=true
 src/sql/*.sql linguist-language=SQL
-src/c_lib/*.cpp linguist-language=C++
-src/c_lib/*.h linguist-language=C 
