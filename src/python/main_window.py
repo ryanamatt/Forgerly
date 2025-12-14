@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QMainWindow, QSplitter, QMessageBox, QDialog, QStackedWidget
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QCloseEvent, QResizeEvent, QMoveEvent, QIcon
+from PyQt6.QtGui import QCloseEvent, QResizeEvent, QIcon
 import os
 import sys
 import ctypes
@@ -21,6 +21,7 @@ from .ui.views.relationship_outline_manager import RelationshipOutlineManager
 from .ui.views.relationship_editor import RelationshipEditor
 from .ui.dialogs.settings_dialog import SettingsDialog
 from .ui.dialogs.exporter_dialog import ExporterDialog
+from .ui.dialogs.project_stats_dialog import ProjectStatsDialog
 
 from .db_connector import DBConnector
 
@@ -424,6 +425,9 @@ class MainWindow(QMainWindow):
 
         # Connect the view switching signal from the menu bar
         self.main_menu_bar.view_switch_requested.connect(self._switch_to_view)
+        
+        # Connect Main Menu Project Stats Dialog Openm
+        self.main_menu_bar.project_stats_requested.connect(self._open_project_stats_dialog)
         
         # --- Coordinator (Coordinator signal OUT -> Editor/UI slot IN) ---
         # The coordinator signals the editors when data is ready
@@ -1046,3 +1050,15 @@ class MainWindow(QMainWindow):
         self.current_settings['window_height'] = new_height
         self.current_settings['window_pos_x'] = new_pos_x
         self.current_settings['window_pos_y'] = new_pos_y
+
+    def _open_project_stats_dialog(self) -> None:
+        """
+        Opens the :py:class:`~app.ui.dialogs.ProjectStatsDialog`. 
+                
+        :rtype: None
+        """
+        project_stats = self.coordinator.get_project_stats(wpm=self.current_settings['words_per_minute'])
+
+        stats_dialog = ProjectStatsDialog(project_stats=project_stats, user_settings=self.current_settings, parent=self)
+
+        stats_dialog.exec()

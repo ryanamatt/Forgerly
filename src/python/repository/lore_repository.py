@@ -141,6 +141,29 @@ class LoreRepository:
         except DatabaseError as e:
             logger.error(f"Failed to retrieve details for lore entry ID: {lore_id}.", exc_info=True)
             raise e
+        
+    def get_number_of_lore_entries(self) -> int:
+        """
+        Retrieves the number of lore entries in the Datbase.
+
+        Used for Project Statistics
+
+        :returns: The number of lore entries.
+        :rtype: int
+        """
+        query = "SELECT COUNT(*) FROM Lore_Entries;"
+        try:
+            result = self.db._execute_query(query, fetch_all=True)
+            try:
+                count = result[0]['COUNT(*)']
+            except:
+                count = 0
+
+            return count
+        
+        except DatabaseError as e:
+            logger.error("Failed to count all Lore Entries.", exc_info=True)
+            raise e
 
     def update_lore_entry(self, lore_id: int, title: str, content: str = "", category: str = "") -> bool:
         """

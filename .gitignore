@@ -5,3 +5,5 @@ __pycache__/
 documentation/_build/
 projects/
 logs/
+*.a
+*.dll
