@@ -1,6 +1,7 @@
 # src/python/chapter_repository.py
 
 from ..utils.types import ChapterContentDict, ChapterBasicDict
+from ..utils.text_stats_wrapper import calculate_word_count, calculate_character_count
 from ..utils.logger import get_logger
 from ..utils.exceptions import DatabaseError
 from ..db_connector import DBConnector
@@ -111,6 +112,102 @@ class ChapterRepository:
         except DatabaseError as e:
             logger.error(f"Failed to retrieve content for chapter title: '{title}'.", exc_info=True)
             raise e
+        
+    def get_chapter_title(self, chapter_id: int) -> str | None:
+        """
+        Retrieves the chapter title by Chapter ID from the database.
+        
+        :param chapter_id; The ID of the chapter you want the title from.
+        :type chapter_id: int
+
+        :returns: The chapter title if found, otherwise False
+        :rtype: str or None
+        """
+        query = "SELECT Title FROM Chapters WHERE ID = ?;"
+        try:
+            result = self.db._execute_query(query, (chapter_id,), fetch_one=True)
+            title = result['Title'] if result else None
+            logger.debug(f"Retrieved title for chapter ID: {chapter_id}. Title: {title}")
+            return title
+        except DatabaseError as e:
+            logger.error(f"Failed to retrieve title for chapter ID: {chapter_id}.", exc_info=True)
+            raise e
+        
+    def get_all_chapters_for_export(self, chapter_ids: list[int] = None) -> list[dict]:
+        """
+        Retrieves chapter details (ID, Title, Content, Sort_Order) for export purposes,
+        optionally filtered by a list of IDs.
+
+        :param chapter_ids: A list of all the chapters ID that wish to be exported. Default
+            is None which results in all chapters..
+        :type chapter_ids: list[int]
+
+        :returns: A list containing all Chapter dicts.
+        :rtype: list[dict]
+        """
+        query = """
+        SELECT ID, Title, Text_Content, Sort_Order
+        FROM Chapters
+        """
+        params = ()
+
+        # Modify the query if specific IDs are requested
+        if chapter_ids is not None and chapter_ids:
+            # Ensure IDs are unique and sorted for consistent query execution
+            unique_ids = sorted(list(set(chapter_ids)))
+
+            # Create placeholders for the IN clause (e.g., ?, ?, ?)
+            placeholders = ', '.join(['?'] * len(unique_ids))
+
+            query += f" WHERE ID IN ({placeholders})"
+            params = tuple(unique_ids)
+
+        # Add final ordering clause
+        query += " ORDER BY Sort_Order ASC;"
+
+        # Execute the query using the DBConnector helper method
+        try:
+            results = self.db._execute_query(query, params, fetch_all=True)
+            if chapter_ids:
+                logger.info(f"Retrieved {len(results)} chapters for export from a list of {len(chapter_ids)} IDs.")
+            else:
+                logger.info(f"Retrieved all {len(results)} chapters for export.")
+            return results if results else []
+        except DatabaseError as e:
+            logger.error("Failed to retrieve chapters for export.", exc_info=True)
+            raise e
+        
+    def get_all_chapters_stats(self, wpm: int = 250) -> list[dict]:
+        """
+        Retrieves all chapters with their full text content, calculates
+        word count, character count, and estimated read time for each.
+
+        :param wpm: Words per minute for read time calculation. Default is 250.
+        :type wpm: int
+        
+        :returns: A list of dictionaries, each containing chapter basic info
+                  and the calculated statistics.
+        :rtype: list[dict]
+        """
+        all_chapters = self.get_all_chapters_with_content() # Efficiently gets all rows
+
+        chapters_with_stats = []
+        for chapter in all_chapters:
+            text_content = chapter['Text_Content'] or "" # Handle potential None content
+            
+            # 1. Calculate Statistics
+            word_count = calculate_word_count(text_content)
+            char_count = calculate_character_count(text_content, include_spaces=False)
+
+            # 2. Compile the results
+            stats_dict = {
+                'word_count': word_count,
+                'char_count_no_spaces': char_count,
+            }
+            chapters_with_stats.append(stats_dict)
+
+        logger.info(f"Calculated statistics for {len(chapters_with_stats)} chapters.")
+        return chapters_with_stats
 
     def create_chapter(self, title: str, sort_order: int, precursor_id: int | None = None) -> int | None:
         """
@@ -182,26 +279,6 @@ class ChapterRepository:
         except DatabaseError as e:
             logger.error(f"Failed to delete chapter ID: {chapter_id}.", exc_info=True)
             raise e
-    
-    def get_chapter_title(self, chapter_id: int) -> str | None:
-        """
-        Retrieves the chapter title by Chapter ID from the database.
-        
-        :param chapter_id; The ID of the chapter you want the title from.
-        :type chapter_id: int
-
-        :returns: The chapter title if found, otherwise False
-        :rtype: str or None
-        """
-        query = "SELECT Title FROM Chapters WHERE ID = ?;"
-        try:
-            result = self.db._execute_query(query, (chapter_id,), fetch_one=True)
-            title = result['Title'] if result else None
-            logger.debug(f"Retrieved title for chapter ID: {chapter_id}. Title: {title}")
-            return title
-        except DatabaseError as e:
-            logger.error(f"Failed to retrieve title for chapter ID: {chapter_id}.", exc_info=True)
-            raise e
 
     def update_chapter_title(self, chapter_id: int, title: str) -> bool:
         """
@@ -223,50 +300,6 @@ class ChapterRepository:
             return success
         except DatabaseError as e:
             logger.error(f"Failed to update title for chapter ID: {chapter_id}.", exc_info=True)
-            raise e
-    
-    def get_all_chapters_for_export(self, chapter_ids: list[int] = None) -> list[dict]:
-        """
-        Retrieves chapter details (ID, Title, Content, Sort_Order) for export purposes,
-        optionally filtered by a list of IDs.
-
-        :param chapter_ids: A list of all the chapters ID that wish to be exported. Default
-            is None which results in all chapters..
-        :type chapter_ids: list[int]
-
-        :returns: A list containing all Chapter dicts.
-        :rtype: list[dict]
-        """
-        query = """
-        SELECT ID, Title, Text_Content, Sort_Order
-        FROM Chapters
-        """
-        params = ()
-
-        # Modify the query if specific IDs are requested
-        if chapter_ids is not None and chapter_ids:
-            # Ensure IDs are unique and sorted for consistent query execution
-            unique_ids = sorted(list(set(chapter_ids)))
-
-            # Create placeholders for the IN clause (e.g., ?, ?, ?)
-            placeholders = ', '.join(['?'] * len(unique_ids))
-
-            query += f" WHERE ID IN ({placeholders})"
-            params = tuple(unique_ids)
-
-        # Add final ordering clause
-        query += " ORDER BY Sort_Order ASC;"
-
-        # Execute the query using the DBConnector helper method
-        try:
-            results = self.db._execute_query(query, params, fetch_all=True)
-            if chapter_ids:
-                logger.info(f"Retrieved {len(results)} chapters for export from a list of {len(chapter_ids)} IDs.")
-            else:
-                logger.info(f"Retrieved all {len(results)} chapters for export.")
-            return results if results else []
-        except DatabaseError as e:
-            logger.error("Failed to retrieve chapters for export.", exc_info=True)
             raise e
     
     def reorder_chapters(self, chapter_updates: list[tuple[int, int]]) -> bool:

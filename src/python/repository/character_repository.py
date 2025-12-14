@@ -111,6 +111,29 @@ class CharacterRepository:
         except DatabaseError as e:
             logger.error(f"Failed to retrieve content for character name: '{name}'.", exc_info=True)
             raise e
+        
+    def get_number_of_characters(self) -> int:
+        """
+        Retrieves the number of characters in the Datbase.
+
+        Used for Project Statistics
+
+        :returns: The number of characters.
+        :rtype: int
+        """
+        query = "SELECT COUNT(*) FROM Characters;"
+        try:
+            result = self.db._execute_query(query, fetch_all=True)
+            try:
+                count = result[0]['COUNT(*)']
+            except:
+                count = 0
+
+            return count
+        
+        except DatabaseError as e:
+            logger.error("Failed to count all chapters.", exc_info=True)
+            raise e
     
     def create_character(self, name: str, description: str = "", status: str = "") -> int | None:
         """

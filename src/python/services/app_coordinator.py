@@ -10,6 +10,7 @@ from ..repository.tag_repository import TagRepository
 from ..repository.character_repository import CharacterRepository
 from ..repository.relationship_repository import RelationshipRepository
 
+from ..utils.text_stats_wrapper import calculate_read_time
 from ..utils.constants import ViewType, EntityType
 
 from typing import TYPE_CHECKING, Any
@@ -705,3 +706,31 @@ class AppCoordinator(QObject):
                 return (EntityType.CHARACTER, data['Title'], data.get('Content', ''))
             
         return None # Found Nothing
+    
+    def get_project_stats(self, wpm: int) -> dict[str, str]:
+        """
+        A function to retrive the project stats from each of the repositories.
+    
+
+        :returns: A dictionary of the project statistics.
+        :rtype: dict[str, int | str]
+        """
+        chapter_stats = self.chapter_repo.get_all_chapters_stats()
+
+        total_word_count, char_count_no_spaces = 0, 0
+        for chapter in chapter_stats:
+            total_word_count += chapter['word_count']
+            char_count_no_spaces += chapter['char_count_no_spaces']
+        read_time = calculate_read_time(total_word_count, wpm)
+
+        lore_count = self.lore_repo.get_number_of_lore_entries()
+        char_count = self.character_repo.get_number_of_characters()
+
+        return {
+            "total_word_count": f"{total_word_count}",
+            "char_count_no_spaces": f"{char_count_no_spaces}",
+            "read_time": f"{read_time}",
+            "chapter_count": f"{len(chapter_stats)}",
+            "lore_count": f"{lore_count}", 
+            "character_count": f"{char_count}"
+        } 

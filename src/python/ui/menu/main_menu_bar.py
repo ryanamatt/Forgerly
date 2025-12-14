@@ -67,6 +67,12 @@ class MainMenuBar(QMenuBar):
         in the File Menu.
     """
 
+    project_stats_requested = pyqtSignal()
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when the 'Project Statistics' action is triggered.
+    """
+
+
     def __init__(self, current_view: ViewType, app_version: str, is_macos: bool, parent=None) -> None:
         """
         Initializes the main menu bar.
@@ -205,6 +211,13 @@ class MainMenuBar(QMenuBar):
         self.view_relationship_action.setChecked(self.current_view == ViewType.RELATIONSHIP_GRAPH)
         self.view_relationship_action.triggered.connect(lambda: self.view_switch_requested.emit(ViewType.RELATIONSHIP_GRAPH))
         self.view_menu.addAction(self.view_relationship_action)
+
+        self.view_menu.addSeparator()
+
+        # Project Statistics View Action
+        self.project_stats_action = QAction("&Project Statistics", self)
+        self.project_stats_action.triggered.connect(self.project_stats_requested.emit)
+        self.view_menu.addAction(self.project_stats_action)
 
     def _setup_help_menu(self) -> None:
         """

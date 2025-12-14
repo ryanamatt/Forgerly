@@ -16,10 +16,12 @@ Narrative Forge is a comprehensive desktop application designed to assist **auth
 The application provides specialized views and editors to manage all aspects of your story:
 
 * **Chapter Management:** Outline and edit chapters.
+  * **Chapter Statistics:** The **Chapter Editor** now displays statistics on the current chapter being edited, and a new dialog is available to show statistics for the entire story.
 * **Character Profiles:** Create and manage detailed character profiles.
 * **Lore/Worldbuilding Editor:** Document and organize your world's history, locations, and other lore elements.
 * **Relationship Mapping:** Define and track the connections and relationships between characters and lore.
 * **Tagging System:** Apply tags to various entities for easy organization and filtering.
+* **Inter-Entry Lookup:** While editing a chapter, the user can highlight text and press **Ctrl+Shift+L** to open a dialog showing the associated character or lore entry with its description.
 * **Data Export:** Export your story data into a shareable format (e.g., Markdown or text).
 * **Theming:** Supports custom themes, including **Dark**, **Light**, and **Green** styles.
 
