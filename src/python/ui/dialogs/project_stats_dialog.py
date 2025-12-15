@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
 )
 from typing import TYPE_CHECKING
 
-from ...utils.text_stats_wrapper import calculate_word_count, calculate_character_count, calculate_read_time
+from ...utils.nf_core_wrapper import calculate_word_count, calculate_character_count, calculate_read_time
 from ...utils.logger import get_logger
 
 if TYPE_CHECKING:

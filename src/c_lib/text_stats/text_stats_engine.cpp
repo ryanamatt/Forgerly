@@ -15,7 +15,7 @@ inline bool is_sentence_terminator(char c) {
  * * Uses a simple state machine (in_word) to count transitions from whitespace 
  * to non-whitespace characters, replicating Python's split() functionality.
  */
-DLL_EXPORT int calculate_word_count_c(const char * text) {
+int calculate_word_count_c(const char * text) {
     if (!text) {
         return 0;
     }
@@ -39,7 +39,7 @@ DLL_EXPORT int calculate_word_count_c(const char * text) {
 /**
  * @brief Calculates the character count.
  */
-DLL_EXPORT int calculate_character_count_c(const char* text, int include_spaces) {
+int calculate_character_count_c(const char* text, int include_spaces) {
     if (!text) {
         return 0;
     }
@@ -62,7 +62,7 @@ DLL_EXPORT int calculate_character_count_c(const char* text, int include_spaces)
 /**
  * @brief Calculates the read time of a number of wrods.
  */
-DLL_EXPORT const char* calculate_read_time_c(int word_count, int wpm) {
+const char* calculate_read_time_c(int word_count, int wpm) {
     if (wpm <= 0 || word_count == 0) {
         // Use strdup to dynamically allocate "0 min" and return the pointer
         return strdup("0 min");

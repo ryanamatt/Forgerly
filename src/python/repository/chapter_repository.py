@@ -1,7 +1,7 @@
 # src/python/chapter_repository.py
 
 from ..utils.types import ChapterContentDict, ChapterBasicDict
-from ..utils.text_stats_wrapper import calculate_word_count, calculate_character_count
+from ..utils.nf_core_wrapper import calculate_word_count, calculate_character_count
 from ..utils.logger import get_logger
 from ..utils.exceptions import DatabaseError
 from ..db_connector import DBConnector
