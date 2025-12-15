@@ -4,7 +4,7 @@ import pytest
 import sqlite3
 import os
 
-SCHEMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'sql', 'schema_v1.sql')
+SCHEMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src', 'sql', 'schema_v1.sql')
 
 @pytest.fixture
 def db_path_temp(tmp_path):

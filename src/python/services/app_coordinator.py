@@ -10,7 +10,7 @@ from ..repository.tag_repository import TagRepository
 from ..repository.character_repository import CharacterRepository
 from ..repository.relationship_repository import RelationshipRepository
 
-from ..utils.text_stats_wrapper import calculate_read_time
+from ..utils.nf_core_wrapper import calculate_read_time
 from ..utils.constants import ViewType, EntityType
 
 from typing import TYPE_CHECKING, Any
