@@ -17,18 +17,20 @@ CREATE TABLE IF NOT EXISTS Chapters (
     Start_Date              TEXT,                -- Chronological start date (Text to allow user to set Data themeselves)
     End_Date                TEXT,                -- Chronological end date (Text to allow user to set Data themeselves)
     Precursor_Chapter_ID    INTEGER,             -- Self-referencing FK for causality
+    POV_Character_ID        INTEGER,
 
     -- Foreign Key Constraint for self-reference
-    FOREIGN KEY (Precursor_Chapter_ID) REFERENCES Chapters(ID) ON DELETE SET NULL
+    FOREIGN KEY (Precursor_Chapter_ID) REFERENCES Chapters(ID) ON DELETE SET NULL,
+    FOREIGN KEY (POV_Character_ID) REFERENCES Characters(ID) on DELETE SET NULL
 );
 
--- Lore_Entries: The world wiki/knowledge base.
+-- Lore_Entries: The world wiki/knowledge base. Items, Magic, etc.
 CREATE TABLE IF NOT EXISTS Lore_Entries (
     ID                      INTEGER PRIMARY KEY,
     Title                   TEXT NOT NULL UNIQUE,
     Content                 TEXT,
     Category                TEXT,                 -- e.g., 'Location', 'Magic System', 'History'
-    Parent_Lore_ID          INTEGER,
+    Parent_Lore_ID          INTEGER,              -- Allows for Nested Lore Entries
 
     -- Foreign Key Constraint for self-reference (crucial for deletion)
     FOREIGN KEY (Parent_Lore_ID) REFERENCES Lore_Entries(ID) ON DELETE CASCADE
@@ -40,12 +42,8 @@ CREATE TABLE IF NOT EXISTS Characters (
     Name                    TEXT NOT NULL UNIQUE,
     Description             TEXT,
     Status                  TEXT,                  -- e.g., 'Alive', 'Deceased', 'Major', 'Minor'
-    Age                     INTEGER,
-    Date_of_Birth           TEXT,
-    Pronouns                TEXT,
-    Sexual_Orientation      TEXT,
-    Gender_Identity         TEXT,
-    Ethnicity_Background    TEXT,
+    Age                     INTEGER,               -- Years
+    Date_of_Birth           TEXT,                  -- Allow for User Created Dates
     Occupation_School       TEXT,
     Physical_Description    TEXT
 );
@@ -120,7 +118,7 @@ CREATE TABLE IF NOT EXISTS Chapter_Characters (
     Character_ID            INTEGER NOT NULL,
     Role_In_Chapter         TEXT,           -- e.g., 'Protagonist', 'Antagonist', 'Mentioned', 'Cameo'
 
-    PRIMARY KEY (Chapter_ID, Character_ID)
+    PRIMARY KEY (Chapter_ID, Character_ID),
     FOREIGN KEY (Chapter_ID) REFERENCES Chapters(ID) ON DELETE CASCADE,
     FOREIGN KEY (Character_ID) REFERENCES Characters(ID) ON DELETE CASCADE
 );
@@ -195,7 +193,7 @@ CREATE TABLE IF NOT EXISTS Character_Relationships (
     End_Chapter_ID          INTEGER ,           -- When the relationship ended 
 
     -- Constraint: Characters A and B must be distinct
-    CHECK (Character_A_ID != Character_B_ID)
+    CHECK (Character_A_ID != Character_B_ID),
     UNIQUE(Character_A_ID, Character_B_ID),
 
     FOREIGN KEY (Character_A_ID) REFERENCES Characters(ID) ON DELETE CASCADE,

@@ -257,9 +257,8 @@ class CharacterRepository:
         :rtype: :py:class:`~app.utils.types.CharacterDetailsDict`
         """
         query = """
-        SELECT ID, Name, Description, Status, Age, Date_Of_Birth, Pronouns,
-        Sexual_Orientation, Gender_Identity, Ethnicity_Background, Occupation_School,
-        Physical_Description
+        SELECT ID, Name, Description, Status, Age, Date_Of_Birth, 
+        Occupation_School, Physical_Description
         FROM Characters
         """
         params = ()
