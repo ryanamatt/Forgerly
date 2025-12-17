@@ -29,8 +29,6 @@ class ChapterEditor(QWidget):
     :vartype rich_text_editor: RichTextEditor
     :ivar tag_manager: The tag management component.
     :vartype tag_manager: TagManagerWidget
-    :ivar wpm: The words-per-minute setting used for read time calculation.
-    :vartype wpm: int
     """
     
     def __init__(self, current_settings, coordinator: AppCoordinator, parent=None) -> None:
@@ -40,6 +38,8 @@ class ChapterEditor(QWidget):
         :param current_settings: A dictionary containing initial application settings, 
                                  including 'words_per_minute'.
         :type current_settings: dict
+        :param coordinator: The AppCoordinator.
+        :type coordinator: :py:class:`services.AppCoordinator`
         :param parent: The parent widget. Defaults to ``None``.
         :type parent: :py:class:`PyQt6.QtWidgets.QWidget`, optional
 
@@ -148,16 +148,6 @@ class ChapterEditor(QWidget):
             new_wpm = 250
         self.wpm = new_wpm
         self._update_stats_display()
-
-    def _handle_tag_change(self):
-        """
-        Sets the rich text editor's dirty flag when tags are modified.
-
-        (Currently commented out as signal name is hypothetical)
-
-        :rtype: None
-        """
-        self.rich_text_editor._set_dirty()
         
     # --- Content Passthrough Methods (RichTextEditor) ---
     
@@ -271,7 +261,6 @@ class ChapterEditor(QWidget):
         content_viewer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(content_viewer)
         
-        # --- KEY CHANGE: Use .show() instead of .exec() ---
         dialog.show()
 
     # --- Tagging Passthrough Methods (TagManagerWidget) ---

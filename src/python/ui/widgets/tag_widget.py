@@ -383,9 +383,7 @@ class TagManagerWidget(QWidget):
                     self.tag_flow_layout.addWidget(tag_label_widget)
                     
             logger.info(f"Successfully set tags. Total tags: {len(self.tags)}")
-                    
-            logger.info(f"Successfully set tags. Total tags: {len(self.tags)}")
-            
+                                
         except Exception as e:
             logger.error(f"Critical error during set_tags operation: {e}", exc_info=True)
             # Application flow should continue, but state might be visually incorrect.
