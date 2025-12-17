@@ -186,7 +186,7 @@ class GraphLayoutEngineWrapper:
             self._edge_c_array[i].intensity = edge.get('intensity', 50.0) # Default intensity
 
         # 2. Create the C++ Engine instance
-        self._handle = _clib.nf_graph_layout_create(
+        self._handle = _clib.graph_layout_create(
             self._node_c_array, self._node_count,
             self._edge_c_array, self._edge_count,
             width, height
@@ -202,7 +202,7 @@ class GraphLayoutEngineWrapper:
         :rtype: None
         """
         if self._handle:
-            _clib.nf_graph_layout_destroy(self._handle)
+            _clib.graph_layout_destroy(self._handle)
             self._handle = None # Clear the handle
 
     def compute_layout(self, max_iterations: int = 100, initial_temperature: float = 5.0) -> list[dict]:
@@ -227,7 +227,7 @@ class GraphLayoutEngineWrapper:
         output_count_ptr = _ffi.new("int*", 0)
 
         # 2. Call the C computation function
-        result_code = _clib.nf_graph_layout_compute(
+        result_code = _clib.graph_layout_compute(
             self._handle,
             max_iterations,
             initial_temperature,
