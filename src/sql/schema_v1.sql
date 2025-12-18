@@ -16,11 +16,8 @@ CREATE TABLE IF NOT EXISTS Chapters (
     Sort_Order              INTEGER NOT NULL,    -- For outline hierarchy/order
     Start_Date              TEXT,                -- Chronological start date (Text to allow user to set Data themeselves)
     End_Date                TEXT,                -- Chronological end date (Text to allow user to set Data themeselves)
-    Precursor_Chapter_ID    INTEGER,             -- Self-referencing FK for causality
     POV_Character_ID        INTEGER,
 
-    -- Foreign Key Constraint for self-reference
-    FOREIGN KEY (Precursor_Chapter_ID) REFERENCES Chapters(ID) ON DELETE SET NULL,
     FOREIGN KEY (POV_Character_ID) REFERENCES Characters(ID) on DELETE SET NULL
 );
 

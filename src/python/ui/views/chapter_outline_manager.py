@@ -106,7 +106,6 @@ class ChapterOutlineManager(QTreeWidget):
             chapter_data = self.chapter_repo.get_all_chapters()
         else:
             chapter_data = []
-            print("Warning: ChapterOutlineManager has no ChapterRepository. Using empty set.")
 
         for chapter in chapter_data:
             chap_id = chapter['ID']
@@ -368,15 +367,12 @@ class ChapterOutlineManager(QTreeWidget):
             # Determine the sort order for the new chapter (place it last at the root level)
             current_sort_order = self.project_root_item.childCount()
             
-            # Precursor_Chapter_ID is None for top-level chapters
             new_id = self.chapter_repo.create_chapter(
                 title=title, 
                 sort_order=current_sort_order + 1,
-                precursor_id=None
             )
 
             if new_id:
-                print(f"Successfully created chapter with ID: {new_id}")
                 # Reload the outline to display the new chapter
                 self.load_outline()
                 # Automatically select the new chapter
