@@ -14,8 +14,6 @@ CREATE TABLE IF NOT EXISTS Chapters (
     Title                   TEXT NOT NULL,
     Text_Content            TEXT,                -- Stores rich text (HTML)
     Sort_Order              INTEGER NOT NULL,    -- For outline hierarchy/order
-    Start_Date              TEXT,                -- Chronological start date (Text to allow user to set Data themeselves)
-    End_Date                TEXT,                -- Chronological end date (Text to allow user to set Data themeselves)
     POV_Character_ID        INTEGER,
 
     FOREIGN KEY (POV_Character_ID) REFERENCES Characters(ID) on DELETE SET NULL
@@ -54,19 +52,6 @@ CREATE TABLE IF NOT EXISTS Locations (
     Parent_Location_ID      INTEGER,            -- For hierarchical locations (e.g., Room inside a Building)
 
     FOREIGN KEY (Parent_Location_ID) REFERENCES Locations(ID) ON DELETE SET NULL
-);
-
--- TIMELINE_EVENTS: Specific chronological plot points.
-CREATE TABLE IF NOT EXISTS Timeline_Events (
-    ID                      INTEGER PRIMARY KEY,
-    Title                   TEXT NOT NULL,
-    Event_Date              TEXT NOT NULL,
-    Description             TEXT,
-    Chapter_ID              INTEGER,
-    Lore_ID                 INTEGER,
-
-    FOREIGN KEY (Chapter_ID) REFERENCES Chapters(ID) ON DELETE SET NULL,
-    FOREIGN KEY (Lore_ID) REFERENCES Lore_Entries(ID) ON DELETE SET NULL
 );
 
 -- -----------------------------------------------------------------------------
@@ -213,24 +198,11 @@ CREATE TABLE IF NOT EXISTS Character_Node_Positions (
     FOREIGN KEY (Character_ID) REFERENCES Characters(ID) ON DELETE CASCADE
 );
 
--- VERSION_HISTORY: Records snapshots of chapter drafts.
-CREATE TABLE IF NOT EXISTS Version_History (
-    ID                      INTEGER PRIMARY KEY,
-    Chapter_ID              INTEGER NOT NULL,
-    Timestamp               TEXT NOT NULL,      -- UTC Timestamp of snapshot
-    File_Hash               TEXT NOT NULL UNIQUE, -- SHA-256 hash of the archived file
-    User_Comment            TEXT,
-
-    FOREIGN KEY (Chapter_ID) REFERENCES Chapters(ID) ON DELETE CASCADE
-);
-
 -- -----------------------------------------------------------------------------
 -- 4. Indexes (Performance)
 -- -----------------------------------------------------------------------------
 
 -- Indexes to improve lookup performance on foreign keys
-CREATE INDEX IF NOT EXISTS idx_chapters_precursor ON Chapters (Precursor_Chapter_ID);
-CREATE INDEX IF NOT EXISTS idx_version_chapter ON Version_History (Chapter_ID);
 
 -- Updated indexes for character relationships
 CREATE INDEX IF NOT EXISTS idx_relationships_a ON Character_Relationships (Character_A_ID);

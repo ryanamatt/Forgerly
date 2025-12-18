@@ -8,7 +8,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # DATA_DIR and DB_PATH constants are removed
-SCHEMA_PATH = PROJECT_ROOT / 'sql' / 'schema_v1.sql'
+SCHEMA_PATH = PROJECT_ROOT / 'src' / 'sql' / 'schema_v1.sql'
 
 def run_db_reset(db_path: Path) -> bool:
     """
