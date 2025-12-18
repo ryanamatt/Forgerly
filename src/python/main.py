@@ -38,7 +38,10 @@ class ApplicationFlowManager:
         if last_project_path == "":
             self.show_start_menu()
         else:
-            self.show_main_window(last_project_path)
+            try:
+                self.show_main_window(last_project_path)
+            except Exception:
+                self.show_start_menu()
 
     def show_start_menu(self, is_new_project: bool = False) -> None:
         """
@@ -94,7 +97,7 @@ class ApplicationFlowManager:
             with open(project_settings_file, 'r', encoding='utf-8') as f:
                 project_config = json.load(f)
         except Exception as e:
-            print(f"Warning: Could not read Project_Settings.nfp. Using defaults. Error: {e}")
+            pass
 
         # Construct the project settings dictionary
         db_file_name = project_config.get('database_file', f"{project_name_from_path}.db")

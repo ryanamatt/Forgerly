@@ -26,7 +26,6 @@ class ChapterContentDict(TypedDict):
     Title: str
     Text_Content: str
     Sort_Order: int
-    Precursor_Chapter_ID: int | None
 
 # TypedDict for basic chapter info (Used by get_all_chapters)
 class ChapterBasicDict(TypedDict):
@@ -37,7 +36,6 @@ class ChapterBasicDict(TypedDict):
     ID: int
     Title: str
     Sort_Order: int
-    Precursor_Chapter_ID: int | None
 
 # --- Lore Repository Types ---
 

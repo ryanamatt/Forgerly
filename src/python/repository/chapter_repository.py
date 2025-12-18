@@ -36,11 +36,11 @@ class ChapterRepository:
         Manager, but excludes the full text content.
 
         :returns: A list of dictionaries, each containing the chapter's ID, Title, 
-                  Sort_Order, and Precursor_Chapter_ID.
+                  Sort_Order.
         :rtype: :py:class:`~app.utils.types.ChapterBasicDict`
         """
         query = """
-        SELECT ID, Title, Sort_Order, Precursor_Chapter_ID
+        SELECT ID, Title, Sort_Order
         FROM Chapters
         ORDER BY Sort_Order ASC;
         """
@@ -59,7 +59,7 @@ class ChapterRepository:
         :rtype: :py:class:`~app.utils.types.ChapterContentDict`
         """
         query = """
-        SELECT ID, Title, Text_Content, Sort_Order, Precursor_Chapter_ID
+        SELECT ID, Title, Text_Content, Sort_Order
         FROM Chapters
         ORDER BY Sort_Order ASC;
         """
@@ -209,7 +209,7 @@ class ChapterRepository:
         logger.info(f"Calculated statistics for {len(chapters_with_stats)} chapters.")
         return chapters_with_stats
 
-    def create_chapter(self, title: str, sort_order: int, precursor_id: int | None = None) -> int | None:
+    def create_chapter(self, title: str, sort_order: int) -> int | None:
         """
         Inserts a new chapter record into the database with a default empty content field.
 
@@ -217,19 +217,17 @@ class ChapterRepository:
         :type title: str
         :param sort_order: The ordering integer for the chapter within the story structure.
         :type sort_order: int
-        :param precursor_id: The ID of the chapter immediately preceding this one, or None.
-        :type precursor_id: int or None
         
         :returns: The ID of the newly created chapter if successful, otherwise None.
         :rtype: int or None
         """
         query = """
-        INSERT INTO Chapters (Title, Text_Content, Sort_Order, Precursor_Chapter_ID)
-        VALUES (?, ?, ?, ?);
+        INSERT INTO Chapters (Title, Text_Content, Sort_Order)
+        VALUES (?, ?, ?);
         """
         try:
             chapter_id = self.db._execute_commit(
-                query, (title, "<p></p>", sort_order, precursor_id), fetch_id=True
+                query, (title, "<p></p>", sort_order), fetch_id=True
             )
             if chapter_id:
                 logger.info(f"Created new chapter: ID={chapter_id}, Title='{title}', SortOrder={sort_order}.")
