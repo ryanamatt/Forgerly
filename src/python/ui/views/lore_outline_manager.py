@@ -5,7 +5,9 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLineEdit
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
+from PyQt6.QtGui import QIcon
 
+import src.python.resources_rc as resources_rc
 from ...repository.lore_repository import LoreRepository
 from ..widgets.lore_tree_widget import LoreTreeWidget
 
@@ -120,6 +122,8 @@ class LoreOutlineManager(QWidget):
             item = QTreeWidgetItem([entry['Title']])
             item.setData(0, self.LORE_ID_ROLE, entry['ID'])
             item.setData(0, self.ROOT_ITEM_ROLE, False)
+            item.setIcon(0, QIcon(":icons/lore-entry.svg"))
+
             item_map[entry['ID']] = item
 
         for entry in lore_entries:

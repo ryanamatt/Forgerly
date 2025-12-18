@@ -1,12 +1,13 @@
 # src/python/ui/outline_manager.py
 
 from PyQt6.QtWidgets import (
-    QTreeWidget, QTreeWidgetItem, QHeaderView, QStyle, QMenu, QInputDialog, QMessageBox,
+    QTreeWidget, QTreeWidgetItem, QHeaderView, QMenu, QInputDialog, QMessageBox,
     QAbstractItemView
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
-from PyQt6.QtGui import QDropEvent, QDragMoveEvent
+from PyQt6.QtGui import QDropEvent, QIcon
 
+import src.python.resources_rc as resources_rc
 from ...repository.chapter_repository import ChapterRepository 
 
 class ChapterOutlineManager(QTreeWidget):
@@ -85,8 +86,7 @@ class ChapterOutlineManager(QTreeWidget):
         """
         self.clear()
 
-        # Placeholder Icons (using a simple style icon)
-        chapter_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView)
+        chapter_icon = QIcon(":icons/chapter.svg")
 
         self.blockSignals(True)
         

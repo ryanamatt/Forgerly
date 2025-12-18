@@ -16,5 +16,23 @@
     <file>icons/list-ordered.svg</file>
     <file>icons/list-unordered.svg</file>
     <file>icons/underline.svg</file>
+
+    <file>icons/chapter.svg</file>
+    <file>icons/lore-entry.svg</file>
+    <file>icons/character.svg</file>
+    <file>icons/node-tree.svg</file>
+
+    <file>icons/project-open.svg</file>
+    <file>icons/project-add.svg</file>
+    <file>icons/save.svg</file>
+    <file>icons/download.svg</file>
+    <file>icons/settings.svg</file>
+    <file>icons/exit.svg</file>
+    <file>icons/information.svg</file>
+    <file>icons/line-chart-line.svg</file>
+
+
+    <file>icons/search.svg</file>
+    <file>icons/delete.svg</file>
 </qresource>
 </RCC>

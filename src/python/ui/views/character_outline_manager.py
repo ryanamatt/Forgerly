@@ -2,10 +2,12 @@
 
 from PyQt6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QMenu, QInputDialog, QMessageBox,
-    QWidget, QVBoxLayout, QLineEdit
+    QVBoxLayout, QLineEdit
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
+from PyQt6.QtGui import QIcon
 
+import src.python.resources_rc as resources_rc
 from ...repository.character_repository import CharacterRepository
 
 class CharacterOutlineManager(QTreeWidget):
@@ -102,6 +104,7 @@ class CharacterOutlineManager(QTreeWidget):
                 item = QTreeWidgetItem(self.project_root_item, [name])
                 item.setData(0, self.CHARACTER_ID_ROLE, character["ID"])
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+                item.setIcon(0, QIcon(":icons/character.svg"))
 
         self.tree_widget.expandAll()
         self.tree_widget.setCurrentItem(self.project_root_item)

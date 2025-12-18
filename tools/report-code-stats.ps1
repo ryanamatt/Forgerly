@@ -18,7 +18,7 @@ function Get-LOC ($File) {
         $_.Trim() -ne "" -and # Ignore empty lines
         $_.Trim() -notlike "#*" -and # Ignore Python comments
         $_.Trim() -notlike "//*" -and # Ignore C++ single-line comments
-        $_.Trim() -notlike "--*" # New: Ignore SQL comments
+        $_.Trim() -notlike "--*" # Ignore SQL comments
     }).Count
 }
 

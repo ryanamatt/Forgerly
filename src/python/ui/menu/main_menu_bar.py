@@ -2,8 +2,9 @@
 
 from PyQt6.QtWidgets import QMenuBar, QMessageBox
 from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QActionGroup, QIcon
 
+import src.python.resources_rc as resources_rc
 from ...utils.constants import ViewType
 from ...utils.logger import get_logger
 
@@ -118,10 +119,12 @@ class MainMenuBar(QMenuBar):
 
         # Project Actions
         new_project_action = QAction("New Project", self)
+        new_project_action.setIcon(QIcon(":icons/project-add.svg"))
         new_project_action.triggered.connect(self.new_project_requested.emit)
         file_menu.addAction(new_project_action)
 
         open_project_action = QAction("Open Project", self)
+        open_project_action.setIcon(QIcon(":icons/project-open.svg"))
         open_project_action.triggered.connect(self.open_project_requested.emit)
         file_menu.addAction(open_project_action)
         
@@ -129,14 +132,17 @@ class MainMenuBar(QMenuBar):
 
         # New Actions (connects directly to repository via MainWindow/Coordinator)
         new_chapter_action = QAction("New Chapter", self)
+        new_chapter_action.setIcon(QIcon(":icons/chapter.svg"))
         new_chapter_action.triggered.connect(self.new_chapter_requested.emit)
         file_menu.addAction(new_chapter_action)
 
         new_lore_action = QAction("New Lore Entry", self)
+        new_lore_action.setIcon(QIcon(":icons/lore-entry.svg"))
         new_lore_action.triggered.connect(self.new_lore_requested.emit)
         file_menu.addAction(new_lore_action)
 
         new_character_action = QAction("New Character", self)
+        new_character_action.setIcon(QIcon(":icons/character.svg"))
         new_character_action.triggered.connect(self.new_character_requested.emit)
         file_menu.addAction(new_character_action)
         
@@ -144,6 +150,7 @@ class MainMenuBar(QMenuBar):
 
         # Save Action
         save_action = QAction("&Save Content", self)
+        save_action.setIcon(QIcon(":icons/save.svg"))
         save_action.setShortcut(f"{self._mod_key}+S")
         save_action.triggered.connect(self.save_requested.emit) 
         file_menu.addAction(save_action)
@@ -152,6 +159,7 @@ class MainMenuBar(QMenuBar):
 
         # Export Action
         export_action = QAction("&Export...", self)
+        export_action.setIcon(QIcon(":icons/download.svg"))
         export_action.setShortcut(f"{self._mod_key}+E")
         export_action.triggered.connect(self.export_requested.emit)
         file_menu.addAction(export_action)
@@ -160,12 +168,16 @@ class MainMenuBar(QMenuBar):
 
         # Settings Action
         settings_action = QAction("&Settings", self)
+        settings_action.setIcon(QIcon(":icons/settings.svg"))
         settings_action.setShortcut(f"{self._mod_key}+,")
         settings_action.triggered.connect(self.settings_requested.emit)
         file_menu.addAction(settings_action)
 
+        file_menu.addSeparator()
+
         # Exit Action
         exit_action = QAction("E&xit", self)
+        exit_action.setIcon(QIcon(":icons/exit.svg"))
         exit_action.setShortcut(f"{self._mod_key}+Q")
         exit_action.triggered.connect(self.parent().close) # Use parent() close for convenience
         file_menu.addAction(exit_action)
@@ -182,40 +194,39 @@ class MainMenuBar(QMenuBar):
         """
         self.view_menu = self.addMenu("&View")
 
-        # Chapter Outline View Action
-        self.view_chapter_action = QAction("Chapter Outline", self)
-        self.view_chapter_action.setCheckable(True)
-        self.view_chapter_action.setChecked(self.current_view == ViewType.CHAPTER_EDITOR)
-        self.view_chapter_action.triggered.connect(lambda: self.view_switch_requested.emit(ViewType.CHAPTER_EDITOR))
-        self.view_menu.addAction(self.view_chapter_action)
+        self.view_group = QActionGroup(self)
+        self.view_group.setExclusive(True)
 
-        # Lore Outline View Action
-        self.view_lore_action = QAction("Lore Outline", self)
-        self.view_lore_action.setCheckable(True)
-        self.view_lore_action.setChecked(self.current_view == ViewType.LORE_EDITOR)
-        self.view_lore_action.triggered.connect(lambda: self.view_switch_requested.emit(ViewType.LORE_EDITOR))
-        self.view_menu.addAction(self.view_lore_action)
+        # Helper to create and add actions to the menu and group
+        def add_view_action(text, icon_path, view_type):
+            action = QAction(text, self)
+            action.setIcon(QIcon(icon_path))
+            action.setCheckable(True)
+            
+            # Check the action if it matches current_view
+            is_active = (self.current_view == view_type)
+            action.setChecked(is_active)
+            action.setIconVisibleInMenu(not is_active)
+            
+            action.triggered.connect(lambda: self.view_switch_requested.emit(view_type))
+            
+            self.view_group.addAction(action)
+            self.view_menu.addAction(action)
+            return action
 
-        # Character Outline View Action
-        self.view_character_action = QAction("Character Outline", self)
-        self.view_character_action.setCheckable(True)
-        self.view_character_action.setChecked(self.current_view == ViewType.CHARACTER_EDITOR)
-        self.view_character_action.triggered.connect(lambda: self.view_switch_requested.emit(ViewType.CHARACTER_EDITOR))
-        self.view_menu.addAction(self.view_character_action)
+        self.view_chapter_action = add_view_action("Chapter Outline", ":icons/chapter.svg", ViewType.CHAPTER_EDITOR)
+        self.view_lore_action = add_view_action("Lore Outline", ":icons/lore-entry.svg", ViewType.LORE_EDITOR)
+        self.view_character_action = add_view_action("Character Outline", ":icons/character.svg", ViewType.CHARACTER_EDITOR)
+        
+        self.view_menu.addSeparator()
+        
+        self.view_relationship_action = add_view_action("Relationship Graph", ":icons/node-tree.svg", ViewType.RELATIONSHIP_GRAPH)
 
         self.view_menu.addSeparator()
 
-        # Relationship Graph View Action
-        self.view_relationship_action = QAction("Relationship Graph", self)
-        self.view_relationship_action.setCheckable(True)
-        self.view_relationship_action.setChecked(self.current_view == ViewType.RELATIONSHIP_GRAPH)
-        self.view_relationship_action.triggered.connect(lambda: self.view_switch_requested.emit(ViewType.RELATIONSHIP_GRAPH))
-        self.view_menu.addAction(self.view_relationship_action)
-
-        self.view_menu.addSeparator()
-
-        # Project Statistics View Action
+        # Project Statistics (Not part of the group as it's a pop-up, not a toggle view)
         self.project_stats_action = QAction("&Project Statistics", self)
+        self.project_stats_action.setIcon(QIcon(":icons/line-chart-line.svg"))
         self.project_stats_action.triggered.connect(self.project_stats_requested.emit)
         self.view_menu.addAction(self.project_stats_action)
 
@@ -227,6 +238,8 @@ class MainMenuBar(QMenuBar):
         """
         help_menu = self.addMenu("&Help")
         about_action = QAction("&About", self)
+        about_action.setIcon(QIcon(":icons/information.svg"))
+        about_action.setShortcut(f"{self._mod_key}+H")
         about_action.triggered.connect(self._show_about_dialog)
         help_menu.addAction(about_action)
 
@@ -252,7 +265,8 @@ class MainMenuBar(QMenuBar):
         """
         Updates the checked state of the view menu actions based on the current active view.
         
-        This visually indicates to the user which panel is currently displayed.
+        This visually indicates to the user which panel is currently displayed. If not checked
+        the icons is replaced by its icon.
 
         :param current_view: The current active view type.
         :type current_view: :py:class:`~app.utils.constants.ViewType`
@@ -260,7 +274,18 @@ class MainMenuBar(QMenuBar):
         :rtype: None
         """
         logger.debug(f"Updating view checkmarks to: {current_view}")
-        self.view_chapter_action.setChecked(current_view == ViewType.CHAPTER_EDITOR)
-        self.view_lore_action.setChecked(current_view == ViewType.LORE_EDITOR)
-        self.view_character_action.setChecked(current_view == ViewType.CHARACTER_EDITOR)
-        self.view_relationship_action.setChecked(current_view == ViewType.RELATIONSHIP_GRAPH)
+        actions = {
+            ViewType.CHAPTER_EDITOR: self.view_chapter_action,
+            ViewType.LORE_EDITOR: self.view_lore_action,
+            ViewType.CHARACTER_EDITOR: self.view_character_action,
+            ViewType.RELATIONSHIP_GRAPH: self.view_relationship_action,
+        }
+
+        for view_type, action in actions.items():
+            is_active = (current_view == view_type)
+            # setChecked handles unchecking the others via QActionGroup
+            if is_active:
+                action.setChecked(True)
+            
+            # Ensure the checkmark has space by hiding the icon on the active item
+            action.setIconVisibleInMenu(not is_active)
