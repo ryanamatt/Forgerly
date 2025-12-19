@@ -8,9 +8,8 @@ from PyQt6.QtGui import (
     QTextListFormat, QTextBlockFormat, QIcon, QBrush, QIcon
 )
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
-import src.python.resources_rc as resources_rc
 
-
+from ...resources_rc import *
 from .basic_text_editor import BasicTextEditor
 from ...utils.logger import get_logger
 from ...utils.exceptions import EditorContentError

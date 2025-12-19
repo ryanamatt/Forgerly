@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import QMenuBar, QMessageBox
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QAction, QActionGroup, QIcon
 
-import src.python.resources_rc as resources_rc
+from ...resources_rc import *
 from ...utils.constants import ViewType
 from ...utils.logger import get_logger
 

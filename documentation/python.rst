@@ -21,6 +21,7 @@ Submodules
    python.db_connector
    python.main
    python.main_window
+   python.resources_rc
    python.start_menu_window
 
 Module contents

@@ -1,16 +1,16 @@
 # src/python/ui/views/character_outline_manager.py
 
 from PyQt6.QtWidgets import (
-    QTreeWidget, QTreeWidgetItem, QMenu, QInputDialog, QMessageBox,
-    QVBoxLayout, QLineEdit
+    QTreeWidget, QTreeWidgetItem, QMenu, QInputDialog, QMessageBox, QFrame,
+    QVBoxLayout, QLineEdit, QWidget, QLabel, QTreeWidgetItemIterator
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6.QtGui import QIcon
 
-import src.python.resources_rc as resources_rc
+from ...resources_rc import *
 from ...repository.character_repository import CharacterRepository
 
-class CharacterOutlineManager(QTreeWidget):
+class CharacterOutlineManager(QWidget):
     """
     A custom widget for managing the outline and hierarchy of Characters.
     
@@ -21,9 +21,6 @@ class CharacterOutlineManager(QTreeWidget):
 
     CHARACTER_ID_ROLE = Qt.ItemDataRole.UserRole + 1
     """The :py:obj:`int` role used to store the database ID of a Character on an item."""
-
-    ROOT_ITEM_ROLE = Qt.ItemDataRole.UserRole + 2
-    """The :py:obj:`bool` role used to identify the uneditable project root item."""
 
     char_selected = pyqtSignal(int)
     """
@@ -37,10 +34,13 @@ class CharacterOutlineManager(QTreeWidget):
     selected, allowing the main window to save the current character state.
     """
 
-    def __init__(self, character_repository: CharacterRepository | None = None) -> None:
+    def __init__(self, project_title: str = "Narrative Forge Project", 
+                 character_repository: CharacterRepository | None = None) -> None:
         """
         Initializes the :py:class:`.CharacterOutlineManager`.
         
+        :param project_title: The Title of the Current Project.
+        :type project_title: str
         :param character_repository: The repository object for character CRUD operations.
         :type character_repository: :py:class:`.CharacterRepository` or None, optional
 
@@ -48,30 +48,54 @@ class CharacterOutlineManager(QTreeWidget):
         """
         super().__init__()
 
+        self.project_title = project_title
         self.char_repo = character_repository
-        self.project_root_item = None
 
         # --- Setup main Layout ---
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
+        # Create Header Label
+        self.header_label = QLabel(f"{self.project_title} Characters")
+        self.header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        font = self.header_label.font()
+        font.setBold(True)
+        font.setPointSize(font.pointSize() + 1)
+        self.header_label.setFont(font)
+        self.header_label.setStyleSheet("""
+            QLabel {
+                padding: 5px
+                }
+        """            
+        )
+
         # Create the Search Bar
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText('Search Characters...')
+        self.search_input.setPlaceholderText('Search Characters by Name, Tags...')
         self.search_input.textChanged.connect(self._handle_search_input)
 
         # The actual tree widget is a child
         self.tree_widget = QTreeWidget()
-        self.tree_widget.setHeaderLabels(["Characters"])
-
-        main_layout.addWidget(self.search_input)
-        main_layout.addWidget(self.tree_widget)
+        self.tree_widget.setHeaderHidden(True)
+        self.tree_widget.setIndentation(0)
+        self.tree_widget.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
+        self.tree_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 
         # Configuration and Signals ---
-        self.tree_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree_widget.customContextMenuRequested.connect(self._show_context_menu)
         self.tree_widget.itemSelectionChanged.connect(self._handle_selection_change)
         self.tree_widget.itemChanged.connect(self._handle_item_renamed)
+
+        container_frame = QFrame(self)
+        container_frame.setObjectName("MainBorderFrame")
+
+        # Create a layout FOR the frame and add the widgets to it
+        frame_layout = QVBoxLayout(container_frame)
+        frame_layout.addWidget(self.header_label)
+        frame_layout.addWidget(self.search_input)
+        frame_layout.addWidget(self.tree_widget)
+
+        main_layout.addWidget(container_frame)
 
         self.load_outline()
 
@@ -92,22 +116,18 @@ class CharacterOutlineManager(QTreeWidget):
 
         self.tree_widget.clear()
 
-        self.project_root_item = QTreeWidgetItem(self.tree_widget, ['World Characters'])
-        self.project_root_item.setData(0, self.ROOT_ITEM_ROLE, True)
-        self.project_root_item.setFlags(self.project_root_item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
-        self.project_root_item.setFlags(self.project_root_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-
         if characters:
             for character in characters:
                 name = character.get("Name", "Unnamed")
 
-                item = QTreeWidgetItem(self.project_root_item, [name])
+                item = QTreeWidgetItem([name])
                 item.setData(0, self.CHARACTER_ID_ROLE, character["ID"])
                 item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
                 item.setIcon(0, QIcon(":icons/character.svg"))
 
+                self.tree_widget.addTopLevelItem(item)
+
         self.tree_widget.expandAll()
-        self.tree_widget.setCurrentItem(self.project_root_item)
 
     def _handle_search_input(self, query: str) -> None:
         """
@@ -291,18 +311,15 @@ class CharacterOutlineManager(QTreeWidget):
             new_id = self.char_repo.create_character(name=name)
 
             if new_id:
-                print(f"Successfully created chapter with ID: {new_id}")
                 # Reload the outline to display the new chapter
                 self.load_outline()
                 # Automatically select the new chapter
                 new_item = self.find_character_item_by_id(new_id)
                 if new_item:
-                     self.setCurrentItem(new_item)
+                     self.tree_widget.setCurrentItem(new_item)
                      self._handle_item_click(new_item, 0) 
             else:
                 QMessageBox.warning(self, "Database Error", "Failed to save the new character to the database.")
-
-        print("prompt_and_add_character")
 
     def _delete_chapter(self, item: QTreeWidgetItem) -> None:
         """
@@ -363,11 +380,10 @@ class CharacterOutlineManager(QTreeWidget):
         :returns: The matching item or None
         :rtype: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem` or None
         """
-        if not self.project_root_item:
-            return None
-        
-        for i in range(self.project_root_item.childCount()):
-            item = self.project_root_item.child(i)
+        iterator = QTreeWidgetItemIterator(self.tree_widget)
+        while iterator.value():
+            item = iterator.value()
             if item.data(0, self.CHARACTER_ID_ROLE) == char_id:
                 return item
+            iterator += 1
         return None
