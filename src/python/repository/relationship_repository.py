@@ -100,7 +100,7 @@ class RelationshipRepository:
         :rtype: int or None
         """
         query = """
-        INSERT INTO Character_Relationships
+        INSERT OR IGNORE INTO Character_Relationships
         (Character_A_ID, Character_B_ID, Type_ID, Lore_ID, Description, Intensity, Start_Chapter_ID, End_Chapter_ID)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         """

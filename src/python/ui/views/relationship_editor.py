@@ -6,11 +6,12 @@ from PyQt6.QtWidgets import (
     QMessageBox, QFrame, QDialog, QFormLayout, QComboBox, QLineEdit,
     QSpinBox, QDialogButtonBox, QLabel
 )
-from PyQt6.QtCore import Qt, QPointF, pyqtSignal, QRectF, QObject
+from PyQt6.QtCore import Qt, QPointF, pyqtSignal, QRectF, QObject, QLineF
 from PyQt6.QtGui import QColor, QPen, QBrush, QFont
 import math
 from typing import Any
 from ...services.app_coordinator import AppCoordinator
+from ..widgets.relationship_canvas import RelationshipCanvas
 
 class CharacterNodeSignals(QObject):
     """
@@ -215,7 +216,7 @@ class RelationshipEdge(QGraphicsLineItem):
         self.target_node = nodes[edge_data['target']]
 
         # Add a label in the middle of the edge
-        self.label_item = QGraphicsTextItem(edge_data['label'], self)
+        self.label_item = QGraphicsTextItem(self.edge_data.get('label', ''), self)
 
         self._update_pen()
         self.update_position()
@@ -228,7 +229,8 @@ class RelationshipEdge(QGraphicsLineItem):
         :rtype: None
         """
         color = QColor(self.edge_data['color'])
-        thickness = max(10, min(100, 10 * self.edge_data['intensity']))
+        thickness = max(1, self.edge_data['intensity']) # Value between 1-10
+        thickness = 0.25 * thickness # Multiple by Scaling Factor
         pen = QPen(color, thickness)
 
         # Line Style (Apply Solid, Dash, or Dot based on Data)
@@ -246,6 +248,8 @@ class RelationshipEdge(QGraphicsLineItem):
             case _:
                 pen.setStyle(Qt.PenStyle.SolidLine)
 
+        self.setPen(pen)
+
     def update_position(self) -> None:
         """
         Recalculates the start and end points of the line based on the 
@@ -257,9 +261,25 @@ class RelationshipEdge(QGraphicsLineItem):
         
         :rtype: None
         """
+        # Get Center Points
+        p1 = self.source_node.scenePos()
+        p2 = self.target_node.scenePos()
 
-        start_point = self.source_node.scenePos()
-        end_point = self.target_node.scenePos()
+        line = QLineF(p1, p2)
+        length = line.length()
+
+        # Avoid division by zero if nodes are on top of each other
+        if length > self.source_node.NODE_RADIUS + 2:
+            dx = p2.x() - p1.x()
+            dy = p2.y() - p1.y()
+            ratio = self.source_node.NODE_RADIUS / length
+
+            offset_x = dx * ratio
+            offset_y = dy * ratio
+            start_point = QPointF(p1.x() + offset_x, p1.y() + offset_y)
+            end_point = QPointF(p2.x() - offset_x, p2.y() - offset_y)
+        else:
+            return
 
         self.setLine(start_point.x(), start_point.y(), end_point.x(), end_point.y())
 
@@ -268,6 +288,18 @@ class RelationshipEdge(QGraphicsLineItem):
         label_rect = self.label_item.boundingRect()
         self.label_item.setPos(mid_point.x() - label_rect.width() / 2, mid_point.y() - label_rect.height() / 2)
         self.label_item.setRotation(self._calculate_angle(start_point, end_point))
+
+    def paint(self, painter, option, widget) -> None:
+        """
+        Docstring for paint
+        
+        :param self: Description
+        :param painter: Description
+        :param option: Description
+        :param widget: Description
+        """
+        self.update_position()
+        super().paint(painter, option, widget)
 
     def _calculate_angle(self, p1: QPointF, p2: QPointF) -> float:
         """
@@ -329,9 +361,9 @@ class RelationshipCreationDialog(QDialog):
         self.description_input = QLineEdit()
         layout.addRow("Description:", self.description_input)
         
-        # Intensity (e.g., a simple 0-10 scale)
+        # Intensity (e.g., a simple 1-10 scale)
         self.intensity_input = QSpinBox()
-        self.intensity_input.setRange(0, 10)
+        self.intensity_input.setRange(1, 10) # Intensity is on Simple 1-10 Scale but multipled by scalar later
         self.intensity_input.setValue(5)
         layout.addRow("Intensity (0-10):", self.intensity_input)
         
@@ -405,7 +437,7 @@ class RelationshipEditor(QWidget):
         self.coordinator = coordinator
 
         self.scene = QGraphicsScene(self)
-        self.view = QGraphicsView(self.scene, self)
+        self.view = RelationshipCanvas(self.scene, self)
         self.view.setFrameShape(QFrame.Shape.NoFrame)
         self.view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
 
@@ -531,7 +563,7 @@ class RelationshipEditor(QWidget):
         if node_a.char_id == node_b.char_id:
             QMessageBox.warning(self, "Warning", "Cannot create a relationship to the same character.")
             return
-
+        
         if not self.available_rel_types:
             QMessageBox.critical(self, "Error", "No relationship types defined. Please define types in the Outline Manager first.")
             return
@@ -603,6 +635,17 @@ class RelationshipEditor(QWidget):
                 intensity
             )
             QMessageBox.information(self, "Success", f"Relationship creation request sent for {node_a.name} and {node_b.name}.")
+
+    def update_types_available(self, types: list[dict]) -> None:
+        """
+        Updates the internal cache of available relationship types.
+        
+        :param types: List of types to update.
+        :type types: list[dict]
+
+        :rtype: None
+        """
+        self.available_rel_types = types
 
     def load_graph(self, graph_data: dict[str, list[dict[str, Any]]]) -> None:
         """

@@ -160,6 +160,8 @@ class AppCoordinator(QObject):
             # The editor signals the coordinator to load the data when it becomes visible
             self.relationship_editor.request_load_data.connect(self.load_relationship_graph_data)
 
+        self.connect_signals()
+
     def set_current_view(self, view_type: ViewType) -> None:
         """
         Called by MainWindow when the view is explicitly switched.
@@ -632,6 +634,7 @@ class AppCoordinator(QObject):
         :rtype: None
         """
         try:
+            self.relationship_editor.update_types_available(self.relationship_repo.get_all_relationship_types())
             self.load_relationship_graph_data()
         
         except Exception as e:
