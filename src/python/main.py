@@ -96,7 +96,7 @@ class ApplicationFlowManager:
         try:
             with open(project_settings_file, 'r', encoding='utf-8') as f:
                 project_config = json.load(f)
-        except Exception as e:
+        except FileNotFoundError as e:
             pass
 
         # Construct the project settings dictionary

@@ -135,6 +135,7 @@ class AppCoordinator(QObject):
         :rtype: None
         """
         self.relationship_editor.relationship_created.connect(self.save_new_relationship)
+        self.relationship_editor.relationship_deleted.connect(self.handle_relationship_deletion)
 
     # --- View Logic ---
 
@@ -159,6 +160,8 @@ class AppCoordinator(QObject):
             self.relationship_editor: RelationshipEditor = self.editors[ViewType.RELATIONSHIP_GRAPH]
             # The editor signals the coordinator to load the data when it becomes visible
             self.relationship_editor.request_load_data.connect(self.load_relationship_graph_data)
+
+        self.connect_signals()
 
     def set_current_view(self, view_type: ViewType) -> None:
         """
@@ -561,6 +564,19 @@ class AppCoordinator(QObject):
         except Exception as e:
             QMessageBox.critical(None, "Data Error", f"Failed to load relationship types: {e}")
 
+    def handle_relationship_deletion(self, relationship_id: int) -> None:
+        """
+        handles the deletion of a relationshipo
+        
+        :param relationship_id: The relationship ID
+        :type relationship_id: int
+
+        :rtype: None
+        """
+        success = self.relationship_repo.delete_relationship(relationship_id)
+        self.reload_relationship_graph_data()
+
+
     def _process_graph_data(self, relationships: list[dict], node_positions: list[dict], relationship_types: list[dict]) -> dict:
         """
         Docstring for _process_graph_data
@@ -632,6 +648,7 @@ class AppCoordinator(QObject):
         :rtype: None
         """
         try:
+            self.relationship_editor.update_types_available(self.relationship_repo.get_all_relationship_types())
             self.load_relationship_graph_data()
         
         except Exception as e:

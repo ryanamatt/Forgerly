@@ -1,358 +1,18 @@
 # src\python\ui\views\relationship_editor.py
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QGraphicsView, QGraphicsScene, 
-    QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem, 
-    QMessageBox, QFrame, QDialog, QFormLayout, QComboBox, QLineEdit,
-    QSpinBox, QDialogButtonBox, QLabel
+    QWidget, QVBoxLayout, QGraphicsView, QGraphicsScene, QGraphicsLineItem, QMessageBox, 
+    QFrame, QDialog, QToolBar
 )
-from PyQt6.QtCore import Qt, QPointF, pyqtSignal, QRectF, QObject
-from PyQt6.QtGui import QColor, QPen, QBrush, QFont
+from PyQt6.QtCore import Qt, pyqtSignal, QLineF
+from PyQt6.QtGui import QPen, QAction
 import math
 from typing import Any
 from ...services.app_coordinator import AppCoordinator
-
-class CharacterNodeSignals(QObject):
-    """
-    Signal Emitter for :py:class:`.CharacterNode`.
-    
-    This is necessary because :py:class:`.CharacterNode` inherits from 
-    :py:class:`~PyQt6.QtWidgets.QGraphicsEllipseItem` and cannot be a 
-    direct subclass of :py:class:`~PyQt6.QtCore.QObject`.
-    """
-    node_moved = pyqtSignal(int, float, float, str, str, int)
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, float, float, str, str, int): 
-    Emitted when a node is dragged and released.
-    
-    Carries the Character ID, new X position, new Y position, Name, Color, and Shape ID.
-    The Name, Color, and Shape ID are included to allow the editor to persist 
-    node attributes along with position.
-    """
-
-class CharacterNode(QGraphicsEllipseItem):
-    """
-    A draggable and interactive representation of a Character on the 
-    relationship graph canvas.
-    """
-
-    def __init__(self, char_id: int, name: str, x: float, y: float, color: str, shape: str, parent=None) -> None:
-        """
-        Initializes the character node.
-        
-        :param char_id: The unique database ID of the character.
-        :type char_id: int
-        :param name: The character's display name.
-        :type name: str
-        :param x: The initial X position of the node.
-        :type x: float
-        :param y: The initial Y position of the node.
-        :type y: float
-        :param color: The color string for the node (e.g., "#RRGGBB").
-        :type color: str
-        :param shape: The shape type for the node (e.g., "ellipse").
-        :type shape: str
-        :param parent: The parent Qt item.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QGraphicsItem` or None
-
-        :rtype: None
-        """
-        self.NODE_RADIUS = 30
-        rect = QRectF(-self.NODE_RADIUS, -self.NODE_RADIUS, 2 * self.NODE_RADIUS, 2 * self.NODE_RADIUS)
-        super().__init__(rect, parent)
-
-        self.char_id = char_id
-        self.name = name
-        self.node_color = color
-        self.node_shape = shape
-        self.is_hidden = 0
-
-        self.signals = CharacterNodeSignals()
-
-        self.setPos(x, y)
-        self._update_appearance()
-
-        # set up dragging
-        self.setFlag(QGraphicsEllipseItem.GraphicsItemFlag.ItemIsMovable, True)
-        self.setFlag(QGraphicsEllipseItem.GraphicsItemFlag.ItemSendsGeometryChanges, True)
-
-        # Add a name label
-        self.label = QGraphicsTextItem(name, self)
-        label_rect = self.label.boundingRect()
-        self.label.setPos(-label_rect.width() / 2, self.NODE_RADIUS + 5)
-        self.label.setFont(QFont("Arial", 10))
-
-    def _update_appearance(self) -> None:
-        """
-        Updates the brush/pen based on current attributes.
-        
-        This method is called during initialization and when the node's visual 
-        state (like selection highlight) changes.
-        
-        :rtype: None
-        """
-        brush = QBrush(QColor(self.node_color))
-        pen = QPen(QColor(Qt.GlobalColor.black), 2)
-        
-        self.setBrush(brush)
-        self.setPen(pen)
-
-    def _itemChange(self, change: QGraphicsEllipseItem.GraphicsItemChange, value: Any) -> Any:
-        """
-        Handles changes to the item's state, specifically for movement.
-        
-        Ensures the node position is correctly snapped to the grid (if any) 
-        and updates connected edges.
-
-        :param change: The type of state change.
-        :type change: :py:class:`~PyQt6.QtWidgets.QGraphicsItem.GraphicsItemChange`
-        :param value: The new value for the state change.
-        :type value: Any
-        
-        :returns: The potentially modified new value.
-        :rtype: :py:obj:`Any`
-        """
-        """Called when item changes (likes position)"""
-        if change == QGraphicsEllipseItem.GraphicsItemChange.ItemPositionHasChanged:
-            # When position changes, update connected edges
-            if self.scene():
-                for item in self.scene().items():
-                    if isinstance(item, RelationshipEdge):
-                        # Use a direct update call to refresh the line
-                        item.update_position()
-
-    def mouseReleaseEvent(self, event) -> None:
-        """
-        Handles the mouse release event. Emits the :py:attr:`.node_moved` 
-        signal if the node has been dragged from its original position.
-        
-        :param event: The mouse event.
-        :type event: :py:class:`~PyQt6.QtGui.QGraphicsSceneMouseEvent`
-
-        :rtype: None
-        """
-        super().mouseReleaseEvent(event)
-
-        pos = self.scenePos()
-
-        # Emit signal to AppCoordinator for saving
-        self.signals.node_moved.emit(
-            self.char_id,
-            pos.x(),
-            pos.y(),
-            self.node_color,
-            self.node_shape,
-            self.is_hidden
-        )
-
-    def set_selection_highlight(self, highlight: bool) -> None:
-        """
-        Toggles the highlight for relationship selection.
-        
-        :param highlight: True if to set highlight for relationship selection,
-            otherwise False.
-        :type highlight: bool
-
-        :rtype: None
-        """
-        if not self.scene():
-            return
-
-        self.is_selected_for_connect = highlight
-        self._update_appearance()
-        self.update() # Force redraw
-
-    def mousePressEvent(self, event) -> None:
-        """
-        Handles the mouse press event. Stores the initial position for change detection.
-        
-        If the left button is clicked, it allows for dragging. If the right button 
-        is clicked, it signals the parent :py:class:`.RelationshipEditor` to handle 
-        the selection logic for relationship creation.
-        
-        :param event: The mouse event.
-        :type event: :py:class:`~PyQt6.QtGui.QGraphicsSceneMouseEvent`
-
-        :rtype: None
-        """
-        
-        # If left click, proceed with standard dragging/moving
-        if event.button() == Qt.MouseButton.LeftButton:
-            super().mousePressEvent(event)
-        
-        # If right click, signal to the editor that this node was right-clicked
-        elif event.button() == Qt.MouseButton.RightButton:
-            # We don't call super() here because we want the editor to handle the context menu/selection logic
-            editor = self.scene().views()[0].parent()
-            if isinstance(editor, RelationshipEditor):
-                editor.handle_node_right_click(self)
-
-
-class RelationshipEdge(QGraphicsLineItem):
-    """
-    A line item representing a relationship between two :py:class:`.CharacterNode`'s.
-    
-    It updates its position dynamically as the connected nodes are moved and 
-    displays the relationship label.
-    """
-    
-    def __init__(self, edge_data: dict[str, Any], nodes: dict[int, CharacterNode], parent=None):
-        """
-        Initializes the relationship edge.
-        
-        :param edge_data: A dictionary containing relationship data (source, target, type, style, etc.).
-        :type edge_data: dict[str, Any]
-        :param nodes: A dictionary mapping character IDs to :py:class:`.CharacterNode` objects.
-        :type nodes: dict[int, :py:class:`.CharacterNode`]
-        :param parent: The parent Qt item.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QGraphicsItem` or None
-
-        :rtype: None
-        """
-        super().__init__(parent)
-        self.edge_data = edge_data
-        self.source_node = nodes[edge_data['source']]
-        self.target_node = nodes[edge_data['target']]
-
-        # Add a label in the middle of the edge
-        self.label_item = QGraphicsTextItem(edge_data['label'], self)
-
-        self._update_pen()
-        self.update_position()
-
-    def _update_pen(self):
-        """
-        Sets the pen properties based on edge data, including color, thickness 
-        (based on 'intensity'), and line style.
-        
-        :rtype: None
-        """
-        color = QColor(self.edge_data['color'])
-        thickness = max(10, min(100, 10 * self.edge_data['intensity']))
-        pen = QPen(color, thickness)
-
-        # Line Style (Apply Solid, Dash, or Dot based on Data)
-        match self.edge_data['style'].lower():
-
-            case 'dashed':
-                pen.setStyle(Qt.PenStyle.DashLine)
-            
-            case 'dotted':
-                pen.setStyle(Qt.PenStyle.DotLine)
-
-            case 'dashdot':
-                pen.setStyle(Qt.PenStyle.DashDotLine)
-
-            case _:
-                pen.setStyle(Qt.PenStyle.SolidLine)
-
-    def update_position(self) -> None:
-        """
-        Recalculates the start and end points of the line based on the 
-        current positions of the source and target nodes.
-        
-        The line is drawn from the center of the source node to the center 
-        of the target node. It also updates the position and rotation of the 
-        relationship label.
-        
-        :rtype: None
-        """
-
-        start_point = self.source_node.scenePos()
-        end_point = self.target_node.scenePos()
-
-        self.setLine(start_point.x(), start_point.y(), end_point.x(), end_point.y())
-
-        mid_point = (start_point + end_point) / 2
-
-        label_rect = self.label_item.boundingRect()
-        self.label_item.setPos(mid_point.x() - label_rect.width() / 2, mid_point.y() - label_rect.height() / 2)
-        self.label_item.setRotation(self._calculate_angle(start_point, end_point))
-
-    def _calculate_angle(self, p1: QPointF, p2: QPointF) -> float:
-        """
-        Calculates the angle of the line for rotating the label.
-        
-        :param p1: The first point (:py:class:`~PyQt6.QtCore.QPointF`).
-        :type p1: :py:class:`~PyQt6.QtCore.QPointF`
-        :param p2: The second point (:py:class:`~PyQt6.QtCore.QPointF`).
-        :type p2: :py:class:`~PyQt6.QtCore.QPointF`
-
-        :returns: Returns the value of the angle in degrees, used to align the label with the edge.
-        :rtype: float
-        """
-        dx = p2.x() - p1.x()
-        dy = p2.y() - p1.y()
-        # Angle in radians so convert to degrees
-        angle = math.atan2(-dy, dx)
-        return math.degrees(angle)
-    
-class RelationshipCreationDialog(QDialog):
-    """
-    A Dialog to gather details for a new relationship.
-    
-    Presents fields for Relationship Type, Description, and Intensity.
-    """
-    def __init__(self, relationship_types: list[dict], char_a_name: str, char_b_name: str, parent=None) -> None:
-        """
-        Initializes :py:class:`.RelationshipCreationDialog`.
-        
-        :param relationship_types: A list of all the existing Relationship Types (dicts containing 'ID' and 'Type_Name').
-        :type relationship_types: list[dict]
-        :param char_a_name: The name of the first Character.
-        :type char_a_name: str
-        :param char_b_name: The name of the second Charcter.
-        :type char_b_name: str
-        :param parent: The parent object.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
-
-        :rtype: None
-        """
-        super().__init__(parent)
-        self.setWindowTitle(f"Create Relationship: {char_a_name} ↔ {char_b_name}")
-        
-        self.type_data = {t['ID']: t['Type_Name'] for t in relationship_types}
-        
-        layout = QFormLayout(self)
-        
-        # Display the characters being connected
-        layout.addRow(QLabel(f"Connecting: **{char_a_name}** to **{char_b_name}**"))
-        
-        # Relationship Type selection
-        self.type_combo = QComboBox()
-        for type_id, type_name in self.type_data.items():
-            # Store ID as UserRole data
-            self.type_combo.addItem(type_name, type_id) 
-        layout.addRow("Type:", self.type_combo)
-        
-        # Description
-        self.description_input = QLineEdit()
-        layout.addRow("Description:", self.description_input)
-        
-        # Intensity (e.g., a simple 0-10 scale)
-        self.intensity_input = QSpinBox()
-        self.intensity_input.setRange(0, 10)
-        self.intensity_input.setValue(5)
-        layout.addRow("Intensity (0-10):", self.intensity_input)
-        
-        # Buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        button_box.accepted.connect(self.accept)
-        button_box.rejected.connect(self.reject)
-        layout.addRow(button_box)
-
-    def get_relationship_data(self) -> tuple[int, str, int]:
-        """
-        Retrieves the data entered by the user in the dialog controls.
-        
-        :returns: A tuple containing the selected Relationship Type ID, Description, and Intensity.
-        :rtype: tuple[int, str, int]
-        """
-        # Retrieve the type ID from the stored UserRole data
-        type_id = self.type_combo.currentData(Qt.ItemDataRole.UserRole) 
-        description = self.description_input.text()
-        intensity = self.intensity_input.value()
-        return type_id, description, intensity
+from ..widgets.graph_items import CharacterNode, RelationshipEdge
+from ..widgets.relationship_canvas import RelationshipCanvas
+from ..dialogs.relationship_dialog import RelationshipCreationDialog
+from ...utils.nf_core_wrapper import GraphLayoutEngineWrapper
     
 class RelationshipEditor(QWidget):
     """
@@ -384,6 +44,12 @@ class RelationshipEditor(QWidget):
     (Source ID, Target ID, Type ID, Description, Intensity).
     """
 
+    relationship_deleted = pyqtSignal(int)
+    """:py:class:`~PyQt6.QtCore.pyqtSignal` (int):
+    Emitted when a relationshipo is deleted, carrying
+    (Relationship_ID)
+    """
+
     request_load_rel_types = pyqtSignal()
     """
     :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted to request the list of available relationship types.
@@ -405,15 +71,35 @@ class RelationshipEditor(QWidget):
         self.coordinator = coordinator
 
         self.scene = QGraphicsScene(self)
-        self.view = QGraphicsView(self.scene, self)
+        self.view = RelationshipCanvas(self.scene, self)
         self.view.setFrameShape(QFrame.Shape.NoFrame)
         self.view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+
+        self.toolbar = QToolBar()
+        self.grid_action = QAction("Show Grid", self)
+        self.grid_action.setCheckable(True)
+        self.grid_action.setChecked(True)
+        self.grid_action.triggered.connect(self.view.toggle_grid)
+        
+        self.snap_action = QAction("Snap to Grid", self)
+        self.snap_action.setCheckable(True)
+        self.snap_action.setChecked(True)
+        self.snap_action.triggered.connect(self.view.toggle_snap)
+
+        self.layout_action = QAction("Auto Layout", self)
+        self.layout_action.triggered.connect(self.apply_auto_layout)
+        
+        self.toolbar.addAction(self.grid_action)
+        self.toolbar.addAction(self.snap_action)
+        self.toolbar.addAction(self.layout_action)
 
         # Large window for free screen movement
         self.scene.setSceneRect(-2000, -2000, 4000, 4000)
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
+
+        main_layout.addWidget(self.toolbar)
         main_layout.addWidget(self.view)
 
         # Storage for current graph items
@@ -474,6 +160,15 @@ class RelationshipEditor(QWidget):
         
         :rtype: None
         """
+        # Reset the cursor to the default arrow
+        self.view.unsetCursor()
+        self.view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+
+        if hasattr(self, 'temp_line') and self.temp_line:
+            self.scene.removeItem(self.temp_line)
+            self.temp_line = None
+            self.view.setMouseTracking(False)
+
         if self.selected_node_a:
             self.selected_node_a.set_selection_highlight(False)
             self.selected_node_a = None
@@ -500,11 +195,24 @@ class RelationshipEditor(QWidget):
             self.clear_selection()
             self.selected_node_a = node
             self.selected_node_a.set_selection_highlight(True)
-            QMessageBox.information(self, "Select Start", f"**{node.name}** selected as Relationship Start. Click a second character to connect.")
+
+            # Can't drag characters when trying to make a connection
+            self.view.setDragMode(QGraphicsView.DragMode.NoDrag)
+            self.view.setCursor(Qt.CursorShape.CrossCursor)
+
+            # Create a temporary line that follows the mouse
+            start_pos = node.scenePos()
+            self.temp_line = QGraphicsLineItem(QLineF(start_pos, start_pos))
+            self.temp_line.setPen(QPen(Qt.GlobalColor.gray, 1, Qt.PenStyle.DashLine))
+            self.scene.addItem(self.temp_line)
+            self.view.setMouseTracking(True)
+
+            self.view.setToolTip(f"Connecting {node.name}... Right-click another node to finish.")
             
         elif self.selected_node_a is node:
             # Clicking the same node clears the selection
             self.clear_selection()
+            self.view.setToolTip("")
             
         else:
             # Second selection - ready to connect
@@ -513,6 +221,7 @@ class RelationshipEditor(QWidget):
             # --- CONNECTION LOGIC ---
             self.create_relationship_dialog(self.selected_node_a, self.selected_node_b)
             self.clear_selection() # Clear selection regardless of dialog result
+            self.view.setToolTip("")
 
     def create_relationship_dialog(self, node_a: CharacterNode, node_b: CharacterNode) -> None:
         """
@@ -531,7 +240,7 @@ class RelationshipEditor(QWidget):
         if node_a.char_id == node_b.char_id:
             QMessageBox.warning(self, "Warning", "Cannot create a relationship to the same character.")
             return
-
+        
         if not self.available_rel_types:
             QMessageBox.critical(self, "Error", "No relationship types defined. Please define types in the Outline Manager first.")
             return
@@ -558,6 +267,56 @@ class RelationshipEditor(QWidget):
                 intensity
             )
             QMessageBox.information(self, "Success", f"Relationship creation request sent for {node_a.name} and {node_b.name}.")
+
+    def edit_relationship(self, edge: RelationshipEdge) -> None:
+        """
+        Opens the dialog with existing data to update the relationship.
+        
+        :param edge: The RelationshipEdge to edit.
+        :type edge: RelationshipEdge
+
+        :type: None
+        """
+        # Extract existing data from the edge object
+        node_a = edge.source_node
+        node_b = edge.target_node
+        
+        dialog = RelationshipCreationDialog(
+            relationship_types=self.available_rel_types,
+            char_a_name=node_a.name,
+            char_b_name=node_b.name,
+            parent=self
+        )
+        
+        # Pre-fill logic would go here depending on RelationshipCreationDialog implementation
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            type_id, description, intensity = dialog.get_relationship_data()
+            # Emit the same signal; your backend should handle 'UPSERT' 
+            # (update if exists) based on the Unique constraint.
+            self.relationship_created.emit(
+                node_a.char_id,
+                node_b.char_id,
+                type_id,
+                description,
+                intensity
+            )
+
+    def delete_relationship(self, edge: RelationshipEdge) -> None:
+        """
+        Prompts for confirmation and requests deletion via the coordinator.
+        
+        :param edge: The relationship edge to delete.
+        :type edge: RelationshipEdge
+
+        :rtype: Noe
+        """
+        msg = f"Are you sure you want to delete the relationship between {edge.source_node.name} and {edge.target_node.name}?"
+        res = QMessageBox.question(self, "Delete Relationship", msg, 
+                                   QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        
+        if res == QMessageBox.StandardButton.Yes:
+            self.relationship_deleted.emit(edge.edge_data['id'])
 
     def connect_selected_characters(self, node_a: 'CharacterNode', node_b: 'CharacterNode') -> None:
         """
@@ -603,6 +362,17 @@ class RelationshipEditor(QWidget):
                 intensity
             )
             QMessageBox.information(self, "Success", f"Relationship creation request sent for {node_a.name} and {node_b.name}.")
+
+    def update_types_available(self, types: list[dict]) -> None:
+        """
+        Updates the internal cache of available relationship types.
+        
+        :param types: List of types to update.
+        :type types: list[dict]
+
+        :rtype: None
+        """
+        self.available_rel_types = types
 
     def load_graph(self, graph_data: dict[str, list[dict[str, Any]]]) -> None:
         """
@@ -670,6 +440,84 @@ class RelationshipEditor(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Graph Load Error", f"An error occurred while loading graph data: {e}")
             self.scene.clear()
+
+    def apply_auto_layout(self) -> None:
+        """
+        Extracts current graph state, computes Fruchterman-Reingold layout 
+        via C++, and updates node positions.
+
+        :rtype: None
+        """
+        if not self.nodes:
+            return
+        
+        # 1. Prepare NodeInput data for C++
+        # Note: 'is_fixed' could be linked to a 'pinned' attribute if you add one
+        nodes_input = []
+        for node_id, node in self.nodes.items():
+            nodes_input.append({
+                'id': node_id,
+                'x_pos': node.x(),
+                'y_pos': node.y(),
+                'is_fixed': False 
+            })
+
+        # 2. Prepare EdgeInput data for C++
+        edges_input = []
+        for edge in self.edges:
+            edges_input.append({
+                'node_a_id': edge.source_node.char_id,
+                'node_b_id': edge.target_node.char_id,
+                'intensity': edge.edge_data.get('intensity', 5.0) * 10 # Scale to 1-100
+            })
+
+        # 3. Initialize and run the C++ Engine
+        # We use the scene size or view size as the bounding box
+        view_rect = self.view.viewport().rect()
+        width = float(view_rect.width())
+        height = float(view_rect.height())
+
+        if width <= 0 or height <= 0:
+            width, height = 400.0, 300.0
+
+        try:
+            # Initialize engine with the actual Scene dimensions
+            engine = GraphLayoutEngineWrapper(nodes_input, edges_input, width, height)
+            
+            # Increase iterations for more stability if they are flying off-screen
+            new_positions = engine.compute_layout(max_iterations=200, initial_temperature=20.0)
+
+            self._update_node_positions(new_positions)
+            
+            # Optional: Auto-zoom to fit the new layout
+            self.view.fitInView(self.scene.itemsBoundingRect().adjusted(-50, -50, 50, 50), 
+                                Qt.AspectRatioMode.KeepAspectRatio)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Layout Error", f"C++ Engine failed: {e}")
+        
+    def _update_node_positions(self, new_positions: list[dict]) -> None:
+        """
+        Helper to move nodes to their calculated coordinates.
+        
+        :param new_positions: The new updated positions.
+        :type new_positions: list[dict]
+
+        :rtype: None
+        """
+        for pos_data in new_positions:
+            node_id = pos_data['id']
+            if node_id in self.nodes:
+                node = self.nodes[node_id]
+                # setPos triggers ItemPositionHasChanged in CharacterNode, 
+                # which automatically updates attached edges.
+                node.setPos(pos_data['x_pos'], pos_data['y_pos'])
+                
+                # Manually trigger the move signal to persist the auto-layout to DB
+                node.signals.node_moved.emit(
+                    node_id, pos_data['x_pos'], pos_data['y_pos'],
+                    node.node_color, node.node_shape, node.is_hidden
+                )
 
     def set_enabled(self, enabled: bool) -> None:
         """

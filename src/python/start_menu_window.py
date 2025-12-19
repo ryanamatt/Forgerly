@@ -201,7 +201,7 @@ class StartMenuWindow(QMainWindow):
             parent_dir_str = QFileDialog.getExistingDirectory(
                 self,
                 "Select Parent Location for New Project Folder",
-                os.path.expanduser("~") # Starting directory
+                os.path.expanduser("projects") # Starting directory
             )
 
             if not parent_dir_str:
@@ -279,7 +279,7 @@ class StartMenuWindow(QMainWindow):
         project_path = QFileDialog.getExistingDirectory(
             self,
             "Select Existing Project Folder",
-            os.path.expanduser("~")
+            os.path.expanduser("projects")
         )
 
         if project_path:

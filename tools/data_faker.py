@@ -1,12 +1,10 @@
 # tools/data_faker.py
-#
-# Utility script to populate the database with a large amount of realistic
-# dummy data for performance testing and stress-testing the application UI.
 
 import sys
 import argparse
 from pathlib import Path
 from faker import Faker
+import random
 
 # --- Setup to allow module imports ---
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -18,7 +16,6 @@ from src.python.repository.character_repository import CharacterRepository
 from src.python.repository.lore_repository import LoreRepository
 
 # --- Configuration Profiles ---
-# Defines the number of entities to generate for each profile size.
 DATA_PROFILES = {
     "small": {
         "chapters": 10,
@@ -41,7 +38,7 @@ DATA_PROFILES = {
 }
 
 def generate_fake_data(db_connector: DBConnector, profile_name: str):
-    """Generates and inserts fake data into the database based on a profile."""
+    """Generates and inserts fake data into the database based on the V1 schema."""
     fake = Faker()
     profile = DATA_PROFILES[profile_name]
     
@@ -52,51 +49,73 @@ def generate_fake_data(db_connector: DBConnector, profile_name: str):
 
     print(f"\n--- Generating Data ({profile_name.upper()} Profile) ---")
     
-    # --- Chapters ---
+    # --- 1. Characters (Generate first to assign to POV) ---
+    print(f"\n--- Generating {NUM_CHARACTERS} Characters ---")
+    character_repo = CharacterRepository(db_connector)
+    character_ids = []
+
+    for i in range(NUM_CHARACTERS):
+        char_id = character_repo.create_character(
+            name=fake.unique.name(),
+            description=fake.paragraph(),
+            status=fake.random_element(elements=('Alive', 'Deceased', 'Unknown', 'Major', 'Minor')),
+            # New V1 Fields:
+            age=random.randint(5, 150) if random.random() > 0.2 else None,
+            date_of_birth=fake.date() if random.random() > 0.5 else None,
+            occupation_school=fake.job(),
+            physical_description=f"Eyes: {fake.color_name()}, Height: {random.randint(140, 200)}cm. {fake.sentence()}"
+        )
+        if char_id:
+            character_ids.append(char_id)
+        
+    # --- 2. Chapters ---
     print(f"\n--- Generating {NUM_CHAPTERS} Chapters ---")
-    
     chapter_repo = ChapterRepository(db_connector)
-    # Determine the starting sort order by getting the current max
     existing_chapters = chapter_repo.get_all_chapters()
     max_sort_order = existing_chapters[-1]['Sort_Order'] if existing_chapters else 0
     
     for i in range(1, NUM_CHAPTERS + 1):
         title = f"Chapter {max_sort_order + i}: {fake.catch_phrase()}"
-        
-        # Generate simple HTML content with paragraphs
         html_content = "".join([f"<p>{fake.paragraph()}</p>" for _ in range(fake.random_int(min=3, max=MAX_PARAGRAPHS_PER_CHAPTER))])
         
-        # Create the chapter
+        # New: Assign a POV Character ID from our generated list
+        pov_id = random.choice(character_ids) if character_ids and random.random() > 0.3 else None
+
         chapter_id = chapter_repo.create_chapter(
             title=title, 
-            sort_order=max_sort_order + i
+            sort_order=max_sort_order + i,
+            pov_character_id=pov_id # Assuming repo is updated to accept this
         )
         
         if chapter_id:
-            # Update content in a second step, mimicking how the UI might save
             chapter_repo.update_chapter_content(chapter_id, html_content)
         
-        if i % (NUM_CHAPTERS // 5 or 1) == 0: # Print update roughly every 20%
+        if i % (max(1, NUM_CHAPTERS // 5)) == 0:
             print(f"  ... Created {i} chapters.")
             
-    # --- Characters ---
-    print(f"\n--- Generating {NUM_CHARACTERS} Characters ---")
-    character_repo = CharacterRepository(db_connector)
-    for i in range(NUM_CHARACTERS):
-        name = fake.unique.name()
-        description = fake.paragraph()
-        status = fake.random_element(elements=('Alive', 'Deceased', 'Unknown'))
-        character_repo.create_character(name=name, description=description, status=status)
-        
-    # --- Lore Entries ---
+    # --- 3. Lore Entries (with Hierarchy) ---
     print(f"\n--- Generating {NUM_LORE_ENTRIES} Lore Entries ---")
     lore_repo = LoreRepository(db_connector)
-    categories = ['Location', 'Magic', 'Culture', 'History', 'Item', 'Person']
+    categories = ['Magic', 'Culture', 'History', 'Item', 'Person', 'Mythology']
+    lore_ids = []
+
     for i in range(NUM_LORE_ENTRIES):
-        title = fake.unique.word().capitalize()
-        content = fake.text(max_nb_chars=500)
+        # 20% chance to be a sub-entry of an existing lore entry
+        parent_id = random.choice(lore_ids) if (lore_ids and random.random() < 0.2) else None
+        
+        title = f"{fake.unique.word().capitalize()} {random.randint(1, 999)}"
+        content = fake.text(max_nb_chars=800)
         category = fake.random_element(elements=categories)
-        lore_repo.create_lore_entry(title=title, content=content, category=category)
+        
+        l_id = lore_repo.create_lore_entry(
+            title=title, 
+            content=content, 
+            category=category,
+            parent_lore_id=parent_id, # New V1 Field
+            sort_order=random.randint(0, 10)
+        )
+        if l_id:
+            lore_ids.append(l_id)
         
     print(f"\n✅ Data generation complete: {NUM_CHAPTERS} Ch, {NUM_CHARACTERS} Char, {NUM_LORE_ENTRIES} Lore.")
 

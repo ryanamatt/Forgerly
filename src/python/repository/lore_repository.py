@@ -72,7 +72,8 @@ class LoreRepository:
             raise e
 
 
-    def create_lore_entry(self, title: str, content: str = "", category: str = "") -> int | None:
+    def create_lore_entry(self, title: str, content: str = "", category: str = "", parent_lore_id: int | None = None,
+                          sort_order: int = 0) -> int | None:
         """
         Inserts a new lore entry record into the database with a default empty content field.
 
@@ -82,16 +83,20 @@ class LoreRepository:
         :type content: str
         :param category: The category of the lore entry (e.g. Magic System), Defaults to Empty String
         :type category: str
+        :param parent_lore_id: The Lore ID of the parent Lore Entry.
+        :type parent_lore_id: int
+        :param sort_order: The sort order of the Lore Entries
+        :type sort_order: int
         
         :returns: The ID of the newly created lore entry if successful, otherwise None.
         :rtype: int or None
         """
         query = """
-        INSERT INTO Lore_Entries (Title, Content, Category)
-        VALUES (?, ?, ?)
+        INSERT INTO Lore_Entries (Title, Content, Category, Parent_Lore_ID, Sort_Order)
+        VALUES (?, ?, ?, ?, ?)
         """
         try:
-            lore_id = self.db._execute_commit(query, (title, content, category), fetch_id=True)
+            lore_id = self.db._execute_commit(query, (title, content, category, parent_lore_id, sort_order), fetch_id=True)
             if lore_id:
                 logger.info(f"Created new lore entry: ID={lore_id}, Title='{title}'.")
             return lore_id
