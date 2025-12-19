@@ -93,7 +93,10 @@ class CharacterNode(QGraphicsEllipseItem):
         :rtype: None
         """
         brush = QBrush(QColor(self.node_color))
-        pen = QPen(QColor(Qt.GlobalColor.black), 2)
+        if getattr(self, 'is_selected_for_connect', False):
+            pen = QPen(QColor("gold"), 4, Qt.PenStyle.DashLine)
+        else:
+            pen = QPen(QColor(Qt.GlobalColor.black), 2)
         
         self.setBrush(brush)
         self.setPen(pen)
@@ -564,10 +567,13 @@ class RelationshipEditor(QWidget):
             self.temp_line.setPen(QPen(Qt.GlobalColor.gray, 1, Qt.PenStyle.DashLine))
             self.scene.addItem(self.temp_line)
             self.view.setMouseTracking(True)
+
+            self.view.setToolTip(f"Connecting {node.name}... Right-click another node to finish.")
             
         elif self.selected_node_a is node:
             # Clicking the same node clears the selection
             self.clear_selection()
+            self.view.setToolTip("")
             
         else:
             # Second selection - ready to connect
@@ -576,6 +582,7 @@ class RelationshipEditor(QWidget):
             # --- CONNECTION LOGIC ---
             self.create_relationship_dialog(self.selected_node_a, self.selected_node_b)
             self.clear_selection() # Clear selection regardless of dialog result
+            self.view.setToolTip("")
 
     def create_relationship_dialog(self, node_a: CharacterNode, node_b: CharacterNode) -> None:
         """

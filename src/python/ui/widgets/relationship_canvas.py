@@ -1,8 +1,8 @@
 # src/python/ui/widgets/relationship_canvas.py
 
-from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsItem
-from PyQt6.QtCore import Qt, pyqtSignal, QLineF
-from PyQt6.QtGui import QWheelEvent, QPainter, QMouseEvent
+from PyQt6.QtWidgets import QGraphicsView
+from PyQt6.QtCore import QLineF, QRectF
+from PyQt6.QtGui import QWheelEvent, QPainter, QMouseEvent, QPen, QColor
 
 class RelationshipCanvas(QGraphicsView):
     """
@@ -27,6 +27,8 @@ class RelationshipCanvas(QGraphicsView):
         self.grid_size = 20
         self.show_grid = True
 
+    # --- Events Handling ---
+
     def wheelEvent(self, event: QWheelEvent) -> None:
         """
         Custom zoom logic for smoother navigation using
@@ -44,7 +46,7 @@ class RelationshipCanvas(QGraphicsView):
         else:
             self.scale(zoom_out_factor, zoom_out_factor)
 
-    def mouseMoveEvent(self, event) -> None:
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
         """
         Docstring for mouseMoveEvent
         
