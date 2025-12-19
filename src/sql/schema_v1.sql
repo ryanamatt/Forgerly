@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS Lore_Entries (
     Content                 TEXT,
     Category                TEXT,                 -- e.g., 'Location', 'Magic System', 'History'
     Parent_Lore_ID          INTEGER,              -- Allows for Nested Lore Entries
+    Sort_Order              INTEGER DEFAULT 0,
 
     -- Foreign Key Constraint for self-reference (crucial for deletion)
     FOREIGN KEY (Parent_Lore_ID) REFERENCES Lore_Entries(ID) ON DELETE CASCADE

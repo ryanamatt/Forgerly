@@ -514,9 +514,10 @@ class AppCoordinator(QObject):
 
         :returns: True on successful database update, False otherwise.
         """
+        if isinstance(new_parent_id, int) and new_parent_id <= 0:
+            new_parent_id = None
         result = self.lore_repo.update_lore_entry_parent_id(lore_id, new_parent_id)
         if result:
-            # self.lore_parent_changed.emit(lore_id, new_parent_id)
             pass
         return result
 
