@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS Lore_Entries (
 -- CHARACTERS: Named entities in the narrative.
 CREATE TABLE IF NOT EXISTS Characters (
     ID                      INTEGER PRIMARY KEY,
-    Name                    TEXT NOT NULL UNIQUE,
+    Name                    TEXT NOT NULL,
     Description             TEXT,
     Status                  TEXT,                  -- e.g., 'Alive', 'Deceased', 'Major', 'Minor'
     Age                     INTEGER,               -- Years

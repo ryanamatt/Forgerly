@@ -74,7 +74,7 @@ class RelationshipRepository:
             raise e
     
     def create_relationship(self, char_a_id: int, char_b_id: int, type_id: int, lore_id: int | None = None,
-                            description: str = "", intensity: int = 50, start_chapter_id: int | None = None, 
+                            description: str = "", intensity: int = 5, start_chapter_id: int | None = None, 
                             end_chapter_id: int | None = None) -> int | None:
         """
         Creates a new character relationship using the Relationship Type ID and returns its ID.

@@ -135,7 +135,9 @@ class CharacterRepository:
             logger.error("Failed to count all chapters.", exc_info=True)
             raise e
     
-    def create_character(self, name: str, description: str = "", status: str = "") -> int | None:
+    def create_character(self, name: str, description: str = "", status: str = "",
+                         age: int = -1, date_of_birth: str = "", occupation_school: str = "", 
+                         physical_description: str = "") -> int | None:
         """
         Inserts a new chapter record into the database with a default empty content field.
 
@@ -144,14 +146,24 @@ class CharacterRepository:
         :param description: The description of the character, Defaults to Empty String.
         :type status: str
         :param status: The status of the character (Dead, Alive, etc.), Defaults to Empty String
-        :type status: str
+        :param age: The age of the character.
+        :type age: int
+        :param date_of_birth: The characters date of birth.
+        :type date_of_birth: str
+        :param occupation_school: The characters Occupation/Schooling
+        :type occupation_school: str
+        :param physical_description: The characters physical description.
+        :type physical_description: str
         
         :returns: The ID of the newly created chapter if successful, otherwise None.
         :rtype: int or None
         """
-        query = "INSERT INTO Characters (Name, Description, Status) VALUES (?, ?, ?);"
+        query = """INSERT INTO Characters 
+            (Name, Description, Status, Age, Date_of_Birth, Occupation_School, Physical_Description) 
+            VALUES (?, ?, ?, ?, ?, ?, ?);
+            """
         try:
-            char_id = self.db._execute_commit(query, (name, description, status), fetch_id=True)
+            char_id = self.db._execute_commit(query, (name, description, status, age, date_of_birth, occupation_school, physical_description), fetch_id=True)
             if char_id:
                 logger.info(f"Created new character: ID={char_id}, Name='{name}'.")
             return char_id

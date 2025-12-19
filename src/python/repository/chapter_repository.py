@@ -209,7 +209,7 @@ class ChapterRepository:
         logger.info(f"Calculated statistics for {len(chapters_with_stats)} chapters.")
         return chapters_with_stats
 
-    def create_chapter(self, title: str, sort_order: int) -> int | None:
+    def create_chapter(self, title: str, sort_order, text_content: str = "<p></p>", pov_character_id: int | None = None) -> int | None:
         """
         Inserts a new chapter record into the database with a default empty content field.
 
@@ -217,17 +217,21 @@ class ChapterRepository:
         :type title: str
         :param sort_order: The ordering integer for the chapter within the story structure.
         :type sort_order: int
+        :param text_content: The text content of the chapter. Default. '<p></p>'.
+        :type text_content: str
+        :param pov_character_id: The POV Characters ID
+        :type pov_character_id: int
         
         :returns: The ID of the newly created chapter if successful, otherwise None.
         :rtype: int or None
         """
         query = """
-        INSERT INTO Chapters (Title, Text_Content, Sort_Order)
-        VALUES (?, ?, ?);
+        INSERT INTO Chapters (Title, Text_Content, Sort_Order, POV_Character_ID)
+        VALUES (?, ?, ?, ?);
         """
         try:
             chapter_id = self.db._execute_commit(
-                query, (title, "<p></p>", sort_order), fetch_id=True
+                query, (title, text_content, sort_order, pov_character_id), fetch_id=True
             )
             if chapter_id:
                 logger.info(f"Created new chapter: ID={chapter_id}, Title='{title}', SortOrder={sort_order}.")
