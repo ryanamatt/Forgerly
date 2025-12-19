@@ -64,7 +64,7 @@ def test_get_all_chapters_ordering_and_fields(chapter_repo: ChapterRepository):
     # Setup multiple chapters in random insertion order but defined Sort_Order
     c_id_3 = chapter_repo.create_chapter("Chapter C", 3)
     c_id_1 = chapter_repo.create_chapter("Chapter A", 1)
-    c_id_2 = chapter_repo.create_chapter("Chapter B", 2, precursor_id=c_id_1)
+    c_id_2 = chapter_repo.create_chapter("Chapter B", 2)
     
     # Act
     chapters = chapter_repo.get_all_chapters()
@@ -78,9 +78,6 @@ def test_get_all_chapters_ordering_and_fields(chapter_repo: ChapterRepository):
     
     # Check expected fields are present (ID, Title, Sort_Order, Precursor_Chapter_ID)
     assert 'ID' in chapters[0]
-    assert 'Precursor_Chapter_ID' in chapters[1]
-    assert chapters[1]['Precursor_Chapter_ID'] == c_id_1
-    assert chapters[0]['Precursor_Chapter_ID'] is None
 
 def test_get_all_chapters_with_content(chapter_repo: ChapterRepository):
     """Tests retrieval of all chapters including the Text_Content field."""

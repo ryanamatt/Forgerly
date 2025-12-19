@@ -39,9 +39,9 @@ class LoreRepository:
         :rtype: :py:class:`~app.utils.types.DBRowList`
         """
         query = """
-        SELECT ID, Title, Category, Parent_Lore_ID
+        SELECT ID, Title, Category, Parent_Lore_ID, Sort_Order
         FROM Lore_Entries
-        ORDER BY Title ASC;
+        ORDER BY Sort_Order ASC, Title ASC;
         """
         try:
             results = self.db._execute_query(query, fetch_all=True)
@@ -220,7 +220,9 @@ class LoreRepository:
         Updates the Parent_Lore_ID for a specific Lore Entry.
 
         :param lore_id: The ID of the lore entry to update.
+        :type lore_id: int
         :param new_parent_id: The ID of the new parent entry, or None to make it a root entry.
+        :type new_parent_id: int
 
         :returns: True on success, False otherwise.
         """
@@ -236,6 +238,31 @@ class LoreRepository:
             return success
         except DatabaseError as e:
             logger.error(f"Failed to update parent ID for lore entry ID: {lore_id} to {new_parent_id}.", exc_info=True)
+            raise e
+        
+    def update_lore_order(self, lore_id: int, sort_order: int) -> bool:
+        """
+        Updates the Sort Order for a specific Lore Entry.
+
+        :param lore_id: The ID of the lore entry to update.
+        :type lord_id: int
+        :param sort_order: The new value for the sort_order
+        :type sort_order: int
+
+        :returns: True on success, False otherwise.
+        """
+        query = """
+        UPDATE Lore_Entries
+        SET Sort_Order = ?
+        WHERE ID = ?;
+        """
+        try:
+            success = self.db._execute_commit(query, (sort_order, lore_id))
+            if success:
+                logger.info(f"Updated parent ID for lore entry ID: {lore_id} to {sort_order}.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to update parent ID for lore entry ID: {lore_id} to {sort_order}.", exc_info=True)
             raise e
     
     def delete_lore_entry(self, lore_id: int) -> bool:

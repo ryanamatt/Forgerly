@@ -49,3 +49,9 @@ QTreeWidget {
     selection-background-color: #005080;
     show-decoration-selected: 1; 
 }
+
+QFrame: #MainBorderFrame {
+    border: 2px solid #555555;
+    border-radius: 5px;
+    background-color: transparent;
+}

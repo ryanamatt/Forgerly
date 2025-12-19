@@ -1,2 +1,6 @@
 src/sql/*.sql linguist-detectable=true
 src/sql/*.sql linguist-language=SQL
+
+# Ensure SVGS are handled as text but with LF line endings
+*.svg text eol=lf 
+*.ico binary

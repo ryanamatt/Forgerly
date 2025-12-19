@@ -5,10 +5,11 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import (
     QAction, QTextCharFormat, QFont, QTextCursor, QKeyEvent,
-    QTextListFormat, QTextBlockFormat, QIcon, QBrush,
+    QTextListFormat, QTextBlockFormat, QIcon, QBrush, QIcon
 )
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
 
+from ...resources_rc import *
 from .basic_text_editor import BasicTextEditor
 from ...utils.logger import get_logger
 from ...utils.exceptions import EditorContentError
@@ -98,6 +99,8 @@ class RichTextEditor(BasicTextEditor):
 
             # Font Family Selector
             self.font_combo = QFontComboBox(self.toolbar)
+            self.font_combo.setFontFilters(QFontComboBox.FontFilter.ScalableFonts)
+            self.font_combo.setFixedWidth(100)
             self.font_combo.currentFontChanged.connect(self._select_font)
             self.toolbar.addWidget(self.font_combo)
 
@@ -118,22 +121,22 @@ class RichTextEditor(BasicTextEditor):
             # --- Basic Character Formatting (Bold, Italic, Underline) ---
 
             # BOLD
-            bold_icon = QIcon.fromTheme("format-text-bold", self.style().standardIcon(QStyle.StandardPixmap.SP_DialogYesButton))
-            self.bold_action = QAction(bold_icon, "Bold", self)
+            self.bold_icon = QIcon(":icons/bold.svg")
+            self.bold_action = QAction(self.bold_icon, "Bold", self)
             self.bold_action.setShortcut("Ctrl+B")
             self.bold_action.triggered.connect(self._toggle_bold)
             self.toolbar.addAction(self.bold_action)
 
             # ITALIC
-            italic_icon = QIcon.fromTheme("format-text-italic", self.style().standardIcon(QStyle.StandardPixmap.SP_DialogNoButton))
-            self.italic_action = QAction(italic_icon, "Italic", self)
+            self.italic_icon = QIcon(":icons/italic.svg")
+            self.italic_action = QAction(self.italic_icon, "Italic", self)
             self.italic_action.setShortcut("Ctrl+I")
             self.italic_action.triggered.connect(self._toggle_italic)
             self.toolbar.addAction(self.italic_action)
 
             # UNDERLINE
-            underline_icon = QIcon.fromTheme("format-text-underline", self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogInfoView))
-            self.underline_action = QAction(underline_icon, "Underline", self)
+            self.underline_icon = QIcon(":icons/underline.svg")
+            self.underline_action = QAction(self.underline_icon, "Underline", self)
             self.underline_action.setShortcut("Ctrl+U")
             self.underline_action.triggered.connect(self._toggle_underline)
             self.toolbar.addAction(self.underline_action)
@@ -143,30 +146,30 @@ class RichTextEditor(BasicTextEditor):
             # --- Color Selectinon Actions
 
             # Foreground Color (Text Color)
-            color_icon = QIcon.fromTheme("format-text-color", self.style().standardIcon(QStyle.StandardPixmap.SP_DialogApplyButton))
-            color_action = QAction(color_icon, "Text Color", self)
-            color_action.triggered.connect(self._select_text_color)
-            self.toolbar.addAction(color_action)
+            self.color_icon = QIcon(":icons/font-color.svg")
+            self.color_action = QAction(self.color_icon, "Text Color", self)
+            self.color_action.triggered.connect(self._select_text_color)
+            self.toolbar.addAction(self.color_action)
 
             # Background Color (Highlight)
-            highlight_icon = QIcon.fromTheme("format-text-highlight", self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowUp))
-            highlight_action = QAction(highlight_icon, "Highlight Color", self)
-            highlight_action.triggered.connect(self._select_highlight_color)
-            self.toolbar.addAction(highlight_action)
+            self.highlight_icon = QIcon(":icons/highlight-color.svg")
+            self.highlight_action = QAction(self.highlight_icon, "Highlight Color", self)
+            self.highlight_action.triggered.connect(self._select_highlight_color)
+            self.toolbar.addAction(self.highlight_action)
             
             self.toolbar.addSeparator()
 
             # --- List Formatting (Unordered, Ordered) ---
             
             # UNORDERED LIST (Bullet Points)
-            list_bullet_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_CustomBase) # Placeholder icon
-            self.list_bullet_action = QAction(list_bullet_icon, "Bullet List", self)
+            self.list_bullet_icon = QIcon(":icons/list-unordered.svg")
+            self.list_bullet_action = QAction(self.list_bullet_icon, "Bullet List", self)
             self.list_bullet_action.triggered.connect(lambda: self._toggle_list(QTextListFormat.Style.ListDisc))
             self.toolbar.addAction(self.list_bullet_action)
 
             # ORDERED LIST (Numbers)
-            list_number_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_CustomBase)
-            self.list_number_action = QAction(list_number_icon, "Numbered List", self)
+            self.list_number_icon = QIcon(":icons/list-ordered.svg")
+            self.list_number_action = QAction(self.list_number_icon, "Numbered List", self)
             self.list_number_action.triggered.connect(lambda: self._toggle_list(QTextListFormat.Style.ListDecimal))
             self.toolbar.addAction(self.list_number_action)
 
@@ -174,18 +177,18 @@ class RichTextEditor(BasicTextEditor):
 
             # --- Text Alignment ---
 
-            align_left_icon = QIcon.fromTheme("format-justify-left", self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowLeft))
-            self.align_left_action = QAction(align_left_icon, "Align Left", self)
+            self.align_left_icon = QIcon(":icons/align-left.svg")
+            self.align_left_action = QAction(self.align_left_icon, "Align Left", self)
             self.align_left_action.triggered.connect(lambda: self._align_text(Qt.AlignmentFlag.AlignLeft))
             self.toolbar.addAction(self.align_left_action)
             
-            align_center_icon = QIcon.fromTheme("format-justify-center", self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowForward))
-            self.align_center_action = QAction(align_center_icon, "Align Center", self)
+            self.align_center_icon = QIcon(":icons/align-center.svg")
+            self.align_center_action = QAction(self.align_center_icon, "Align Center", self)
             self.align_center_action.triggered.connect(lambda: self._align_text(Qt.AlignmentFlag.AlignCenter))
             self.toolbar.addAction(self.align_center_action)
             
-            align_right_icon = QIcon.fromTheme("format-justify-right", self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowRight))
-            self.align_right_action = QAction(align_right_icon, "Align Right", self)
+            self.align_right_icon = QIcon(":icons/align-right.svg")
+            self.align_right_action = QAction(self.align_right_icon, "Align Right", self)
             self.align_right_action.triggered.connect(lambda: self._align_text(Qt.AlignmentFlag.AlignRight))
             self.toolbar.addAction(self.align_right_action)
 
@@ -193,20 +196,20 @@ class RichTextEditor(BasicTextEditor):
 
             # --- Indentation ---
 
-            outdent_icon = QIcon.fromTheme("format-indent-less", self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowLeft))
-            self.outdent_action = QAction(outdent_icon, "Decrease Indent", self)
+            self.outdent_icon = QIcon(":icons/indent-decrease.svg")
+            self.outdent_action = QAction(self.outdent_icon, "Decrease Indent", self)
             self.outdent_action.triggered.connect(lambda: self._adjust_indent(-1))
             self.toolbar.addAction(self.outdent_action)
             
-            indent_icon = QIcon.fromTheme("format-indent-more", self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowRight))
-            self.indent_action = QAction(indent_icon, "Increase Indent", self)
+            self.indent_icon = QIcon(":icons/indent-increase.svg")
+            self.indent_action = QAction(self.indent_icon, "Increase Indent", self)
             self.indent_action.triggered.connect(lambda: self._adjust_indent(1))
             self.toolbar.addAction(self.indent_action)
 
             # --- Clear Formatting ---
             
-            clear_format_icon = QIcon.fromTheme("edit-clear-all", self.style().standardIcon(QStyle.StandardPixmap.SP_DialogCancelButton))
-            self.clear_format_action = QAction(clear_format_icon, "Clear Formatting", self)
+            self.clear_format_icon = QIcon(":icons/format-clear.svg")
+            self.clear_format_action = QAction(self.clear_format_icon, "Clear Formatting", self)
             self.clear_format_action.triggered.connect(self._clear_formatting)
             self.toolbar.addAction(self.clear_format_action)
 

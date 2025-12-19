@@ -5,6 +5,10 @@ __pycache__/
 documentation/_build/
 projects/
 logs/
+src/python/resources_rc.py
+src/python/resources_rc.pyclear
+*.o
+*.obj
 *.a
 *.dll
 *.exe
