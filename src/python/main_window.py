@@ -411,9 +411,12 @@ class MainWindow(QMainWindow):
         self.character_outline_manager.pre_char_change.connect(self._check_save_before_change)
 
         # --- MainMenuBar Connections (Menu signal OUT -> MainWindow slot IN) ---
-        self.main_menu_bar.new_chapter_requested.connect(self.coordinator.chapter_repo.create_chapter)
-        self.main_menu_bar.new_lore_requested.connect(self.coordinator.lore_repo.create_lore_entry)
-        self.main_menu_bar.new_character_requested.connect(self.coordinator.character_repo.create_character)
+        self.main_menu_bar.new_chapter_requested.connect(self.chapter_outline_manager.prompt_and_add_chapter)
+        self.chapter_outline_manager.new_chapter_created.connect(lambda: self._switch_to_view(ViewType.CHAPTER_EDITOR))
+        self.main_menu_bar.new_lore_requested.connect(self.lore_outline_manager.prompt_and_add_lore)
+        self.lore_outline_manager.new_lore_created.connect(lambda: self._switch_to_view(ViewType.LORE_EDITOR))
+        self.main_menu_bar.new_character_requested.connect(self.character_outline_manager.prompt_and_add_character)
+        self.character_outline_manager.new_char_created.connect(lambda: self._switch_to_view(ViewType.CHARACTER_EDITOR))
 
         self.main_menu_bar.save_requested.connect(self._save_current_item_wrapper)
         self.main_menu_bar.export_requested.connect(self._export)

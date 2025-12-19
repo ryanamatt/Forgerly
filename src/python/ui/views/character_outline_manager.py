@@ -28,6 +28,12 @@ class CharacterOutlineManager(QWidget):
     selected, carrying the Character ID.
     """
 
+    new_char_created = pyqtSignal()
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emmited when a new character is created
+    telling MainWindow to switch the view.
+    """
+
     pre_char_change = pyqtSignal()
     """
     :py:class:`~PyQt6.QtCore.pyqtSignal` (): Emitted before a new character is 
@@ -311,6 +317,7 @@ class CharacterOutlineManager(QWidget):
             new_id = self.char_repo.create_character(name=name)
 
             if new_id:
+                self.new_char_created.emit()
                 # Reload the outline to display the new chapter
                 self.load_outline()
                 # Automatically select the new chapter

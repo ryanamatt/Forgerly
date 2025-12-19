@@ -22,14 +22,18 @@ class ChapterOutlineManager(QWidget):
     CHAPTER_ID_ROLE = Qt.ItemDataRole.UserRole + 1
     """The :py:obj:`int` role used to store the database ID of a Chapter on an item."""
 
-    # Signal emitted when a chapter item is selected, carrying the Chapter ID
     chapter_selected = pyqtSignal(int)
     """
     :py:class:`~PyQt6.QtCore.pyqtSignal` (int): Emitted when a chapter item is selected, 
     carrying the Chapter ID.
     """
 
-    # Emitted before a new chapter is selected, allowing the main window to save
+    new_chapter_created = pyqtSignal()
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when a new chapter is created. Tells
+    MainWindow to switch the view to Chapter View.
+    """
+
     pre_chapter_change = pyqtSignal()
     """
     :py:class:`~PyQt6.QtCore.pyqtSignal` (): Emitted before a new chapter is 
@@ -309,6 +313,7 @@ class ChapterOutlineManager(QWidget):
             )
 
             if new_id:
+                self.new_chapter_created.emit()
                 # Reload the outline to display the new chapter
                 self.load_outline()
                 # Automatically select the new chapter
