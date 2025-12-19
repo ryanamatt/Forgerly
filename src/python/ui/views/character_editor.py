@@ -2,7 +2,7 @@
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QGroupBox, 
-    QLineEdit, QComboBox, QHBoxLayout
+    QLineEdit, QComboBox, QHBoxLayout, QSpinBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Any
@@ -29,6 +29,11 @@ class CharacterEditor(QWidget):
     # State tracking for unsaved changes
     _initial_name: str = ""
     _initial_status: str = ""
+    _initial_age: int = -1
+    _initial_dob: str = ""
+    _initial_occupation: str = ""
+    _initial_physical: str = ""
+
     current_char_id: int | None = None
     """The database ID of the character currently loaded in the editor, or :py:obj:`None`."""
 
@@ -43,67 +48,95 @@ class CharacterEditor(QWidget):
         """
         super().__init__(parent)
 
-        # --- Sub-components (Description) ---
-        self.basic_text_editor = BasicTextEditor()
-
-        # --- Character-Specific Components (Name and Status) ---
+        # --- 1. Sub-components ---
+        self.description_editor = BasicTextEditor()
+        self.physical_editor = BasicTextEditor()  # Moved up for clarity
         self.name_input = QLineEdit()
         self.name_input.setPlaceholderText("Enter Character Name")
         
         self.status_combo = QComboBox()
-        # Populating Status options based on typical database fields
         self.status_combo.addItems(["Alive", "Deceased", "Unknown", "Retired/Removed"])
 
-        # --- Layout Setup ---
+        self.age_spin = QSpinBox()
+        self.age_spin.setRange(-1, 1000)
+        self.dob_input = QLineEdit()
+        self.occupation_input = QLineEdit()
+
+        # --- 2. Layout Setup ---
         
-        # 1. Name & Status Header Group (Horizontal layout for top controls)
+        # Header Group (Name & Status)
         header_group = QWidget()
         header_layout = QHBoxLayout(header_group)
         header_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Name Input
-        name_label = QLabel("Name:")
-        header_layout.addWidget(name_label)
-        header_layout.addWidget(self.name_input, 3) # Give more horizontal space for name
+        header_layout.addWidget(QLabel("Name:"))
+        header_layout.addWidget(self.name_input, 3)
+        header_layout.addWidget(QLabel("Status:"))
+        header_layout.addWidget(self.status_combo, 1)
+        header_layout.addStretch(1)
 
-        # Status Combo
-        status_label = QLabel("Status:")
-        header_layout.addWidget(status_label)
-        header_layout.addWidget(self.status_combo, 1) # Less space for status
-        header_layout.addStretch(1) # Push everything to the left
+        # Personal Details Group
+        details_group = QGroupBox("Personal Details")
+        details_group.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        details_layout = QHBoxLayout(details_group)
+        details_layout.addWidget(QLabel("Age:"))
+        details_layout.addWidget(self.age_spin)
+        details_layout.addWidget(QLabel("Date of Birth:"))
+        details_layout.addWidget(self.dob_input)
+        details_layout.addWidget(QLabel("Occupation:"))
+        details_layout.addWidget(self.occupation_input)
+
+        # --- SIDE-BY-SIDE EDITORS (The Change) ---
         
-        # 2. Main Description Editor Group
-        description_group = QGroupBox("Description & Biography")
+        # Bottom Container
+        editors_container = QWidget()
+        editors_layout = QHBoxLayout(editors_container)
+        editors_layout.setContentsMargins(0, 0, 0, 0)
+        editors_layout.setSpacing(10)
+
+        # Left: Description Group
+        description_group = QGroupBox("Description")
+        description_group.setAlignment(Qt.AlignmentFlag.AlignCenter)
         description_layout = QVBoxLayout(description_group)
-        description_layout.setContentsMargins(10, 10, 10, 10)
-        description_layout.addWidget(self.basic_text_editor)
+        description_layout.addWidget(self.description_editor)
         
-        # 3. Overall Layout (Vertical)
+        # Right: Physical Description Group
+        physical_group = QGroupBox("Physical Description")
+        physical_group.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        physical_layout = QVBoxLayout(physical_group)
+        physical_layout.addWidget(self.physical_editor)
+
+        # Add groups to the horizontal layout
+        editors_layout.addWidget(description_group, 1) # Equal stretch
+        editors_layout.addWidget(physical_group, 1)    # Equal stretch
+
+        # --- 3. Overall Layout (Vertical) ---
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
         
         main_layout.addWidget(header_group)
-        main_layout.addWidget(description_group)
+        main_layout.addWidget(details_group)
+        main_layout.addWidget(editors_container) # Add the side-by-side editors
         
         # --- Connections ---
-        # Any change to these components should flag the item as dirty
-        self.basic_text_editor.content_changed.connect(self._set_dirty)
+        self.description_editor.content_changed.connect(self._set_dirty)
         self.name_input.textChanged.connect(self._set_dirty)
         self.status_combo.currentTextChanged.connect(self._set_dirty)
+        self.age_spin.valueChanged.connect(self._set_dirty)
+        self.dob_input.textChanged.connect(self._set_dirty)
+        self.occupation_input.textChanged.connect(self._set_dirty)
+        self.physical_editor.content_changed.connect(self._set_dirty)
         
-        # Emit name change signal when the user finishes editing the name, 
-        # allowing the Outline Manager to update the list item's text.
         self.name_input.editingFinished.connect(self._emit_name_change)
         
-        # Initialize disabled until a character is loaded
         self.setEnabled(False)
 
     # =========================================================================
     # PUBLIC INTERFACE (Data/State Management)
     # =========================================================================
 
-    def load_character(self, char_id: int, name: str, description: str, status: str) -> None:
+    def load_character(self, char_id: int, name: str, description: str, status: str,
+                       age: int, dob: str, occupation: str, physical: str) -> None:
         """
         Loads character data into the editor fields.
         
@@ -111,20 +144,24 @@ class CharacterEditor(QWidget):
         calls :py:meth:`.mark_saved` to reset the dirty state. This method
         also fills the tag fields.
         
-        :param char_id: The id of the character
-        :type char_id: int
-        :param name: The name of the character to load.
+        :param name: The title of the new character.
         :type name: str
         :param description: The description of the character
-        :type description: str
-        :param status: The status of the character
         :type status: str
+        :param status: The status of the character (Dead, Alive, etc.)
+        :param age: The age of the character.
+        :type age: int
+        :param dob: The characters date of birth.
+        :type dob: str
+        :param occupation: The characters Occupation/Schooling
+        :type occupation: str
+        :param physical: The characters physical description.
+        :type physical: str
         
         :rtype: None
         """
         self.current_char_id = char_id
         
-        # 1. Update UI
         self.name_input.setText(name)
         
         # Temporarily block signals to prevent triggering _set_dirty when setting new text
@@ -135,14 +172,21 @@ class CharacterEditor(QWidget):
             index = self.status_combo.findText("Unknown", Qt.MatchFlag.MatchExactly)
         self.status_combo.setCurrentIndex(index)
         self.status_combo.blockSignals(False)
+
+        self.description_editor.set_html_content(description)
+        self.age_spin.setValue(age)
+        self.dob_input.setText(dob)
+        self.occupation_input.setText(occupation)
+        self.physical_editor.set_html_content(physical)
         
-        self.basic_text_editor.set_html_content(description)
-        
-        # 2. Save initial state for dirty check
+        # Update initial states for dirty checking
         self._initial_name = name
         self._initial_status = status
+        self._initial_age = age
+        self._initial_dob = dob
+        self._initial_occupation = occupation
+        self._initial_physical = physical
         
-        # 3. Mark all as saved and enable the editor
         self.mark_saved()
         self.setEnabled(True)
 
@@ -155,12 +199,14 @@ class CharacterEditor(QWidget):
         :rtype dict[str, Any]
         """
         return {
-            'id': self.current_char_id,
-            'name': self.name_input.text().strip(),
-            'description': self.basic_text_editor.get_html_content(),
-            'status': self.status_combo.currentText().strip()
+            'name': self.get_name(),
+            'status': self.get_status(),
+            'description': self.get_description_content(),
+            'age': self.age_spin.value(),
+            'date_of_birth': self.dob_input.text().strip(),
+            'occupation_school': self.occupation_input.text().strip(),
+            'physical_description': self.physical_editor.get_html_content()
         }
-        
     def is_dirty(self) -> bool:
         """
         Checks if the content in the editor has unsaved changes compared to 
@@ -175,12 +221,13 @@ class CharacterEditor(QWidget):
         if self.current_char_id is None:
             return False 
 
-        name_changed = self.name_input.text().strip() != self._initial_name
-        status_changed = self.status_combo.currentText().strip() != self._initial_status
-        
-        return (name_changed or 
-                status_changed or
-                self.basic_text_editor.is_dirty())
+        return (self.name_input.text().strip() != self._initial_name or 
+            self.status_combo.currentText().strip() != self._initial_status or
+            self.age_spin.value() != self._initial_age or
+            self.dob_input.text().strip() != self._initial_dob or
+            self.occupation_input.text().strip() != self._initial_occupation or
+            self.description_editor.is_dirty() or
+            self.physical_editor.is_dirty())
 
     def mark_saved(self) -> None:
         """
@@ -189,11 +236,16 @@ class CharacterEditor(QWidget):
         
         :rtype: None
         """
-        self.basic_text_editor.mark_saved()
+        # Reset the internal state of the basic text editors
+        self.description_editor.mark_saved()
+        self.physical_editor.mark_saved()
         
-        # Recapture the current state as the new saved state
+        # Recapture the current state for all basic fields
         self._initial_name = self.name_input.text().strip()
         self._initial_status = self.status_combo.currentText().strip()
+        self._initial_age = self.age_spin.value()
+        self._initial_dob = self.dob_input.text().strip()
+        self._initial_occupation = self.occupation_input.text().strip()
         
     def set_enabled(self, enabled: bool) -> None:
         """
@@ -204,9 +256,18 @@ class CharacterEditor(QWidget):
 
         :rtype: None
         """
+        # Header fields
         self.name_input.setEnabled(enabled)
         self.status_combo.setEnabled(enabled)
-        self.basic_text_editor.setEnabled(enabled)
+        
+        # Personal details fields
+        self.age_spin.setEnabled(enabled)
+        self.dob_input.setEnabled(enabled)
+        self.occupation_input.setEnabled(enabled)
+        
+        # Rich text editors
+        self.description_editor.setEnabled(enabled)
+        self.physical_editor.setEnabled(enabled)
         
     # --- Data Retrieval Methods ---
     
@@ -235,7 +296,7 @@ class CharacterEditor(QWidget):
         :returns: The description content in HTML format.
         :rtype: str
         """
-        return self.basic_text_editor.get_html_content()
+        return self.description_editor.get_html_content()
     
     # =========================================================================
     # INTERNAL HANDLERS

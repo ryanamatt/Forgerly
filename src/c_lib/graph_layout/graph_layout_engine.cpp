@@ -213,8 +213,3 @@ std::vector<NodeOutput> GraphLayoutEngine::computeLayout(int max_iterations, dou
     }
     return final_positions;
 }
-
-int main ()
-{
-    return 0;
-}

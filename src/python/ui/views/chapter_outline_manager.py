@@ -131,11 +131,11 @@ class ChapterOutlineManager(QWidget):
 
         self.tree_widget.blockSignals(False)
 
-        # Auto-select first chapter if available
-        if self.tree_widget.topLevelItemCount() > 0:
-            first_item = self.tree_widget.topLevelItem(0)
-            self.tree_widget.setCurrentItem(first_item)
-            self.chapter_selected.emit(first_item.data(0, self.CHAPTER_ID_ROLE))
+        # # Auto-select first chapter if available
+        # if self.tree_widget.topLevelItemCount() > 0:
+        #     first_item = self.tree_widget.topLevelItem(0)
+        #     self.tree_widget.setCurrentItem(first_item)
+        #     self.chapter_selected.emit(first_item.data(0, self.CHAPTER_ID_ROLE))
 
     def _update_all_chapter_sort_orders(self) -> None:
         """

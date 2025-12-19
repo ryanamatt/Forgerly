@@ -68,16 +68,18 @@ class ChapterEditor(QWidget):
 
         # 1. Tagging Group Box (Existing Code)
         tag_group = QGroupBox("Chapter Tags (Genres, Themes, POVs)")
+        tag_group.setAlignment(Qt.AlignmentFlag.AlignCenter)
         tag_layout = QVBoxLayout(tag_group)
         tag_layout.setContentsMargins(10, 20, 10, 10)
         tag_layout.addWidget(self.tag_manager)
         
         # 2. Editor and Stats (Modified Layout)
         
-        # Statistics Bar at the bottom of the editor
+        # Statistics Bar at the bottom of everything but on top of RichTextEditor
         stats_bar = QWidget()
         stats_layout = QHBoxLayout(stats_bar)
         stats_layout.setContentsMargins(0, 0, 0, 0)
+        stats_layout.addStretch()
         stats_layout.addWidget(self.word_count_label)
         stats_layout.addWidget(self.char_count_label)
         stats_layout.addWidget(self.read_time_label)
@@ -102,6 +104,8 @@ class ChapterEditor(QWidget):
         self.rich_text_editor.content_changed.connect(self._update_stats_display)
         self.rich_text_editor.selection_changed.connect(self._update_stats_display)
         self.rich_text_editor.popup_lookup_requested.connect(self._handle_popup_lookup_request)
+
+        self.setEnabled(False)
 
     def _update_stats_display(self) -> None:
         """
@@ -182,6 +186,7 @@ class ChapterEditor(QWidget):
         """
         self.rich_text_editor.setEnabled(enabled)
         self.tag_manager.setEnabled(enabled)
+        self.setEnabled(enabled)
 
     def get_html_content(self) -> str:
         """

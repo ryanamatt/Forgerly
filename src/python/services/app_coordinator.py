@@ -42,11 +42,11 @@ class AppCoordinator(QObject):
     to load a lore item's content. Carries the Lore ID, title, category, 
     content as HTML, and a list of associated tags.
     """
-    char_loaded = pyqtSignal(int, str, str, str)
+    char_loaded = pyqtSignal(int, str, str, str, int, str, str, str)
     """
     :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str, str, str): Emitted to load 
-    a character's data into the editor. Carries the Character ID, name, 
-    description (HTML), and bio (HTML).
+    a character's data into the editor. Carries (ID, Name, Description, Status, 
+    Age, DOB, Occupation, Physical).
     """
     graph_data_loaded = pyqtSignal(dict)
     """
@@ -95,6 +95,11 @@ class AppCoordinator(QObject):
     """
     :py:class:`~PyQt6.QtCore.pyqtSignal` (bool): Emitted to indicate the character 
     editor's dirty status.
+    """
+
+    lore_categories_changed = pyqtSignal(list) 
+    """:py:class:`~PyQt6.QtCore.pyqtSignal` Emitted when the list of available 
+    categories is refreshed containing list[str] of all unique category names.
     """
 
     def __init__(self, db_connector: DBConnector) -> None:
@@ -332,17 +337,20 @@ class AppCoordinator(QObject):
         :rtype: bool
         """
         editor: CharacterEditor = self.character_editor
-
         data = editor.get_data()
 
-        name = data['name']
-        description = data['description']
-        status = data['status']
-
-        content_saved = self.character_repo.update_character(char_id, name, description, status)
+        content_saved = self.character_repo.update_character(
+            char_id, 
+            data['name'], data['description'], data['status'],
+            data['age'], data['date_of_birth'], data['occupation_school'], data['physical_description']
+        )
 
         if content_saved:
-            editor.load_character(char_id, name, description, status)
+            editor.load_character(
+                char_id, 
+                data['name'], data['description'], data['status'],
+                data['age'], data['date_of_birth'], data['occupation_school'], data['physical_description']
+            )
             editor.mark_saved()
             return True
         else:
@@ -488,23 +496,19 @@ class AppCoordinator(QObject):
         
         :rtype: None
         """
-        # 1. Update Coordinator State
         self.current_item_id = char_id
         self.current_view = ViewType.CHARACTER_EDITOR
-
-        # 2. Load Lore Details
+        
         char_details = self.character_repo.get_character_details(char_id)
-        
-        if char_details is None:
-            # Emit empty content to disable editor
-            self.char_loaded.emit(char_id, "", "", "")
-            return
-        
-        name = char_details['Name']
-        description = char_details['Description']
-        status = char_details['Status']
-
-        self.char_loaded.emit(char_id, name, description, status)
+        if char_details:
+            self.char_loaded.emit(
+                char_id, 
+                char_details['Name'], char_details['Description'], char_details['Status'],
+                char_details.get('Age', -1),
+                char_details.get('Date_Of_Birth', ""),
+                char_details.get('Occupation_School', ""),
+                char_details.get('Physical_Description', "")
+            )
 
     # --- Updating Parent Lore ID ---
 
@@ -523,7 +527,15 @@ class AppCoordinator(QObject):
         if result:
             pass
         return result
-
+    
+    def refresh_lore_categories(self) -> None:
+        """
+        Fetches unique categories and notifies the Lore Editor.
+        
+        :rtype: None
+        """
+        categories = self.lore_repo.get_unique_categories()
+        self.lore_categories_changed.emit(categories)
     # --- Relationship Graph Methods ---
 
     def load_relationship_graph_data(self) -> None:

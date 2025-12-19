@@ -313,11 +313,16 @@ class MainWindow(QMainWindow):
             # Ensure it is explicitly enabled (if it was disabled by a previous logic path)
             editor.set_enabled(True) 
             logger.debug("Requested data load for Relationship Graph and ensured it is enabled.")
+        elif self.current_view == ViewType.LORE_EDITOR:
+            # Load all Unique Lore Categories
+            self.coordinator.refresh_lore_categories()
         else:
             # Standard editors (Chapter, Lore, Character) should be disabled 
             # until a specific item is selected from the outline.
             editor.set_enabled(False)
             logger.debug(f"{self.current_view} editor disabled (awaiting item selection).")
+
+
 
         self.main_menu_bar.update_view_checkmarks(current_view=self.current_view)
 
@@ -375,11 +380,6 @@ class MainWindow(QMainWindow):
         self.main_splitter.setStretchFactor(1, 1) # Editor side stretches
 
         self.setCentralWidget(self.main_splitter)
-        
-        # 6. Load Initial Data
-        self.chapter_outline_manager.load_outline()
-        self.lore_outline_manager.load_outline()
-        self.character_outline_manager.load_outline()
 
         # Initialize relationship editor's signals
         self.relationship_editor_panel.set_coordinator_signals(self.coordinator)
@@ -435,6 +435,7 @@ class MainWindow(QMainWindow):
         self.coordinator.lore_loaded.connect(self._handle_lore_loaded)
         self.coordinator.char_loaded.connect(self._handle_character_loaded)
         self.coordinator.graph_data_loaded.connect(self.relationship_editor_panel.load_graph)
+        self.coordinator.lore_categories_changed.connect(self.lore_editor_panel.set_available_categories)
         
         self.relationship_outline_manager.relationship_types_updated.connect(self.coordinator.reload_relationship_graph_data)
 
@@ -501,11 +502,6 @@ class MainWindow(QMainWindow):
         
         :rtype: None
         """
-
-        #________
-        # NOTE THIS FUNCTION FAILS TO SAVE TAGS  (TAGS)
-        # TREAT THEM AS VIEWS
-
         item_id = self.coordinator.current_item_id
         view = self.coordinator.current_view
         
@@ -576,8 +572,6 @@ class MainWindow(QMainWindow):
             logger.info(f"Chapter ID {chapter_id} successfully loaded into the editor (tags: {len(tag_names)}).")
 
         except EditorContentError as e:
-            # --- Critical UI/Editor Error ---
-            # Catches failures that happen *within* the editor widget itself (e.g., malformed HTML)
             error_message = f"FATAL UI Error loading Chapter ID {chapter_id}: Editor failed to render content."
             logger.critical(error_message, exc_info=True)
             
@@ -684,7 +678,8 @@ class MainWindow(QMainWindow):
                 # Catch any unexpected low-level GUI error during the update
                 logger.error(f"Critical error during Lore Outline title synchronization for ID {lore_id}.", exc_info=True)
 
-    def _handle_character_loaded(self, char_id: int, name: str, description: str, status: str) -> None:
+    def _handle_character_loaded(self, char_id: int, name: str, description: str, status: str,
+                                 age: int, dob: str, occupation: str, physical: str) -> None:
         """
         Receives loaded character data from coordinator and updates the editor/status.
         
@@ -712,7 +707,7 @@ class MainWindow(QMainWindow):
         # 2. Successful Load & UI Update
         try:
             # Delegate the actual setting of data (including rich-text description) to the panel
-            self.character_editor_panel.load_character(char_id, name, description, status)
+            self.character_editor_panel.load_character(char_id, name, description, status, age, dob, occupation, physical)
             
             self.character_editor_panel.set_enabled(True)
             self.character_editor_panel.mark_saved() # Reset dirtiness after load

@@ -1,7 +1,8 @@
 # src/python/rich_text_editor.py
 
 from PyQt6.QtWidgets import (
-    QToolBar, QStyle, QFontComboBox, QComboBox, QColorDialog, QMessageBox
+    QToolBar, QWidget, QFontComboBox, QComboBox, QColorDialog, QMessageBox,
+    QSizePolicy
 )
 from PyQt6.QtGui import (
     QAction, QTextCharFormat, QFont, QTextCursor, QKeyEvent,
@@ -85,6 +86,11 @@ class RichTextEditor(BasicTextEditor):
 
         try:
             self.toolbar.setIconSize(QSize(16, 16))
+
+            # Add Spacer to Push Everything to right
+            left_spacer = QWidget()
+            left_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+            self.toolbar.addWidget(left_spacer)
 
             # --- Block Style Selector (Paragraph and Headers) ---
             self.style_combo = QComboBox(self.toolbar)
@@ -212,6 +218,11 @@ class RichTextEditor(BasicTextEditor):
             self.clear_format_action = QAction(self.clear_format_icon, "Clear Formatting", self)
             self.clear_format_action.triggered.connect(self._clear_formatting)
             self.toolbar.addAction(self.clear_format_action)
+
+            # Add Spacer to Push Everything to left w/ left spacer makes everything in middle
+            right_spacer = QWidget()
+            right_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+            self.toolbar.addWidget(right_spacer)
 
             logger.debug("Toolbar configuration complete.")
         except Exception as e:

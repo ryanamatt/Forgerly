@@ -49,7 +49,9 @@ class CharacterRepository:
     
     def get_character_details(self, char_id: int) -> CharacterDetailsDict:
         """
-        Retrieves the full details of a character (Name, Description, Status) for a specific ID.
+        Retrieves the full details of a character (Name, Description, Status, Age
+        Date Of Birth, Occupation/School, Physical Description) 
+        for a specific ID.
 
         :param char_id: The character id to get details for.
         :type char_id: int
@@ -58,7 +60,8 @@ class CharacterRepository:
         :rtype: :py:class:`~app.utils.types.CharacterDetailsDict`
         """
         query = """
-        SELECT ID, Name, Description, Status
+        SELECT ID, Name, Description, Status, Age, Date_Of_Birth, 
+            Occupation_School, Physical_Description
         FROM Characters
         WHERE ID = ?;
         """
@@ -141,8 +144,8 @@ class CharacterRepository:
         """
         Inserts a new chapter record into the database with a default empty content field.
 
-        :param title: The title of the new chapter.
-        :type title: str
+        :param name: The title of the new character.
+        :type name: str
         :param description: The description of the character, Defaults to Empty String.
         :type status: str
         :param status: The status of the character (Dead, Alive, etc.), Defaults to Empty String
@@ -171,7 +174,9 @@ class CharacterRepository:
             logger.error(f"Failed to create new character with name: '{name}'.", exc_info=True)
             raise e
     
-    def update_character(self, char_id: int, name: str, description: str = "", status: str = "") -> bool:
+    def update_character(self, char_id: int, name: str, description: str = "", status: str = "",
+                     age: int = -1, date_of_birth: str = "", occupation_school: str = "", 
+                     physical_description: str = "") -> bool:
         """
         Updates the Character details in the database.
 
@@ -183,16 +188,27 @@ class CharacterRepository:
         :type description: str
         :param status: The status of the character. Defaults to Empty String.
         :type status: str
+        :param age: The age. Default -1 if not set.
+        :type age: int
+        :param date_of_birth: The date of birth.
+        :type date_of_birth: str
+        :param occupation_school: The Occuption/Schooling
+        :type occupation_school: str
+        :param physical_description: The physical description
+        :type physical_description: str
 
         :returns: True if successfully saved to dataase, otherwise False.
         :rtype: bool
         """
         query = """
-        UPDATE Characters SET Name = ?, Description = ?, Status = ?
+        UPDATE Characters 
+        SET Name = ?, Description = ?, Status = ?, Age = ?, 
+            Date_Of_Birth = ?, Occupation_School = ?, Physical_Description = ? 
         WHERE ID = ?;
         """
         try:
-            success = self.db._execute_commit(query, (name, description, status, char_id))
+            success = self.db._execute_commit(query, (name, description, status, age, date_of_birth, occupation_school, 
+                                                      physical_description, char_id))
             if success:
                 logger.info(f"Updated character ID: {char_id}. New Name: '{name}'.")
             return success
