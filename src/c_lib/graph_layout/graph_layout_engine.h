@@ -55,6 +55,7 @@ private:
     std::vector<EdgeInput> input_edges_;
     std::map<int, NodeOutput> node_positions_; // Stores current X, Y for calculation
     std::map<int, Point> node_displacements_; // Stores temporary displacement vectors
+    std::map<int, bool> is_fixed_map_;
 
     // Simulation Parameters
     double W_; // Width of the simulation area (e.g., QGraphicsView size)

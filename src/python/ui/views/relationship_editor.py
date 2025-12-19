@@ -12,6 +12,7 @@ from ...services.app_coordinator import AppCoordinator
 from ..widgets.graph_items import CharacterNode, RelationshipEdge
 from ..widgets.relationship_canvas import RelationshipCanvas
 from ..dialogs.relationship_dialog import RelationshipCreationDialog
+from ...utils.nf_core_wrapper import GraphLayoutEngineWrapper
     
 class RelationshipEditor(QWidget):
     """
@@ -84,9 +85,13 @@ class RelationshipEditor(QWidget):
         self.snap_action.setCheckable(True)
         self.snap_action.setChecked(True)
         self.snap_action.triggered.connect(self.view.toggle_snap)
+
+        self.layout_action = QAction("Auto Layout", self)
+        self.layout_action.triggered.connect(self.apply_auto_layout)
         
         self.toolbar.addAction(self.grid_action)
         self.toolbar.addAction(self.snap_action)
+        self.toolbar.addAction(self.layout_action)
 
         # Large window for free screen movement
         self.scene.setSceneRect(-2000, -2000, 4000, 4000)
@@ -435,6 +440,84 @@ class RelationshipEditor(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Graph Load Error", f"An error occurred while loading graph data: {e}")
             self.scene.clear()
+
+    def apply_auto_layout(self) -> None:
+        """
+        Extracts current graph state, computes Fruchterman-Reingold layout 
+        via C++, and updates node positions.
+
+        :rtype: None
+        """
+        if not self.nodes:
+            return
+        
+        # 1. Prepare NodeInput data for C++
+        # Note: 'is_fixed' could be linked to a 'pinned' attribute if you add one
+        nodes_input = []
+        for node_id, node in self.nodes.items():
+            nodes_input.append({
+                'id': node_id,
+                'x_pos': node.x(),
+                'y_pos': node.y(),
+                'is_fixed': False 
+            })
+
+        # 2. Prepare EdgeInput data for C++
+        edges_input = []
+        for edge in self.edges:
+            edges_input.append({
+                'node_a_id': edge.source_node.char_id,
+                'node_b_id': edge.target_node.char_id,
+                'intensity': edge.edge_data.get('intensity', 5.0) * 10 # Scale to 1-100
+            })
+
+        # 3. Initialize and run the C++ Engine
+        # We use the scene size or view size as the bounding box
+        view_rect = self.view.viewport().rect()
+        width = float(view_rect.width())
+        height = float(view_rect.height())
+
+        if width <= 0 or height <= 0:
+            width, height = 400.0, 300.0
+
+        try:
+            # Initialize engine with the actual Scene dimensions
+            engine = GraphLayoutEngineWrapper(nodes_input, edges_input, width, height)
+            
+            # Increase iterations for more stability if they are flying off-screen
+            new_positions = engine.compute_layout(max_iterations=200, initial_temperature=20.0)
+
+            self._update_node_positions(new_positions)
+            
+            # Optional: Auto-zoom to fit the new layout
+            self.view.fitInView(self.scene.itemsBoundingRect().adjusted(-50, -50, 50, 50), 
+                                Qt.AspectRatioMode.KeepAspectRatio)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Layout Error", f"C++ Engine failed: {e}")
+        
+    def _update_node_positions(self, new_positions: list[dict]) -> None:
+        """
+        Helper to move nodes to their calculated coordinates.
+        
+        :param new_positions: The new updated positions.
+        :type new_positions: list[dict]
+
+        :rtype: None
+        """
+        for pos_data in new_positions:
+            node_id = pos_data['id']
+            if node_id in self.nodes:
+                node = self.nodes[node_id]
+                # setPos triggers ItemPositionHasChanged in CharacterNode, 
+                # which automatically updates attached edges.
+                node.setPos(pos_data['x_pos'], pos_data['y_pos'])
+                
+                # Manually trigger the move signal to persist the auto-layout to DB
+                node.signals.node_moved.emit(
+                    node_id, pos_data['x_pos'], pos_data['y_pos'],
+                    node.node_color, node.node_shape, node.is_hidden
+                )
 
     def set_enabled(self, enabled: bool) -> None:
         """

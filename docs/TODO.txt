@@ -1,12 +1,9 @@
-1. Custom Icons
-
-
 1. Implement Locations Somehow
 2. More Customization Options
 3. Add More Editing Boxes for CharacterEditor
 4. Add better exporting to more types (DOCX, rtf, etc.), and page size 
 5. Version Control (Maybe Use C/C++ for speed)
-6. Fix/Update Relationships Graph
+6. Update Relationships Graph
 
 Neat Things to Add in Future but not needed for release
 Add SpellChecker
