@@ -283,11 +283,20 @@ class RelationshipEdge(QGraphicsLineItem):
 
         self.setLine(start_point.x(), start_point.y(), end_point.x(), end_point.y())
 
+        # --- Label Orientation ---
         mid_point = (start_point + end_point) / 2
-
         label_rect = self.label_item.boundingRect()
+
+        # Calculate angle and handle 'upside down' prevention
+        angle = self._calculate_angle(start_point, end_point)
+        
+        # Apply rotation first
+        self.label_item.setRotation(angle)
+        
+        # Re-center the label after rotation
+        # We use the label's local center to ensure it rotates around its own middle
+        self.label_item.setTransformOriginPoint(label_rect.width() / 2, label_rect.height() / 2)
         self.label_item.setPos(mid_point.x() - label_rect.width() / 2, mid_point.y() - label_rect.height() / 2)
-        self.label_item.setRotation(self._calculate_angle(start_point, end_point))
 
     def paint(self, painter, option, widget) -> None:
         """
@@ -303,7 +312,8 @@ class RelationshipEdge(QGraphicsLineItem):
 
     def _calculate_angle(self, p1: QPointF, p2: QPointF) -> float:
         """
-        Calculates the angle of the line for rotating the label.
+        Calculates the angle of the line for rotating the label. Flips the
+        angle by 180 degrees if the text would otherwise be upside down.
         
         :param p1: The first point (:py:class:`~PyQt6.QtCore.QPointF`).
         :type p1: :py:class:`~PyQt6.QtCore.QPointF`
@@ -316,8 +326,10 @@ class RelationshipEdge(QGraphicsLineItem):
         dx = p2.x() - p1.x()
         dy = p2.y() - p1.y()
         # Angle in radians so convert to degrees
-        angle = math.atan2(-dy, dx)
-        return math.degrees(angle)
+        angle = math.degrees(math.atan2(-dy, dx))
+        if angle > 90 or angle < -90:
+            angle += 180
+        return angle
     
 class RelationshipCreationDialog(QDialog):
     """
