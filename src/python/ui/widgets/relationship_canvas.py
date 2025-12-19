@@ -1,8 +1,8 @@
 # src/python/ui/widgets/relationship_canvas.py
 
 from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsItem
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QWheelEvent, QPainter
+from PyQt6.QtCore import Qt, pyqtSignal, QLineF
+from PyQt6.QtGui import QWheelEvent, QPainter, QMouseEvent
 
 class RelationshipCanvas(QGraphicsView):
     """
@@ -43,3 +43,18 @@ class RelationshipCanvas(QGraphicsView):
             self.scale(zoom_in_factor, zoom_in_factor)
         else:
             self.scale(zoom_out_factor, zoom_out_factor)
+
+    def mouseMoveEvent(self, event) -> None:
+        """
+        Docstring for mouseMoveEvent
+        
+        :param self: Description
+        :param event: Description
+        """
+        editor = self.parent()
+        if hasattr(editor, 'temp_line') and editor.temp_line and editor.selected_node_a:
+            start_pos = editor.selected_node_a.scenePos()
+            end_pos = self.mapToScene(event.pos())
+            editor.temp_line.setLine(QLineF(start_pos, end_pos))
+
+        super().mouseMoveEvent(event)

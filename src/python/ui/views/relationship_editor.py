@@ -518,6 +518,15 @@ class RelationshipEditor(QWidget):
         
         :rtype: None
         """
+        # Reset the cursor to the default arrow
+        self.view.unsetCursor()
+        self.view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+
+        if hasattr(self, 'temp_line') and self.temp_line:
+            self.scene.removeItem(self.temp_line)
+            self.temp_line = None
+            self.view.setMouseTracking(False)
+
         if self.selected_node_a:
             self.selected_node_a.set_selection_highlight(False)
             self.selected_node_a = None
@@ -544,7 +553,17 @@ class RelationshipEditor(QWidget):
             self.clear_selection()
             self.selected_node_a = node
             self.selected_node_a.set_selection_highlight(True)
-            QMessageBox.information(self, "Select Start", f"**{node.name}** selected as Relationship Start. Click a second character to connect.")
+
+            # Can't drag characters when trying to make a connection
+            self.view.setDragMode(QGraphicsView.DragMode.NoDrag)
+            self.view.setCursor(Qt.CursorShape.CrossCursor)
+
+            # Create a temporary line that follows the mouse
+            start_pos = node.scenePos()
+            self.temp_line = QGraphicsLineItem(QLineF(start_pos, start_pos))
+            self.temp_line.setPen(QPen(Qt.GlobalColor.gray, 1, Qt.PenStyle.DashLine))
+            self.scene.addItem(self.temp_line)
+            self.view.setMouseTracking(True)
             
         elif self.selected_node_a is node:
             # Clicking the same node clears the selection
