@@ -43,6 +43,12 @@ class RelationshipEditor(QWidget):
     (Source ID, Target ID, Type ID, Description, Intensity).
     """
 
+    relationship_deleted = pyqtSignal(int)
+    """:py:class:`~PyQt6.QtCore.pyqtSignal` (int):
+    Emitted when a relationshipo is deleted, carrying
+    (Relationship_ID)
+    """
+
     request_load_rel_types = pyqtSignal()
     """
     :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted to request the list of available relationship types.
@@ -256,6 +262,56 @@ class RelationshipEditor(QWidget):
                 intensity
             )
             QMessageBox.information(self, "Success", f"Relationship creation request sent for {node_a.name} and {node_b.name}.")
+
+    def edit_relationship(self, edge: RelationshipEdge) -> None:
+        """
+        Opens the dialog with existing data to update the relationship.
+        
+        :param edge: The RelationshipEdge to edit.
+        :type edge: RelationshipEdge
+
+        :type: None
+        """
+        # Extract existing data from the edge object
+        node_a = edge.source_node
+        node_b = edge.target_node
+        
+        dialog = RelationshipCreationDialog(
+            relationship_types=self.available_rel_types,
+            char_a_name=node_a.name,
+            char_b_name=node_b.name,
+            parent=self
+        )
+        
+        # Pre-fill logic would go here depending on RelationshipCreationDialog implementation
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            type_id, description, intensity = dialog.get_relationship_data()
+            # Emit the same signal; your backend should handle 'UPSERT' 
+            # (update if exists) based on the Unique constraint.
+            self.relationship_created.emit(
+                node_a.char_id,
+                node_b.char_id,
+                type_id,
+                description,
+                intensity
+            )
+
+    def delete_relationship(self, edge: RelationshipEdge) -> None:
+        """
+        Prompts for confirmation and requests deletion via the coordinator.
+        
+        :param edge: The relationship edge to delete.
+        :type edge: RelationshipEdge
+
+        :rtype: Noe
+        """
+        msg = f"Are you sure you want to delete the relationship between {edge.source_node.name} and {edge.target_node.name}?"
+        res = QMessageBox.question(self, "Delete Relationship", msg, 
+                                   QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        
+        if res == QMessageBox.StandardButton.Yes:
+            self.relationship_deleted.emit(edge.edge_data['id'])
 
     def connect_selected_characters(self, node_a: 'CharacterNode', node_b: 'CharacterNode') -> None:
         """

@@ -1,9 +1,9 @@
 # src\python\ui\widgets/graph_items.py
 
 from PyQt6.QtWidgets import (
-    QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem, 
+    QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem, QMenu
 )
-from PyQt6.QtCore import Qt, QPointF, pyqtSignal, QRectF, QObject, QLineF
+from PyQt6.QtCore import Qt, QPointF, pyqtSignal, QRectF, QObject, QLineF, QEvent
 from PyQt6.QtGui import QColor, QPen, QBrush, QFont
 import math
 from typing import Any
@@ -222,6 +222,9 @@ class RelationshipEdge(QGraphicsLineItem):
         self.source_node = nodes[edge_data['source']]
         self.target_node = nodes[edge_data['target']]
 
+        # Enable selection so the edge can be right-clicked easily
+        self.setFlag(QGraphicsLineItem.GraphicsItemFlag.ItemIsSelectable, True)
+
         # Add a label in the middle of the edge
         self.label_item = QGraphicsTextItem(self.edge_data.get('label', ''), self)
 
@@ -337,3 +340,29 @@ class RelationshipEdge(QGraphicsLineItem):
         if angle > 90 or angle < -90:
             angle += 180
         return angle
+    
+    # --- Event Handling ---
+
+    def contextMenuEvent(self, event: QEvent) -> None:
+        """
+        Docstring for contextMenuEvent
+        
+        :param event: The event.
+        :type event: :py:class:`~PyQt6.QtCore.QEvent`
+
+        :rtype: None
+        """
+        menu = QMenu()
+        edit_action = menu.addAction("Edit Relationship")
+        delete_action = menu.addAction("Delete Relationship")
+        
+        # Map the menu to the editor through the view
+        view = self.scene().views()[0]
+        editor = view.parent()
+        
+        action = menu.exec(event.screenPos())
+        
+        if action == edit_action:
+            editor.edit_relationship(self)
+        elif action == delete_action:
+            editor.delete_relationship(self)
