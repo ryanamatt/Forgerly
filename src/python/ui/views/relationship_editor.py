@@ -4,10 +4,10 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QGraphicsView, QGraphicsScene, 
     QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem, 
     QMessageBox, QFrame, QDialog, QFormLayout, QComboBox, QLineEdit,
-    QSpinBox, QDialogButtonBox, QLabel
+    QSpinBox, QDialogButtonBox, QLabel, QToolBar
 )
 from PyQt6.QtCore import Qt, QPointF, pyqtSignal, QRectF, QObject, QLineF
-from PyQt6.QtGui import QColor, QPen, QBrush, QFont
+from PyQt6.QtGui import QColor, QPen, QBrush, QFont, QAction
 import math
 from typing import Any
 from ...services.app_coordinator import AppCoordinator
@@ -101,7 +101,7 @@ class CharacterNode(QGraphicsEllipseItem):
         self.setBrush(brush)
         self.setPen(pen)
 
-    def _itemChange(self, change: QGraphicsEllipseItem.GraphicsItemChange, value: Any) -> Any:
+    def itemChange(self, change: QGraphicsEllipseItem.GraphicsItemChange, value: Any) -> Any:
         """
         Handles changes to the item's state, specifically for movement.
         
@@ -117,13 +117,23 @@ class CharacterNode(QGraphicsEllipseItem):
         :rtype: :py:obj:`Any`
         """
         """Called when item changes (likes position)"""
-        if change == QGraphicsEllipseItem.GraphicsItemChange.ItemPositionHasChanged:
-            # When position changes, update connected edges
+        if change == self.GraphicsItemChange.ItemPositionChange and self.scene():
+            # Access the canvas settings through the scene's view
+            view = self.scene().views()[0]
+            if isinstance(view, RelationshipCanvas) and view.snap_to_grid:
+                grid = view.grid_size
+                new_pos = value.toPoint()
+                x = round(new_pos.x() / grid) * grid
+                y = round(new_pos.y() / grid) * grid
+                return QPointF(x, y)
+        
+
+        if change == self.GraphicsItemChange.ItemPositionHasChanged:
             if self.scene():
                 for item in self.scene().items():
                     if isinstance(item, RelationshipEdge):
-                        # Use a direct update call to refresh the line
                         item.update_position()
+        return super().itemChange(change, value)
 
     def mouseReleaseEvent(self, event) -> None:
         """
@@ -456,11 +466,27 @@ class RelationshipEditor(QWidget):
         self.view.setFrameShape(QFrame.Shape.NoFrame)
         self.view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
 
+        self.toolbar = QToolBar()
+        self.grid_action = QAction("Show Grid", self)
+        self.grid_action.setCheckable(True)
+        self.grid_action.setChecked(True)
+        self.grid_action.triggered.connect(self.view.toggle_grid)
+        
+        self.snap_action = QAction("Snap to Grid", self)
+        self.snap_action.setCheckable(True)
+        self.snap_action.setChecked(True)
+        self.snap_action.triggered.connect(self.view.toggle_snap)
+        
+        self.toolbar.addAction(self.grid_action)
+        self.toolbar.addAction(self.snap_action)
+
         # Large window for free screen movement
         self.scene.setSceneRect(-2000, -2000, 4000, 4000)
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
+
+        main_layout.addWidget(self.toolbar)
         main_layout.addWidget(self.view)
 
         # Storage for current graph items
