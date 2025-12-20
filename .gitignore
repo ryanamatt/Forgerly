@@ -5,6 +5,7 @@ __pycache__/
 documentation/_build/
 projects/
 logs/
+config/user_settings.json
 src/python/resources_rc.py
 src/python/resources_rc.pyclear
 *.o
