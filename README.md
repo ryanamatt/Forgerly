@@ -1,73 +1,98 @@
-# ✍️ Narrative Forge
+# **✍️ Narrative Forge**
 
 Narrative Forge is a comprehensive desktop application designed to assist **authors, storytellers, and worldbuilders** in organizing and developing their fictional universes. Built using **Python** and **PyQt6**, it provides dedicated tools for managing chapters, characters, lore, and the relationships between them.
 
----
+![Screenshot of Narrative Forge Main Interface](docs/screenshots/character_editor.png)
 
-## 🛠️ Requirements
+## **🛠️ Requirements**
 
-* **Python:** 3.14.0
-* **GUI Framework:** PyQt6 6.10.0
+* **Python:** 3.14.0  
+* **GUI Framework:** PyQt6 6.10.0  
+* **Build Tools:** C++ compiler (for core library optimization)
 
----
-
-## ✨ Key Features
+## **✨ Key Features**
 
 The application provides specialized views and editors to manage all aspects of your story:
 
-* **Chapter Management:** Outline and edit chapters.
-  * **Chapter Statistics:** The **Chapter Editor** now displays statistics on the current chapter being edited, and a new dialog is available to show statistics for the entire story.
-* **Character Profiles:** Create and manage detailed character profiles.
-* **Lore/Worldbuilding Editor:** Document and organize your world's history, locations, and other lore elements.
-* **Relationship Mapping:** Define and track the connections and relationships between characters and lore.
-* **Tagging System:** Apply tags to various entities for easy organization and filtering.
-* **Inter-Entry Lookup:** While editing a chapter, the user can highlight text and press **Ctrl+Shift+L** to open a dialog showing the associated character or lore entry with its description.
-* **Data Export:** Export your story data into a shareable format (e.g., Markdown or text).
-* **Theming:** Supports custom themes, including **Dark**, **Light**, and **Green** styles.
+* **Chapter Management:** Outline and edit chapters.  
+  * **Chapter Statistics:** The **Chapter Editor** displays real-time statistics for the active chapter, with an additional global statistics dialog for the entire story.
 
-## 💾 Project Structure
+![Screenshot of Chapter Editor with Statistics Panel](docs/screenshots/project_statistics.png)
 
-Narrative Forge uses a central projects folder to manage all your creative work. Each project resides in its own sub-directory and contains the following structure:
+* **Character Profiles:** Create and manage detailed character profiles and biographies.  
+* **Lore/Worldbuilding Editor:** Document and organize your world's history, locations, and other lore elements.  
+* **Relationship Graph:** Visualize character connections through a dynamic node graph.  
+  * **Custom Relationships:** Define custom RelationshipTypes and adjust relationship intensity.  
+  * **High-Performance Layout:** Utilizes a custom **C++ library** implementing the **Fruchterman-Reingold** force-directed algorithm for the "Auto Layout" feature.  
+  * **Precision Tools:** Toggleable background grid and "Snap to Grid" functionality for manual node organization.
 
-    [ProjectName]/
-    ├── [ProjectName].db               # SQLite Database for all project data
-    ├── config/
-    |   └── Project_Settings.nfp       # Project-specific configuration (JSON file with fancy extension)
-    ├── assets/                        # Directory for project-related assets (e.g., images)
-    └── exports/   
+![Screenshot of Relationship Graph with Node Layout and Grid enabled](docs/screenshots/relationship_graph.png)
 
-## 🗄️Database
+* **Tagging System:** Apply tags to various entities for easy organization and filtering.  
+* **Inter-Entry Lookup:** While editing a chapter, highlight text and press **Ctrl+Shift+L** to instantly view associated character or lore entries.  
+* **Data Export:** Export your story data into shareable formats like Markdown or plain text.
 
-This application uses an SQLite Database to manager a project.
+## **💾 Project Structure**
 
-See Schema in docs/EntityRelationshipDiagram or Click [Datbase Link](https://dbdiagram.io/d/NarrativeForge-692603ec7d9416ddff179d8c)
+Narrative Forge follows a modular architecture separating the GUI, business logic, and high-performance core:
 
-## Documentation
+narrative-forge/  
+├── src/  
+│   ├── c\_lib/          \# C++ Core (Graph layout & Text stats engines)  
+│   ├── python/  
+│   │   ├── repository/ \# Data access layer (SQLite)  
+│   │   ├── services/   \# Business logic & Exporters  
+│   │   ├── ui/         \# PyQt6 Windows and Dialogs  
+│   │   └── widgets/    \# Custom UI components (Graph, Text Editors)  
+│   └── sql/            \# Database schema migrations  
+├── tools/              \# Developer utility scripts  
+├── styles/             \# QSS Theme files  
+└── docs/               \# Technical documentation & ERDs
 
-To view documentation of code.
+### **Individual Project Folders**
 
-### Build Documentation
+Each user project is self-contained:
 
-Will build documentation using Sphinx.
+\[ProjectName\]/  
+├── \[ProjectName\].db         \# SQLite Database  
+├── config/                  \# Project-specific settings (.nfp)  
+├── assets/                  \# Images and local media  
+└── exports/                 \# Generated documents
+
+## **🛠️ Developer Tools**
+
+The tools/ directory contains several utilities to assist with development and maintenance:
+
+* **detect\_cycles.py**: A static analysis tool that parses the Python AST to find potential circular imports within the codebase.  
+* **db\_inspector.py**: A command-line utility to inspect project databases. It prints table schemas and summaries of stored data (Chapters, Characters, Lore, etc.) directly to the terminal.  
+* **data\_faker.py**: Populates a test database with mock characters and lore for UI testing.  
+* **report-code-stats.ps1**: Generates a report on codebase size and complexity.
+
+## **🧪 Testing**
+
+The project uses pytest for unit and integration testing of the repositories and database connectors.
+
+To run the tests:
 
 ```Bash
-python tools/build_docs.py
+python -m pytest
 ```
 
-## 🚀 Run
+## **🚀 Run**
 
-Follow these steps to set up and run the application:
+### **Installation**
 
-### Installation
-
-1.**Clone the Repository** (if not already done).
-2.**Install Dependencies:**
+1. **Clone the Repository.**  
+2. **Install Dependencies:**
 
 ```Bash
-pip install -r requirements.txt
+pip install \-r requirements.txt
 ```
 
-### Execution
+3. Build C++ Core (Required for Auto-Layout):  
+   Compile the source in src/c\_lib/ into nf\_core\_lib.dll or .so.
+
+### **Execution**
 
 Run the application directly from the main module:
 
@@ -75,10 +100,20 @@ Run the application directly from the main module:
 python -m src.python.main
 ```
 
-### View Documentation
+### **Documentation**
 
-Will open documentation in web browser.
+**Build Documentation** (Sphinx):
+
+```Bash
+python tools/build_docs.py
+```
+
+**View Documentation**:
 
 ```Bash
 python tools/view_docs.py
 ```
+
+## **📄 License**
+
+This project is licensed under the MIT License \- see the [LICENSE](LICENSE) file for details.
