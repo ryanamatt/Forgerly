@@ -154,7 +154,7 @@ void GraphLayoutEngine::apply_attractive_forces() {
         double delta_y = u_pos.y_pos - v_pos.y_pos;
         double dist = distance(u_pos.x_pos, u_pos.y_pos, v_pos.x_pos, v_pos.y_pos);
 
-        double force = force_attr(dist) * (edge.intensity / 100.0);
+        double force = force_attr(dist) * (edge.intensity / 10.0); // Ensures Repulsion is Stronger than Attraction
         double dx = (delta_x / dist) * force * C_ATTRACTION;
         double dy = (delta_y / dist) * force * C_ATTRACTION;
 

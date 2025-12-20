@@ -240,7 +240,6 @@ class RelationshipEdge(QGraphicsLineItem):
         """
         color = QColor(self.edge_data['color'])
         thickness = max(1, self.edge_data['intensity']) # Value between 1-10
-        thickness = 0.25 * thickness # Multiple by Scaling Factor
         pen = QPen(color, thickness)
 
         # Line Style (Apply Solid, Dash, or Dot based on Data)

@@ -5,9 +5,10 @@ from PyQt6.QtWidgets import (
     QFrame, QDialog, QToolBar
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QLineF
-from PyQt6.QtGui import QPen, QAction
-import math
+from PyQt6.QtGui import QPen, QAction, QIcon
 from typing import Any
+
+from ...resources_rc import *
 from ...services.app_coordinator import AppCoordinator
 from ..widgets.graph_items import CharacterNode, RelationshipEdge
 from ..widgets.relationship_canvas import RelationshipCanvas
@@ -77,16 +78,19 @@ class RelationshipEditor(QWidget):
 
         self.toolbar = QToolBar()
         self.grid_action = QAction("Show Grid", self)
+        self.grid_action.setIcon(QIcon(":icons/grid.svg"))
         self.grid_action.setCheckable(True)
         self.grid_action.setChecked(True)
         self.grid_action.triggered.connect(self.view.toggle_grid)
         
         self.snap_action = QAction("Snap to Grid", self)
+        self.snap_action.setIcon(QIcon(":icons/snap-grid.svg"))
         self.snap_action.setCheckable(True)
         self.snap_action.setChecked(True)
         self.snap_action.triggered.connect(self.view.toggle_snap)
 
         self.layout_action = QAction("Auto Layout", self)
+        self.layout_action.setIcon(QIcon(":icons/auto-layout.svg"))
         self.layout_action.triggered.connect(self.apply_auto_layout)
         
         self.toolbar.addAction(self.grid_action)
@@ -468,7 +472,7 @@ class RelationshipEditor(QWidget):
             edges_input.append({
                 'node_a_id': edge.source_node.char_id,
                 'node_b_id': edge.target_node.char_id,
-                'intensity': edge.edge_data.get('intensity', 5.0) * 10 # Scale to 1-100
+                'intensity': edge.edge_data.get('intensity', 5.0)
             })
 
         # 3. Initialize and run the C++ Engine

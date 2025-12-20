@@ -1,5 +1,6 @@
-<!DOCTYPE RCC><RCC version="1.0">
-<qresource>
+<!DOCTYPE RCC>
+<RCC version="1.0">
+  <qresource>
     <file>icons/align-center.svg</file>
     <file>icons/align-left.svg</file>
     <file>icons/align-right.svg</file>
@@ -16,12 +17,10 @@
     <file>icons/list-ordered.svg</file>
     <file>icons/list-unordered.svg</file>
     <file>icons/underline.svg</file>
-
     <file>icons/chapter.svg</file>
     <file>icons/lore-entry.svg</file>
     <file>icons/character.svg</file>
     <file>icons/node-tree.svg</file>
-
     <file>icons/project-open.svg</file>
     <file>icons/project-add.svg</file>
     <file>icons/save.svg</file>
@@ -30,9 +29,10 @@
     <file>icons/exit.svg</file>
     <file>icons/information.svg</file>
     <file>icons/line-chart-line.svg</file>
-
-
     <file>icons/search.svg</file>
     <file>icons/delete.svg</file>
-</qresource>
+    <file>icons/auto-layout.svg</file>
+    <file>icons/snap-grid.svg</file>
+    <file>icons/grid.svg</file>
+  </qresource>
 </RCC>
