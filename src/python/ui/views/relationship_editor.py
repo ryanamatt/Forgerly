@@ -468,7 +468,7 @@ class RelationshipEditor(QWidget):
             edges_input.append({
                 'node_a_id': edge.source_node.char_id,
                 'node_b_id': edge.target_node.char_id,
-                'intensity': edge.edge_data.get('intensity', 5.0) * 10 # Scale to 1-100
+                'intensity': edge.edge_data.get('intensity', 5.0)
             })
 
         # 3. Initialize and run the C++ Engine
