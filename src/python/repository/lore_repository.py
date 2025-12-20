@@ -169,6 +169,21 @@ class LoreRepository:
         except DatabaseError as e:
             logger.error("Failed to count all Lore Entries.", exc_info=True)
             raise e
+        
+    def get_unique_categories(self) -> list[str]:
+        """
+        Retrieves all the unique categories from the database.
+        
+        :return: A list of the string names of the categories.
+        :rtype: list[str]
+        """
+        query = "SELECT DISTINCT Category FROM Lore_Entries WHERE Category IS NOT NULL AND Category != '' ORDER BY Category ASC;"
+        try:
+            results = self.db._execute_query(query, fetch_all=True)
+            return [row['Category'] for row in results] if results else []
+        except DatabaseError as e:
+            logger.error("Failed to retrieve unique lore categories.", exc_info=True)
+            raise e
 
     def update_lore_entry(self, lore_id: int, title: str, content: str = "", category: str = "") -> bool:
         """

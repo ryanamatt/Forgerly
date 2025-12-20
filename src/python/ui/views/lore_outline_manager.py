@@ -31,6 +31,12 @@ class LoreOutlineManager(QWidget):
     selected, carrying the Lore ID.
     """
 
+    new_lore_created = pyqtSignal()
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when a lore item is 
+    created. Connects to MainWindow to tell it to switch the view.
+    """
+
     pre_lore_change = pyqtSignal()
     """
     :py:class:`~PyQt6.QtCore.pyqtSignal` (): Emitted before a new lore entry is 
@@ -349,6 +355,7 @@ class LoreOutlineManager(QWidget):
             new_id = self.lore_repo.create_lore_entry(title=title)
             
             if new_id:
+                self.new_lore_created.emit()
                 self.load_outline()
                 new_item = self.find_lore_item_by_id(new_id)
                 if new_item:

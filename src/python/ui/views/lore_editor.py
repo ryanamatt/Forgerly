@@ -53,7 +53,6 @@ class LoreEditor(QWidget):
         self.title_input.setPlaceholderText("Enter Lore Entry Title (e.g., 'The Sunken City of K'tal')")
 
         self.category_combo = QComboBox()
-        self.category_combo.addItems(["Magic System", "Creature", "Event", "Concept"])
         self.category_combo.setEditable(True) 
 
         # --- Layout Setup ---
@@ -88,7 +87,7 @@ class LoreEditor(QWidget):
         content_splitter.addWidget(metadata_container)
         content_splitter.addWidget(self.basic_text_editor)
         
-        content_splitter.setSizes([300, 700]) 
+        content_splitter.setSizes([200, 800]) 
         main_layout.addWidget(content_splitter)
         
         # --- Connections: All changes trigger a dirtiness state check ---
@@ -102,10 +101,6 @@ class LoreEditor(QWidget):
         
         self.set_enabled(False)
         self.mark_saved()
-        
-    # =========================================================================
-    # PUBLIC API: Used by MainWindow
-    # =========================================================================
 
     def load_lore(self, lore_id: int, title: str, category: str, content: str, tag_names: list[str]) -> None:
         """
@@ -148,6 +143,22 @@ class LoreEditor(QWidget):
         self._initial_category = category
         self.mark_saved()
         self.set_enabled(True)
+
+    def set_available_categories(self, categories: list[str]) -> None:
+        """
+        Updates the category combo box with existing categories from the DB.
+
+        :param categories: The list of unique categories.
+        :type categories: list[str]
+
+        :rtype: None
+        """
+        current_text = self.category_combo.currentText()
+        self.category_combo.blockSignals(True)
+        self.category_combo.clear()
+        self.category_combo.addItems(categories)
+        self.category_combo.setCurrentText(current_text)
+        self.category_combo.blockSignals(False)
 
     def get_data(self) -> dict[str, Any]:
         """

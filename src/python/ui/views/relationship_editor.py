@@ -480,12 +480,14 @@ class RelationshipEditor(QWidget):
         if width <= 0 or height <= 0:
             width, height = 400.0, 300.0
 
+        init_temp = max(width, height) / 10.0
+
         try:
             # Initialize engine with the actual Scene dimensions
             engine = GraphLayoutEngineWrapper(nodes_input, edges_input, width, height)
             
             # Increase iterations for more stability if they are flying off-screen
-            new_positions = engine.compute_layout(max_iterations=200, initial_temperature=20.0)
+            new_positions = engine.compute_layout(max_iterations=200, initial_temperature=init_temp)
 
             self._update_node_positions(new_positions)
             
