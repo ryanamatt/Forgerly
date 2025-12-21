@@ -1,6 +1,0 @@
-[ProjectName]/
-├── [ProjectName].db
-├── config/
-|   └── Project_Settings.nfp -- (Just a JSON File with fancy extension)
-├── assets/
-├── exports/
