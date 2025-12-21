@@ -42,12 +42,13 @@ narrative-forge/
 │   ├── python/  
 │   │   ├── repository/ \# Data access layer (SQLite)  
 │   │   ├── services/   \# Business logic & Exporters  
-│   │   ├── ui/         \# PyQt6 Windows and Dialogs  
-│   │   └── widgets/    \# Custom UI components (Graph, Text Editors)  
+│   │   ├── ui/         \# PyQt6 Windows, Widgets, Menu and Dialogs  
+│   │   └── utils/      \# Custom UI components (Graph, Text Editors)  
 │   └── sql/            \# Database schema migrations  
 ├── tools/              \# Developer utility scripts  
 ├── styles/             \# QSS Theme files  
-└── docs/               \# Technical documentation & ERDs
+└── docs/               \# Technical documentation & ERDs  
+└── tools/              \# Helpful Development Tools
 
 ### **Individual Project Folders**
 
@@ -59,15 +60,6 @@ Each user project is self-contained:
 ├── assets/                  \# Images and local media  
 └── exports/                 \# Generated documents
 
-## **🛠️ Developer Tools**
-
-The tools/ directory contains several utilities to assist with development and maintenance:
-
-* **detect\_cycles.py**: A static analysis tool that parses the Python AST to find potential circular imports within the codebase.  
-* **db\_inspector.py**: A command-line utility to inspect project databases. It prints table schemas and summaries of stored data (Chapters, Characters, Lore, etc.) directly to the terminal.  
-* **data\_faker.py**: Populates a test database with mock characters and lore for UI testing.  
-* **report-code-stats.ps1**: Generates a report on codebase size and complexity.
-
 ## **🧪 Testing**
 
 The project uses pytest for unit and integration testing of the repositories and database connectors.
@@ -76,6 +68,40 @@ To run the tests:
 
 ```Bash
 python -m pytest
+```
+
+### **Documentation**
+
+Technical specifications and project guides are maintained in the docs/ directory using a "Documentation-as-Code" approach.
+
+#### Core Technical Specs
+
+- [Database Schema](docs/SCHEMA.md): Detailed breakdown of SQLite tables, constraints, and performance indexes.
+
+- [C++ Bridge API](docs/CPP_BRIDGE.md): Reference for the cffi layer, memory management, and C-API exports.
+
+- [Project Standards](docs/NarrativeForgeProjectFolder.md): Specifications for the .nforge portable project directory.
+
+#### Algorithms & Logic
+
+- [Fruchterman-Reingold](docs/fruchterman-reingold.md): Deep-dive into the modified force-directed layout engine used for relationship graphs.
+
+#### Project Management
+
+- [Roadmap & TODO](docs/TODO.md): Tracking upcoming features like the C++ Delta Engine and Entity Discovery.
+
+- [Known Bugs](docs/BUGS.md): Active issue tracking and reproduction steps.
+
+**Build Documentation** (Sphinx):
+
+```Bash
+python tools/build_docs.py
+```
+
+**View Documentation**:
+
+```Bash
+python tools/view_docs.py
 ```
 
 ## **🚀 Run**
@@ -98,20 +124,6 @@ Run the application directly from the main module:
 
 ```Bash
 python -m src.python.main
-```
-
-### **Documentation**
-
-**Build Documentation** (Sphinx):
-
-```Bash
-python tools/build_docs.py
-```
-
-**View Documentation**:
-
-```Bash
-python tools/view_docs.py
 ```
 
 ## **📄 License**
