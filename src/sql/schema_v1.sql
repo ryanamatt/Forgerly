@@ -55,6 +55,17 @@ CREATE TABLE IF NOT EXISTS Locations (
     FOREIGN KEY (Parent_Location_ID) REFERENCES Locations(ID) ON DELETE SET NULL
 );
 
+-- NOTES: General Purpose research and drafting space
+CREATE TABLE IF NOT EXISTS Notes (
+    ID                      INTEGER PRIMARY KEY,
+    Title                   TEXT NOT NULL,
+    Content                 TEXT,               -- Rich (HTML) Content
+    Parent_Note_ID          INTEGER,            -- For Nested organization
+    Sort_Order              INTEGER DEFAULT 0,
+
+    FOREIGN KEY (Parent_Note_ID) REFERENCES Notes(ID) ON DELETE CASCADE
+);
+
 -- -----------------------------------------------------------------------------
 -- 2. Auxiliary and Join Tables
 -- -----------------------------------------------------------------------------
@@ -85,14 +96,14 @@ CREATE TABLE IF NOT EXISTS Lore_Tags (
     FOREIGN KEY (Tag_ID) REFERENCES Tags(ID) ON DELETE CASCADE
 );
 
--- LORE_LOCATIONS: Many-to-many relationship linking lore entries to their relevant locations.
-CREATE TABLE IF NOT EXISTS Lore_Locations (
-    Lore_ID                 INTEGER NOT NULL,
-    Location_ID             INTEGER NOT NULL,
+-- NOTE_TAGS: Many-to-many relationship between Notes and Tags.
+CREATE TABLE IF NOT EXISTS Note_Tags (
+    Note_ID                 INTEGER NOT NULL,
+    Tag_ID                  INTEGER NOT NULL,
 
-    PRIMARY KEY (Lore_ID, Location_ID),
-    FOREIGN KEY (Lore_ID) REFERENCES Lore_Entries(ID) ON DELETE CASCADE,
-    FOREIGN KEY (Location_ID) REFERENCES Locations(ID) ON DELETE CASCADE
+    PRIMARY KEY (Note_ID, Tag_ID),
+    FOREIGN KEY (Note_ID) REFERENCES Notes(ID) ON DELETE CASCADE,
+    FOREIGN KEY (Tag_ID) REFERENCES Tags(ID) ON DELETE CASCADE
 );
 
 -- CHAPTER_CHARACTERS: Many-to-many relationship tracking character appearances in chapters.
@@ -134,6 +145,16 @@ CREATE TABLE IF NOT EXISTS Chapter_Locations (
 
     PRIMARY KEY (Chapter_ID, Location_ID),
     FOREIGN KEY (Chapter_ID) REFERENCES Chapters(ID) ON DELETE CASCADE,
+    FOREIGN KEY (Location_ID) REFERENCES Locations(ID) ON DELETE CASCADE
+);
+
+-- LORE_LOCATIONS: Many-to-many relationship linking lore entries to their relevant locations.
+CREATE TABLE IF NOT EXISTS Lore_Locations (
+    Lore_ID                 INTEGER NOT NULL,
+    Location_ID             INTEGER NOT NULL,
+
+    PRIMARY KEY (Lore_ID, Location_ID),
+    FOREIGN KEY (Lore_ID) REFERENCES Lore_Entries(ID) ON DELETE CASCADE,
     FOREIGN KEY (Location_ID) REFERENCES Locations(ID) ON DELETE CASCADE
 );
 
@@ -214,12 +235,13 @@ CREATE INDEX IF NOT EXISTS idx_relationships_lore ON Character_Relationships (Lo
 -- Node positions index
 CREATE INDEX IF NOT EXISTS idx_node_positions_char ON Character_Node_Positions (Character_ID);
 
--- Lore indexes
 CREATE INDEX IF NOT EXISTS idx_chapter_tags_tag ON Chapter_Tags (Tag_ID);
 CREATE INDEX IF NOT EXISTS idx_lore_tags_tag ON Lore_Tags (Tag_ID);
 CREATE INDEX IF NOT EXISTS idx_lore_locations_location on LORE_Locations (Location_ID);
 CREATE INDEX IF NOT EXISTS vix_lore_title ON Lore_Entries(Title);
 CREATE INDEX IF NOT EXISTS idx_lore_category ON Lore_Entries (Category);
+CREATE INDEX IF NOT EXISTS idx_notes_parent ON Notes (Parent_Note_ID);
+CREATE INDEX IF NOT EXISTS idx_note_tags_tag ON Note_Tags (Tag_ID);
 
 -- Index for quick lookup of locations by character
 CREATE INDEX IF NOT EXISTS idx_char_locations_char ON Character_Locations (Character_ID);
