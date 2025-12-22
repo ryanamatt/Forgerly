@@ -96,4 +96,13 @@ for i := 1 to max_iterations do begin
 end
 ```
 
+## Design Decisions (Narrative Forge vs. Standard)
+
+| Change | Rationale |
+| :--- | :--- |
+| **Edge Intensity** | Stronger narrative ties now exert a literal physical pull, clustering important characters together. |
+| **Fixed Nodes** | Allows for "pinned" characters so users can manually organize key plot points. |
+| **Coefficient Controls** | `C_ATTRACTION` and `C_REPEL` allow for fine-tuning the visual density of the graph based on node count. |
+| **Geometric Cooling** | Provides a smoother transition from chaotic movement to a static layout in the UI. |
+
 *Last Updated: 2025-12-21*
