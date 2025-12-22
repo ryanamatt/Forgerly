@@ -51,25 +51,6 @@ class ChapterRepository:
         except DatabaseError as e:
             logger.error("Failed to retrieve all basic chapters.", exc_info=True)
             raise e
-
-    def get_all_chapters_with_content(self) -> ChapterContentDict:
-        """
-        Retrieves all chapters with their full text content, ordered by Sort_Order.
-
-        :rtype: :py:class:`~app.utils.types.ChapterContentDict`
-        """
-        query = """
-        SELECT ID, Title, Text_Content, Sort_Order
-        FROM Chapters
-        ORDER BY Sort_Order ASC;
-        """
-        try:
-            results = self.db._execute_query(query, fetch_all=True)
-            logger.info(f"Retrieved {len(results)} chapters with full content.")
-            return results
-        except DatabaseError as e:
-            logger.error("Failed to retrieve all chapters with content.", exc_info=True)
-            raise e
     
     def get_chapter_content(self, chapter_id: int) -> str | None:
         """
@@ -77,12 +58,11 @@ class ChapterRepository:
         
         Gathers only the text content of a chapter.
 
-        :param chapter_id: The chapted ID to get text content from.
+        :param chapter_id: The chapter ID to get text content from.
         :type chapter_id: int
 
         :returns: Returns a str of the text content if successful, otherwise None
         :rtype: str or None
-        
         """
         query = "SELECT Text_Content FROM Chapters WHERE ID = ?;"
         try:
@@ -93,34 +73,17 @@ class ChapterRepository:
         except DatabaseError as e:
             logger.error(f"Failed to retrieve content for chapter ID: {chapter_id}.", exc_info=True)
             raise e
-    
-    def get_content_by_title(self, title: str) -> dict | None:
-        """
-        Retrieves full content for a chapter based on its title.
-        
-        :param title: The title of the chapter to get content for.
-        :type title: str
-
-        :returns: A dictionary of the chapter.
-        :rtype: dict or None
-        """ 
-        query = "SELECT ID, Title, Text_Content FROM CHAPTERS WHERE Title = ? COLLATE NOCASE;"
-        try:
-            result = self.db._execute_query(query, (title,), fetch_one=True)
-            logger.debug(f"Retrieved content by title: '{title}'. Found: {result is not None}")
-            return result
-        except DatabaseError as e:
-            logger.error(f"Failed to retrieve content for chapter title: '{title}'.", exc_info=True)
-            raise e
         
     def get_chapter_title(self, chapter_id: int) -> str | None:
         """
         Retrieves the chapter title by Chapter ID from the database.
+
+        Used when a Chaper Item is renamed in the OutlineManager.
         
         :param chapter_id; The ID of the chapter you want the title from.
         :type chapter_id: int
 
-        :returns: The chapter title if found, otherwise False
+        :returns: The chapter title if found, otherwise None
         :rtype: str or None
         """
         query = "SELECT Title FROM Chapters WHERE ID = ?;"
@@ -177,6 +140,27 @@ class ChapterRepository:
             logger.error("Failed to retrieve chapters for export.", exc_info=True)
             raise e
         
+    def _get_all_chapters_with_content(self) -> dict:
+        """
+        Retrieves all chapters with their full text content, ordered by Sort_Order.
+
+        An Internal helper method for get_all_chapters_stats.
+
+        :rtype: dict
+        """
+        query = """
+        SELECT ID, Title, Text_Content, Sort_Order
+        FROM Chapters
+        ORDER BY Sort_Order ASC;
+        """
+        try:
+            results = self.db._execute_query(query, fetch_all=True)
+            logger.info(f"Retrieved {len(results)} chapters with full content.")
+            return results
+        except DatabaseError as e:
+            logger.error("Failed to retrieve all chapters with content.", exc_info=True)
+            raise e
+        
     def get_all_chapters_stats(self, wpm: int = 250) -> list[dict]:
         """
         Retrieves all chapters with their full text content, calculates
@@ -189,7 +173,7 @@ class ChapterRepository:
                   and the calculated statistics.
         :rtype: list[dict]
         """
-        all_chapters = self.get_all_chapters_with_content() # Efficiently gets all rows
+        all_chapters = self._get_all_chapters_with_content() # Efficiently gets all rows
 
         chapters_with_stats = []
         for chapter in all_chapters:
@@ -285,6 +269,8 @@ class ChapterRepository:
     def update_chapter_title(self, chapter_id: int, title: str) -> bool:
         """
         Updates the Chapter title by Chapter ID.
+        
+        Called in OutlineManager when renaming a Chapter Title.
         
         :param chapter_id: The chapter ID to update its title.
         :type chapter_id: int
