@@ -84,7 +84,7 @@ def test_get_all_chapters_with_content(chapter_repo: ChapterRepository):
     chapter_repo.create_chapter("Full Test", 1)
     
     # Act
-    chapters = chapter_repo.get_all_chapters_with_content()
+    chapters = chapter_repo._get_all_chapters_with_content()
     
     # Assert
     assert len(chapters) == 1
