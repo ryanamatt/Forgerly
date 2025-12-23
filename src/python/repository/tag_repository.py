@@ -223,7 +223,7 @@ class TagRepository:
         SELECT t.ID, t.Name
         FROM Tags t
         JOIN Note_Tags nt ON t.ID = nt.Tag_ID
-        WHERE nt.Lore_ID = ?
+        WHERE nt.Note_ID = ?
         ORDER BY t.Name ASC;
         """
         try:

@@ -8,6 +8,7 @@ from ..repository.chapter_repository import ChapterRepository
 from ..repository.lore_repository import LoreRepository
 from ..repository.tag_repository import TagRepository
 from ..repository.character_repository import CharacterRepository
+from ..repository.note_repository import NoteRepository
 from ..repository.relationship_repository import RelationshipRepository
 
 from ..utils.nf_core_wrapper import calculate_read_time
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
     from ..ui.views.chapter_editor import ChapterEditor
     from ..ui.views.lore_editor import LoreEditor
     from ..ui.views.character_editor import CharacterEditor
+    from ..ui.views.note_editor import NoteEditor
     from ..ui.views.relationship_editor import RelationshipEditor
 
 class AppCoordinator(QObject):
@@ -29,6 +31,7 @@ class AppCoordinator(QObject):
     data retrieval or persistence, ensuring that UI components only interact 
     with each other via signals, and interact with the database only via this coordinator.
     """
+
     # --- Signals for Editor Panel Updates ---
     chapter_loaded = pyqtSignal(int, str, list)      # id, content_html, tags
     """
@@ -36,18 +39,28 @@ class AppCoordinator(QObject):
     chapter's content into the editor. Carries the Chapter ID, its content 
     as HTML, and a list of associated tags.
     """
+
     lore_loaded = pyqtSignal(int, str, str, str, list) # id, title, category, content_html, tags
     """
     :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str, str, str, list): Emitted 
     to load a lore item's content. Carries the Lore ID, title, category, 
     content as HTML, and a list of associated tags.
     """
+
     char_loaded = pyqtSignal(int, str, str, str, int, str, str, str)
     """
     :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str, str, str): Emitted to load 
     a character's data into the editor. Carries (ID, Name, Description, Status, 
     Age, DOB, Occupation, Physical).
     """
+
+    note_loaded = pyqtSignal(int, str , list) # id, content_html, tags
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str, list): Emitted to load a 
+    notes's content into the editor. Carries the Note ID, its content 
+    as HTML, and a list of associated tags.
+    """
+
     graph_data_loaded = pyqtSignal(dict)
     """
     :py:class:`~PyQt6.QtCore.pyqtSignal` (dict): Emitted to provide all necessary 
@@ -79,6 +92,12 @@ class AppCoordinator(QObject):
     is successfully created. Carries the new Character ID and name.
     """
 
+    note_created = pyqtSignal(int, str) # id, title
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str): Emitted after a new note 
+    is successfully created. Carries the new Note ID and name.
+    """
+
     chapter_editor_dirty_status = pyqtSignal(bool)
     """
     :py:class:`~PyQt6.QtCore.pyqtSignal` (bool): Emitted to indicate the chapter 
@@ -94,6 +113,12 @@ class AppCoordinator(QObject):
     character_editor_dirty_status = pyqtSignal(bool)
     """
     :py:class:`~PyQt6.QtCore.pyqtSignal` (bool): Emitted to indicate the character 
+    editor's dirty status.
+    """
+
+    note_editor_dirty_status = pyqtSignal(bool)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (bool): Emitted to indicate the note 
     editor's dirty status.
     """
 
@@ -119,6 +144,7 @@ class AppCoordinator(QObject):
         self.chapter_repo = ChapterRepository(self.db)
         self.lore_repo = LoreRepository(self.db)
         self.character_repo = CharacterRepository(self.db)
+        self.note_repo = NoteRepository(self.db)
         self.tag_repo = TagRepository(self.db)
         self.relationship_repo = RelationshipRepository(self.db)
 
@@ -131,6 +157,7 @@ class AppCoordinator(QObject):
         # Keep for signal
         self.lore_editor = None
         self.character_editor = None
+        self.note_editor = None
         self.relationship_editor = None
         
     def connect_signals(self) -> None:
@@ -159,6 +186,8 @@ class AppCoordinator(QObject):
             self.lore_editor: LoreEditor = self.editors[ViewType.LORE_EDITOR]
         if ViewType.CHARACTER_EDITOR in self.editors:
             self.character_editor: CharacterEditor = self.editors[ViewType.CHARACTER_EDITOR]
+        if ViewType.NOTE_EDITOR in self.editors:
+            self.note_editor: NoteEditor = self.editors[ViewType.NOTE_EDITOR]
         
         # Handle specific editor connections separately (like title change signals)
         if ViewType.RELATIONSHIP_GRAPH in self.editors:
@@ -263,6 +292,9 @@ class AppCoordinator(QObject):
             case ViewType.CHARACTER_EDITOR:
                 return self._save_character_content(item_id, parent)
             
+            case ViewType.NOTE_EDITOR:
+                return self._save_note_content(item_id, parent)
+            
             case _:
                 return False
             
@@ -355,6 +387,32 @@ class AppCoordinator(QObject):
             return True
         else:
             QMessageBox.critical(parent, "Save Failed", f"Failed to save Character ID {char_id}.")
+            return False
+        
+    def _save_note_content(self, note_id: int, parent=None) -> bool:
+        """
+        Saves the current note content.
+        
+        :param note_id: The ID number of the chapter item to save.
+        :type note_id: int
+        :param parent: The parent. Default is None.
+        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
+
+        :returns: Returns True if saved, otherwise False
+        :rtype: bool
+        """
+        editor: NoteEditor = self.editors[ViewType.NOTE_EDITOR]
+        content = editor.get_html_content()
+        tags = editor.get_tags()
+
+        content_saved = self.note_repo.update_note_content(note_id, content)
+        tags_saved = self.tag_repo.set_tags_for_note(note_id, tags)
+
+        if content_saved and tags_saved:
+            editor.mark_saved()
+            return True
+        else:
+            QMessageBox.critical(parent, "Save Failed", f"Failed to save note ID {note_id}.")
             return False
         
     def save_node_position(self, char_id: int, x_pos: float, y_pos: float, node_color: str, node_shape: str, is_hidden: int) -> bool:
@@ -510,6 +568,33 @@ class AppCoordinator(QObject):
                 char_details.get('Physical_Description', "")
             )
 
+    def load_note(self, note_id: int) -> None:
+        """
+        Fetches a note from the repository and emits the :py:attr:`.note_loaded` signal.
+
+        :param note_id: The ID of the note to load.
+        :type note_id: int
+        
+        :rtype: None
+        """
+        
+        # 1. Update Coordinator State
+        self.current_item_id = note_id
+        self.current_view = ViewType.NOTE_EDITOR
+
+        # 2. Load Content
+        content = self.note_repo.get_note_content(note_id)
+        
+        if content is None:
+            content = "<h1>Error Loading Note</h1><p>Content could not be retrieved from the database.</p>"
+
+        # 3. Load Tags
+        tags_data = self.tag_repo.get_tags_for_note(note_id)
+        tag_names = [name for _, name in tags_data] if tags_data else []
+        
+        # 4. Emit signal to the ChapterEditor
+        self.note_loaded.emit(note_id, content, tag_names)
+
     # --- Updating Parent Lore ID ---
 
     def update_lore_parent_id(self, lore_id: int, new_parent_id: int | None) -> bool:
@@ -536,6 +621,23 @@ class AppCoordinator(QObject):
         """
         categories = self.lore_repo.get_unique_categories()
         self.lore_categories_changed.emit(categories)
+
+    def update_note_parent_id(self, note_id: int, new_parent_id: int | None) -> bool:
+        """
+        Updates the parent ID of a note via the repository.
+
+        :param note_id: The ID of the note to update.
+        :param new_parent_id: The ID of the new parent, or None.
+
+        :returns: True on successful database update, False otherwise.
+        """
+        if isinstance(new_parent_id, int) and new_parent_id <= 0:
+            new_parent_id = None
+        result = self.note_repo.update_note_parent_id(note_id, new_parent_id)
+        if result:
+            pass
+        return result
+    
     # --- Relationship Graph Methods ---
 
     def load_relationship_graph_data(self) -> None:

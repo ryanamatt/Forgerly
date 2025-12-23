@@ -32,14 +32,14 @@ class NoteRepository:
         Retrieves a list of all notes, ordered by their Sort_Order.
         
         The returned data includes basic information necessary for the Outline 
-        Manager, but excludes the full text content.
+        Manager, but excludes the full content.
 
         :returns: A list of dictionaries, each containing the notes's ID, Title, 
                   Sort_Order.
         :rtype: dict
         """
         query = """
-        SELECT ID, Title, Sort_Order
+        SELECT ID, Title, Parent_Note_ID, Sort_Order
         FROM Notes
         ORDER BY Sort_Order ASC;
         """
@@ -53,20 +53,20 @@ class NoteRepository:
         
     def get_note_content(self, note_id: int) -> str | None:
         """
-        Retrieves the text content for a specific note ID
+        Retrieves the content for a specific note ID
         
-        Gathers only the text content of a note.
+        Gathers only the content of a note.
 
-        :param note_id: The note ID to get text content from.
+        :param note_id: The note ID to get content from.
         :type note_id: int
 
-        :returns: Returns a str of the text content if successful, otherwise None
+        :returns: Returns a str of the content if successful, otherwise None
         :rtype: str or None
         """
         query = "SELECT Content FROM Notes WHERE ID = ?;"
         try:
             result = self.db._execute_query(query, (note_id,), fetch_one=True)
-            content = result['Text_Content'] if result else None
+            content = result['Content'] if result else None
             logger.debug(f"Retrieved content for Note ID: {note_id}. Found: {content is not None}")
             return content
         except DatabaseError as e:
@@ -108,7 +108,7 @@ class NoteRepository:
         :rtype: list[dict]
         """
         query = """
-        SELECT ID, Title, Text_Content, Parent_Note_ID Sort_Order
+        SELECT ID, Title, Content, Parent_Note_ID Sort_Order
         FROM Notes
         """
         params = ()
@@ -158,10 +158,10 @@ class NoteRepository:
         query = """
         INSERT INTO Notes
         (Title, Content, Parent_Note_ID, Sort_Order)
-        VALUES (?, ?, >, ?);
+        VALUES (?, ?, ?, ?);
         """
         try:
-            note_id = self.db._execute_commit(query, (title, content, parent_note_id, sort_order))
+            note_id = self.db._execute_commit(query, (title, content, parent_note_id, sort_order), fetch_id=True)
             if note_id:
                 logger.info(f"Created new note: ID={note_id}, Title='{title}', SortOrder={sort_order}.")
             return note_id
@@ -235,6 +235,56 @@ class NoteRepository:
             logger.error(f"Failed to update title for note ID: {note_id}.", exc_info=True)
             raise e
         
+    def update_note_parent_id(self, note_id: int, new_parent_id: int | None) -> bool:
+        """
+        Updates the Parent_Note_ID for a specific Lore Entry.
+
+        :param note_id: The ID of the note to update.
+        :type note_id: int
+        :param new_parent_id: The ID of the new parent note, or None to make it a root.
+        :type new_parent_id: int
+
+        :returns: True on success, False otherwise.
+        """
+        query = """
+        UPDATE Notes
+        SET Parent_Note_ID = ?
+        WHERE ID = ?;
+        """
+        try:
+            success = self.db._execute_commit(query, (new_parent_id, note_id))
+            if success:
+                logger.info(f"Updated parent ID for note ID: {note_id} to {new_parent_id}.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to update parent ID for note ID: {note_id} to {new_parent_id}.", exc_info=True)
+            raise note_id
+        
+    def update_note_order(self, note_id: int, sort_order: int) -> bool:
+        """
+        Updates the Sort Order for a specific Note.
+
+        :param note_id: The ID of the Note to update.
+        :type note_id: int
+        :param sort_order: The new value for the sort_order
+        :type sort_order: int
+
+        :returns: True on success, False otherwise.
+        """
+        query = """
+        UPDATE Notes
+        SET Sort_Order = ?
+        WHERE ID = ?;
+        """
+        try:
+            success = self.db._execute_commit(query, (sort_order, note_id))
+            if success:
+                logger.info(f"Updated parent ID for note ID: {note_id} to {sort_order}.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to update parent ID for note ID: {note_id} to {sort_order}.", exc_info=True)
+            raise e
+        
     def search_notes(self, user_query: str) -> list[dict] | None:
         """
         Accepts a keyword query and performs a hybrid search:
@@ -267,7 +317,7 @@ class NoteRepository:
             T.Name LIKE ?
         ORDER BY N.Title ASC;
         """
-        params = (like_pattern, like_pattern, like_pattern, like_pattern)
+        params = (like_pattern, like_pattern, like_pattern)
         try:
             results = self.db._execute_query(query, params, fetch_all=True)
             logger.info(f"Note search for '{clean_query}' returned {len(results)} results.")

@@ -34,5 +34,6 @@
     <file>icons/auto-layout.svg</file>
     <file>icons/snap-grid.svg</file>
     <file>icons/grid.svg</file>
+    <file>icons/note.svg</file>
   </qresource>
 </RCC>
