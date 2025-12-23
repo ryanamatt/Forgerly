@@ -33,7 +33,7 @@ class BaseOutlineManager(QWidget):
     """
 
     def __init__(self, project_title: str, header_text: str, id_role: int,
-                 search_placeholder: str = "Search...", is_nested: bool = False,
+                 search_placeholder: str = "Search...", is_nested_tree: bool = False,
                  parent = None) -> None:
         """
         Initializes the BaseOutlineManager
@@ -46,9 +46,9 @@ class BaseOutlineManager(QWidget):
         :type id_role: int
         :param search_place_holder: The place holder text for searching.
         :type search_place_holder: str
-        :param is_nested: True if self.tree_widget is nested (Utilizing NestedTreeWidget)
+        :param is_nested_tree: True if self.tree_widget is nested (Utilizing NestedTreeWidget)
             False if not nested (Utilizing QTreeWidget). Default is False.
-        :type is_nested: bool
+        :type is_nested_tree: bool
         :param parent: The parent object.
         :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
 
@@ -78,10 +78,10 @@ class BaseOutlineManager(QWidget):
         self.search_input.textChanged.connect(self._handle_search_input)
 
         # Tree Widget
-        if is_nested:
-            self.tree_widget = QTreeWidget(parent=self)
+        if is_nested_tree:
+            self.tree_widget = NestedTreeWidget(id_role=id_role, parent=self)
         else:
-            self.tree_widget = NestedTreeWidget(id_role=self.id_role, parent=self)
+            self.tree_widget = QTreeWidget(parent=self)
         self._setup_tree_widget()
 
         # Build UI
@@ -117,7 +117,7 @@ class BaseOutlineManager(QWidget):
         # Signal Connections
         self.tree_widget.itemClicked.connect(self._on_item_clicked)
         self.tree_widget.itemChanged.connect(self._handle_item_renamed)
-        self.tree_widget.customContextMenuRequested(self._show_context_menu)
+        self.tree_widget.customContextMenuRequested.connect(self._show_context_menu)
 
     def _on_item_clicked(self, item: QTreeWidgetItem, column: int) -> None:
         """
