@@ -2,9 +2,9 @@
 
 1. **Implement a Notes Feature**
 
-    - [ ] Add Notes and Note_Tags tables to schema_v1.sql with Sort_Order and Parent_Note_ID for nested organization.
+    - [X] Add Notes and Note_Tags tables to schema_v1.sql with Sort_Order and Parent_Note_ID for nested organization.
 
-    - [ ] Create note_repository.py and a NoteOutlineManager view, reusing the RichTextEditor widget.
+    - [X] Create note_repository.py and a NoteOutlineManager view, reusing the RichTextEditor widget.
 
     - [ ] Enable Ctrl+Shift+L inter-entry lookup and tagging support to link notes with Characters and Lore
 

@@ -105,7 +105,8 @@ class NoteOutlineManager(QWidget):
         self.tree_widget.lore_parent_id_updated.connect(self._handle_note_parent_update)
         self.tree_widget.lore_hierarchy_updated.connect(self._handle_note_parent_update)
         self.tree_widget.customContextMenuRequested.connect(self._show_context_menu)
-        self.tree_widget.itemSelectionChanged.connect(self._handle_selection_change)
+        # self.tree_widget.itemSelectionChanged.connect(self._handle_selection_change)
+        self.tree_widget.itemClicked.connect(self._handle_item_click)
         self.tree_widget.itemDoubleClicked.connect(self._handle_item_double_click)
         self.tree_widget.itemChanged.connect(self._handle_item_renamed)
 
@@ -188,23 +189,23 @@ class NoteOutlineManager(QWidget):
 
     def _handle_selection_change(self, item: QTreeWidgetItem, column: int) -> None:
         """
-        Emits a signal with the selected Lore ID when the selection changes.
+        Emits a signal with the selected Note ID when the selection changes.
         
         :rtype: None
         """
         current_item = self.tree_widget.currentItem()
         if current_item:
-            lore_id = current_item.data(0, self.NOTE_ID_ROLE)
-            # Only emit if a valid lore entry (not the root or a 'no result' message) is selected
-            if isinstance(lore_id, int) and lore_id > 0:
-                self.note_selected.emit(lore_id)
+            note_id = current_item.data(0, self.NOTE_ID_ROLE)
+            # Only emit if a valid note (not the root or a 'no result' message) is selected
+            if isinstance(note_id, int) and note_id > 0:
+                self.note_selected.emit(note_id)
 
     def _handle_item_click(self, item: QTreeWidgetItem, column: int) -> None:
         """
         Handles the click event on a tree item.
         
         If a note item is clicked, it emits :py:attr:`.pre_note_change` 
-        followed by :py:attr:`.lore_selected`.
+        followed by :py:attr:`.note_selected`.
 
         :param item: The clicked tree item.
         :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
@@ -213,13 +214,13 @@ class NoteOutlineManager(QWidget):
 
         :rtype: None
         """
-        lore_id = item.data(0, self.NOTE_ID_ROLE)
+        note_id = item.data(0, self.NOTE_ID_ROLE)
 
-        if lore_id is not None:
-            # Emit pre-change signal to allow the main window to save the current lore entry
+        if note_id is not None:
+            # Emit pre-change signal to allow the main window to save the current note
             self.pre_note_change.emit()
 
-            self.note_selected.emit(lore_id)
+            self.note_selected.emit(note_id)
 
     def _handle_item_double_click(self, item: QTreeWidget, column: int) -> None:
         """
@@ -291,7 +292,7 @@ class NoteOutlineManager(QWidget):
         :param new_parent_id: The ID of the parent note.
         :type new_parent_id: int or None
         """
-        if not self.coordinator.update_lore_parent_id(note_id, new_parent_id):
+        if not self.coordinator.update_note_parent_id(note_id, new_parent_id):
             QMessageBox.critical(self, "Hierarchy Error", 
                                  "Database update failed. Reverting note outline.")
             self.load_outline()
@@ -340,7 +341,7 @@ class NoteOutlineManager(QWidget):
             QMessageBox.critical(self, "Internal Error", "NoteRepository is missing.")
             return
         
-        # Check save status before creating a new Lore Entry (which implicitly changes selection)
+        # Check save status before creating a new note (which implicitly changes selection)
         self.pre_note_change.emit()
 
         title, ok = QInputDialog.getText(
@@ -363,14 +364,14 @@ class NoteOutlineManager(QWidget):
                     self.tree_widget.setCurrentItem(new_item)
                     self._handle_item_click(new_item, 0)
         else:
-            QMessageBox.warning(self, "Database Error", "Failed to save the new Lore Entry to the database.")
+            QMessageBox.warning(self, "Database Error", "Failed to save the new Note to the database.")
 
     def _delete_note(self, item: QTreeWidgetItem) -> None:
         """
-        Handles confirmation and deletion of a Lore Entry item and its corresponding 
+        Handles confirmation and deletion of a Note item and its corresponding 
         entry in the database.
         
-        :param item: The Lore Entry item to be deleted.
+        :param item: The Note item to be deleted.
         :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
 
         :rtype: None
@@ -411,7 +412,7 @@ class NoteOutlineManager(QWidget):
         self.pre_note_change.emit()
         self._delete_note(item)
 
-    def find_note_item_by_id(self, lore_id: int) -> QTreeWidgetItem | None:
+    def find_note_item_by_id(self, note_id: int) -> QTreeWidgetItem | None:
         """
         Helper to find a Note :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem` 
         by its stored database ID.
@@ -425,7 +426,7 @@ class NoteOutlineManager(QWidget):
         iterator = QTreeWidgetItemIterator(self.tree_widget)
         while iterator.value():
             item = iterator.value()
-            if item.data(0, self.NOTE_ID_ROLE) == lore_id:
+            if item.data(0, self.NOTE_ID_ROLE) == note_id:
                 return item
             iterator += 1
         return None

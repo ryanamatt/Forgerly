@@ -217,6 +217,7 @@ class MainMenuBar(QMenuBar):
         self.view_chapter_action = add_view_action("Chapter Outline", ":icons/chapter.svg", ViewType.CHAPTER_EDITOR)
         self.view_lore_action = add_view_action("Lore Outline", ":icons/lore-entry.svg", ViewType.LORE_EDITOR)
         self.view_character_action = add_view_action("Character Outline", ":icons/character.svg", ViewType.CHARACTER_EDITOR)
+        self.view_note_action = add_view_action("Note Outline", ":icons/note.svg", ViewType.NOTE_EDITOR)
         
         self.view_menu.addSeparator()
         
@@ -278,7 +279,8 @@ class MainMenuBar(QMenuBar):
             ViewType.CHAPTER_EDITOR: self.view_chapter_action,
             ViewType.LORE_EDITOR: self.view_lore_action,
             ViewType.CHARACTER_EDITOR: self.view_character_action,
-            ViewType.RELATIONSHIP_GRAPH: self.view_relationship_action,
+            ViewType.NOTE_EDITOR: self.view_note_action,
+            ViewType.RELATIONSHIP_GRAPH: self.view_relationship_action
         }
 
         for view_type, action in actions.items():

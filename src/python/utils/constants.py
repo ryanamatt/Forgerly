@@ -12,7 +12,9 @@ class ViewType:
     """The editor panel for Lore Entry details."""
     CHARACTER_EDITOR = 3
     """The editor panel for Character details."""
-    RELATIONSHIP_GRAPH = 4
+    NOTE_EDITOR = 4
+    """The editor panel for Note Content"""
+    RELATIONSHIP_GRAPH = 5
     """The graphical view for character relationships."""
 
 class EntityType:
@@ -21,10 +23,16 @@ class EntityType:
     """
     CHAPTER = "Chapter"
     """The Chapter Entity"""
+    
     LORE = "Lore Entry"
     """The Lore Entry Entity"""
+
     CHARACTER = "Character"
     """The Character Entity"""
+
+    Note = "Note"
+    """The Note Entity"""
+
     RELATIONSHIP = "Relationship"
     """The Relationship Entity"""
 

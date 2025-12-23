@@ -1,4 +1,4 @@
-# src/python/ui/chapter_editor.py
+# src/python/ui/note_editor.py
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QGroupBox, QSplitter, QHBoxLayout, QTextEdit,
@@ -9,34 +9,28 @@ from PyQt6.QtCore import Qt
 from ...services.app_coordinator import AppCoordinator
 from ...ui.widgets.tag_widget import TagManagerWidget
 from ...ui.widgets.rich_text_editor import RichTextEditor
-from ...utils.nf_core_wrapper import calculate_word_count, calculate_character_count, calculate_read_time
 
-class ChapterEditor(QWidget):
+class NoteEditor(QWidget):
     """
     A composite :py:class:`PyQt6.QtWidgets.QWidget` that serves as the main 
-    editing panel for a chapter.
+    editing panel for a note.
 
-    It combines a :py:class:`~.RichTextEditor` for content and a 
+    It combines a :py:class:`~.BasicTextEditor` for content and a 
     :py:class:`~.TagManagerWidget` for metadata. This widget manages the 
     state (dirty flags) and provides a single interface for the MainWindow 
-    to load and save all chapter data (content, tags, and statistics).
+    to load and save all note data (content, tags).
 
-    The editor displays real-time statistics (word count, character count, 
-    and estimated read time) for either the **full document** or the 
-    **currently selected text**.
-
-    :ivar rich_text_editor: The rich text editor component.
-    :vartype rich_text_editor: RichTextEditor
+    :ivar basic_text_editor: The basic text editor component.
+    :vartype basic_text_editor: BasicTextEditor
     :ivar tag_manager: The tag management component.
     :vartype tag_manager: TagManagerWidget
     """
     
     def __init__(self, current_settings, coordinator: AppCoordinator, parent=None) -> None:
         """
-        Initializes the ChapterEditor with sub-components and layout.
+        Initializes the NoteEditor with sub-components and layout.
 
-        :param current_settings: A dictionary containing initial application settings, 
-                                 including 'words_per_minute'.
+        :param current_settings: A dictionary containing initial application settings.
         :type current_settings: dict
         :param coordinator: The AppCoordinator.
         :type coordinator: :py:class:`services.AppCoordinator`
@@ -48,18 +42,12 @@ class ChapterEditor(QWidget):
         super().__init__(parent)
         self.current_settings = current_settings
         self.coordinator = coordinator
-        self.wpm = current_settings['words_per_minute']
 
         self.current_lookup_dialog = None
 
         # --- Sub-components ---
-        self.rich_text_editor = RichTextEditor()
+        self.text_editor = RichTextEditor()
         self.tag_manager = TagManagerWidget()
-        
-        # --- Statistics Labels ---
-        self.word_count_label = QLabel("Words: 0")
-        self.char_count_label = QLabel("Chars: 0")
-        self.read_time_label = QLabel(f"Read Time: 0 min (WPM: {self.wpm})")
 
         # --- Layout ---
         main_layout = QVBoxLayout(self)
@@ -67,116 +55,47 @@ class ChapterEditor(QWidget):
         main_layout.setSpacing(10)
 
         # 1. Tagging Group Box
-        tag_group = QGroupBox("Chapter Tags (Genres, Themes, POVs)")
+        tag_group = QGroupBox("Note Tags (Genres, Themes, POVs)")
         tag_group.setAlignment(Qt.AlignmentFlag.AlignCenter)
         tag_layout = QVBoxLayout(tag_group)
         tag_layout.setContentsMargins(10, 20, 10, 10)
         tag_layout.addWidget(self.tag_manager)
-        
-        # 2. Editor and Stats (Modified Layout)
-        
-        # Statistics Bar at the bottom of everything but on top of RichTextEditor
-        stats_bar = QWidget()
-        stats_layout = QHBoxLayout(stats_bar)
-        stats_layout.setContentsMargins(0, 0, 0, 0)
-        stats_layout.addStretch()
-        stats_layout.addWidget(self.word_count_label)
-        stats_layout.addWidget(self.char_count_label)
-        stats_layout.addWidget(self.read_time_label)
-        stats_layout.addStretch() # Push stats to the left
-        
-        # Combine the editor and the stats bar
-        editor_group = QWidget()
-        editor_vbox = QVBoxLayout(editor_group)
-        editor_vbox.setContentsMargins(0, 0, 0, 0)
-        editor_vbox.addWidget(stats_bar)
-        editor_vbox.addWidget(self.rich_text_editor)
-        
+
         editor_splitter = QSplitter(Qt.Orientation.Vertical)
         editor_splitter.addWidget(tag_group) # Use the new group containing stats bar
-        editor_splitter.addWidget(editor_group)
+        editor_splitter.addWidget(self.text_editor)
         editor_splitter.setSizes([100, 900]) 
 
         # Add the splitter to the main layout
         main_layout.addWidget(editor_splitter)
 
-        # --- Signal Connections ---
-        self.rich_text_editor.content_changed.connect(self._update_stats_display)
-        self.rich_text_editor.selection_changed.connect(self._update_stats_display)
-        self.rich_text_editor.popup_lookup_requested.connect(self._handle_popup_lookup_request)
 
         self.setEnabled(False)
-
-    def _update_stats_display(self) -> None:
-        """
-        Calculates and updates the real-time statistics labels based on 
-        the selected text or the full content if no text is selected.
-
-        This method is connected to the :py:attr:`~.RichTextEditor.content_changed`
-        and :py:attr:`~.RichTextEditor.selection_changed` signals.
-
-        :rtype: None
-        """
-        # 1. Check for selected text first
-        selected_text = self.rich_text_editor.get_selected_text()
-        
-        if selected_text:
-            # Stats for SELECTED text
-            source_text = selected_text
-            label_prefix = "Selected"
-        else:
-            # Stats for FULL document
-            source_text = self.rich_text_editor.get_plain_text()
-            label_prefix = "Total"
-
-        # 2. Calculate statistics
-        word_count = calculate_word_count(source_text)
-        char_count_with_spaces = calculate_character_count(source_text, include_spaces=True)
-        read_time_str = calculate_read_time(word_count, self.wpm)
-
-        # 3. Update UI Labels with dynamic prefix
-        self.word_count_label.setText(f"{label_prefix} Words: {word_count:,}")
-        self.char_count_label.setText(f"{label_prefix} Chars: {char_count_with_spaces:,}")
-        self.read_time_label.setText(f"Read Time: {read_time_str} (WPM: {self.wpm})")
-
-    def set_wpm(self, new_wpm: int) -> None:
-        """
-        Updates the WPM setting and recalculates the statistics display.
-        
-        :param new_wpm: The new WPM number to set. Will default to 250 if <= 0.
-        :type new_wpm: int
-
-        :rtype: None
-        """
-        if new_wpm <= 0:
-            new_wpm = 250
-        self.wpm = new_wpm
-        self._update_stats_display()
         
     # --- Content Passthrough Methods (RichTextEditor) ---
     
     def is_dirty(self) -> bool:
         """
-        Checks if the content (RichTextEditor) or the tags (TagManagerWidget) 
+        Checks if the content (BasicTextEditor) or the tags (TagManagerWidget) 
         have unsaved changes.
 
         :returns: ``True`` if content or tags are modified, ``False`` otherwise.
         :rtype: bool
         """
-        return self.rich_text_editor.is_dirty() or self.tag_manager.is_dirty()
+        return self.text_editor.is_dirty() or self.tag_manager.is_dirty()
 
     def mark_saved(self) -> None:
         """
-        Marks both the rich text content and the tags as clean (saved).
+        Marks both the basic text content and the tags as clean (saved).
 
         :rtype: None
         """
-        self.rich_text_editor.mark_saved()
+        self.text_editor.mark_saved()
         self.tag_manager.mark_saved()
         
     def set_enabled(self, enabled: bool) -> None:
         """
-        Enables or disables the entire chapter editor panel by setting the 
+        Enables or disables the entire note editor panel by setting the 
         state of its main sub-components.
 
         :param enabled: ``True`` to enable, ``False`` to disable.
@@ -184,30 +103,33 @@ class ChapterEditor(QWidget):
 
         :rtype: None
         """
-        self.rich_text_editor.setEnabled(enabled)
-        self.tag_manager.setEnabled(enabled)
+        self.text_editor.setEnabled(enabled)
+        if self.tag_manager is not None:
+            try:
+                self.tag_manager.setEnabled(enabled)
+            except RuntimeError:
+                pass
         self.setEnabled(enabled)
 
     def get_html_content(self) -> str:
         """
         Returns the current rich text content as an HTML string.
 
-        :returns: The chapter content as HTML.
+        :returns: The note content as HTML.
         :rtype: str
         """
-        return self.rich_text_editor.get_html_content()
+        return self.text_editor.get_html_content()
 
     def set_html_content(self, html_content: str) -> None:
         """
-        Sets the rich text content and triggers a statistics update.
+        Sets the rich text content.
 
         :param html_content: The HTML content string to load into the editor.
         :type html_content: str
 
         :rtype: None
         """
-        self.rich_text_editor.set_html_content(html_content)
-        self._update_stats_display()
+        self.text_editor.set_html_content(html_content)
 
     def _handle_popup_lookup_request(self, text_to_lookup: str) -> None:
         """
@@ -281,7 +203,7 @@ class ChapterEditor(QWidget):
 
     def set_tags(self, tag_names: list[str]) -> None:
         """
-        Sets the tags when a chapter is loaded.
+        Sets the tags when a note is loaded.
 
         This function also clears the tag manager's dirty state internally.
 

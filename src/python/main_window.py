@@ -17,6 +17,9 @@ from .ui.views.lore_outline_manager import LoreOutlineManager
 from .ui.views.lore_editor import LoreEditor
 from .ui.views.character_outline_manager import CharacterOutlineManager
 from .ui.views.character_editor import CharacterEditor
+from .ui.views.note_outline_manager import NoteOutlineManager
+from .ui.views.note_editor import NoteEditor
+
 from .ui.views.relationship_outline_manager import RelationshipOutlineManager
 from .ui.views.relationship_editor import RelationshipEditor
 from .ui.dialogs.settings_dialog import SettingsDialog
@@ -150,7 +153,8 @@ class MainWindow(QMainWindow):
             ViewType.CHAPTER_EDITOR: self.chapter_editor_panel,
             ViewType.LORE_EDITOR: self.lore_editor_panel,
             ViewType.CHARACTER_EDITOR: self.character_editor_panel,
-            ViewType.RELATIONSHIP_GRAPH: self.relationship_editor_panel
+            ViewType.RELATIONSHIP_GRAPH: self.relationship_editor_panel,
+            ViewType.NOTE_EDITOR: self.note_editor_panel
         }
         self.coordinator.set_editors(editor_map)
         self.coordinator.connect_signals()
@@ -285,7 +289,8 @@ class MainWindow(QMainWindow):
             ViewType.CHAPTER_EDITOR: self._chapter_index,
             ViewType.LORE_EDITOR: self._lore_index,
             ViewType.CHARACTER_EDITOR: self._character_index,
-            ViewType.RELATIONSHIP_GRAPH: self._relationship_index,
+            ViewType.NOTE_EDITOR: self._note_index,
+            ViewType.RELATIONSHIP_GRAPH: self._relationship_index
         }
     
         # Use .get() with a default value to handle unexpected or unhandled views safely
@@ -322,8 +327,6 @@ class MainWindow(QMainWindow):
             editor.set_enabled(False)
             logger.debug(f"{self.current_view} editor disabled (awaiting item selection).")
 
-
-
         self.main_menu_bar.update_view_checkmarks(current_view=self.current_view)
 
     # -------------------------------------------------------------------------
@@ -346,6 +349,9 @@ class MainWindow(QMainWindow):
         self.lore_editor_panel = LoreEditor()
         self.character_outline_manager = CharacterOutlineManager(project_title=self.project_title, character_repository=self.coordinator.character_repo)
         self.character_editor_panel = CharacterEditor()
+        self.note_outline_manager = NoteOutlineManager(project_title=self.project_title, note_repository=self.coordinator.note_repo)
+        self.note_editor_panel = NoteEditor(self.current_settings, self.coordinator)
+
         self.relationship_outline_manager = RelationshipOutlineManager(relationship_repository=self.coordinator.relationship_repo)
         self.relationship_editor_panel = RelationshipEditor(coordinator=self.coordinator)
 
@@ -354,6 +360,7 @@ class MainWindow(QMainWindow):
         self.outline_stack.addWidget(self.chapter_outline_manager)
         self.outline_stack.addWidget(self.lore_outline_manager)
         self.outline_stack.addWidget(self.character_outline_manager)
+        self.outline_stack.addWidget(self.note_outline_manager)
         self.outline_stack.addWidget(self.relationship_outline_manager)
         
         # 4. Right Panel: Editor Stack
@@ -361,14 +368,17 @@ class MainWindow(QMainWindow):
         self.editor_stack.addWidget(self.chapter_editor_panel)
         self.editor_stack.addWidget(self.lore_editor_panel)
         self.editor_stack.addWidget(self.character_editor_panel)
+        self.editor_stack.addWidget(self.note_editor_panel)
         self.editor_stack.addWidget(self.relationship_editor_panel)
 
         # Store the indices for the new QStackedWidget
         self._chapter_index = 0
         self._lore_index = 1
         self._character_index = 2
-        self._relationship_index = 3
-        logger.debug(f"UI Stack Indices: Chapter={self._chapter_index}, Lore={self._lore_index}, Character={self._character_index}, Relationship={self._relationship_index}")
+        self._note_index = 3
+        self._relationship_index = 4
+        logger.debug(f"UI Stack Indices: Chapter={self._chapter_index}, Lore={self._lore_index}, Character={self._character_index}, Note={self._note_index}," 
+                     "Relationship={self._relationship_index}")
 
         # 5. Main Splitter
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -403,12 +413,14 @@ class MainWindow(QMainWindow):
         self.chapter_outline_manager.chapter_selected.connect(self.coordinator.load_chapter)
         self.lore_outline_manager.lore_selected.connect(self.coordinator.load_lore)
         self.character_outline_manager.char_selected.connect(self.coordinator.load_character)
+        self.note_outline_manager.note_selected.connect(self.coordinator.load_note)
         
         # Pre-change signal now checks for dirty state via the coordinator
         # The outlines emit pre_change, and the main window delegates the action
         self.chapter_outline_manager.pre_chapter_change.connect(self._check_save_before_change)
         self.lore_outline_manager.pre_lore_change.connect(self._check_save_before_change)
         self.character_outline_manager.pre_char_change.connect(self._check_save_before_change)
+        self.note_outline_manager.pre_note_change.connect(self._check_save_before_change)
 
         # --- MainMenuBar Connections (Menu signal OUT -> MainWindow slot IN) ---
         self.main_menu_bar.new_chapter_requested.connect(self.chapter_outline_manager.prompt_and_add_chapter)
@@ -437,6 +449,8 @@ class MainWindow(QMainWindow):
         self.coordinator.chapter_loaded.connect(self._handle_chapter_loaded)
         self.coordinator.lore_loaded.connect(self._handle_lore_loaded)
         self.coordinator.char_loaded.connect(self._handle_character_loaded)
+        self.coordinator.note_loaded.connect(self._handle_note_loaded)
+
         self.coordinator.graph_data_loaded.connect(self.relationship_editor_panel.load_graph)
         self.coordinator.lore_categories_changed.connect(self.lore_editor_panel.set_available_categories)
         
@@ -525,6 +539,8 @@ class MainWindow(QMainWindow):
                 item_type = 'Lore Entry'
             elif view == ViewType.CHARACTER_EDITOR:
                 item_type = 'Character'
+            elif view == ViewType.NOTE_EDITOR:
+                item_type = 'Note'
             else:
                 item_type = 'Item' # Fallback for other views
                 
@@ -770,6 +786,94 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 # Catch any unexpected low-level GUI error during the update
                 logger.error(f"Critical error during Character Outline name synchronization for ID {char_id}.", exc_info=True)
+
+    def _handle_note_loaded(self, note_id: int, content: str, tag_names: list[str]) -> None:
+        """
+        Receives loaded lore data from coordinator and updates the editor/status.
+        
+        :param note_id: The ID of the note.
+        :type note_id: int
+        :param content: The content of the note.
+        :type content: str
+        :param tag_names: A list of all the tag names that the note has.
+        :type tag_names: list[str]
+
+        :rtype: None
+        """
+        logger.info(f"Note load attempt for ID: {note_id}.")
+
+        # --- Coordinator-Reported Error Check ---
+        # This check relies on the coordinator embedding a specific error string on failure.
+        if "Error Loading Note" in content:
+            logger.warning(f"Coordinator signaled a load error for Note ID {note_id}.")
+            # Use the error content to display the issue directly to the user
+            self.note_editor_panel.set_html_content(content)
+            self.note_editor_panel.set_enabled(False)
+            self.statusBar().showMessage(f"Error loading Note ID {note_id}. See editor for details.", 5000)
+            return
+
+        # --- Successful Load & UI Update ---
+        try:
+            self.note_editor_panel.set_html_content(content)
+            self.note_editor_panel.set_tags(tag_names)
+            self.note_editor_panel.set_enabled(True)
+            self.note_editor_panel.mark_saved() # Important: Reset dirtiness after load
+
+            # Success update
+            self.statusBar().showMessage(f"Note ID {note_id} selected and loaded.", 3000)
+            logger.info(f"Note ID {note_id} successfully loaded into the editor (tags: {len(tag_names)}).")
+
+        except EditorContentError as e:
+            error_message = f"FATAL UI Error loading Note ID {note_id}: Editor failed to render content."
+            logger.critical(error_message, exc_info=True)
+            
+            QMessageBox.critical(
+                self, 
+                "Editor Load Error", 
+                f"The editor failed to display content for Note ID {note_id} due to an internal UI issue. Please check the application log for details."
+            )
+            # Ensure the editor is disabled to prevent further interaction after a critical failure
+            self.note_editor_panel.set_enabled(False)
+
+    def _update_note_outline_title(self, note_id: int, new_title: str) -> None:
+        """
+        Updates the title in the NoteOutlineManager when the editor title changes (relayed by coordinator).
+        
+        :param note_id: The ID of the note.
+        :type note_id: int
+        :param new_title: The new title of the note.
+        :type new_title: str
+
+        :rtype: None
+        """
+        display_title = new_title.strip()
+    
+        if not display_title:
+            display_title = f"Untitled Note (ID {note_id})"
+            logger.warning(f"Note ID {note_id} saved with an empty title. Using placeholder: '{display_title}'.")
+
+        logger.debug(f"Attempting to update outline title for Note ID {note_id} to '{display_title}'.")
+
+        # The outline update only needs to happen if the Lore panel is currently active.
+        # If the user is on the Lore view stack, the outline manager should be updated.
+        if self.current_view == ViewType.LORE_EDITOR: 
+            try:
+                item = self.note_outline_manager.find_note_item_by_id(note_id)
+                
+                if item:
+                    # Block signals to prevent the outline's itemChanged signal from firing 
+                    # back to the coordinator/repository, causing a recursive update.
+                    self.note_outline_manager.blockSignals(True)
+                    item.setText(0, display_title)
+                    self.note_outline_manager.blockSignals(False)
+                    
+                    logger.info(f"Successfully synchronized Note Outline title for ID {note_id}.")
+                else:
+                    logger.warning(f"Note Outline item not found for ID {note_id}. Cannot update title.")
+            
+            except Exception as e:
+                # Catch any unexpected low-level GUI error during the update
+                logger.error(f"Critical error during Note Outline title synchronization for ID {note_id}.", exc_info=True)
     
     # -------------------------------------------------------------------------
     # I/O Handlers (Export/Settings)
