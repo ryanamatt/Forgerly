@@ -16,14 +16,14 @@ from ...services.app_coordinator import AppCoordinator
 
 class LoreOutlineManager(QWidget):
     """
-    A custom :py:class:`~PyQt6.QtWidgets.QTreeWidget` dedicated to displaying the 
+    A custom :py:class:`~PyQt6.QtWidgets.QWidget` dedicated to displaying the 
     hierarchical outline of Lore Entries and other narrative elements.
     
     It interacts with the data layer via a :py:class:`.LoreRepository`.
     """
 
     LORE_ID_ROLE = Qt.ItemDataRole.UserRole + 1
-    """The :py:obj:`int` role used to store the database ID of a Lore Entry on an item."""
+    """The int role used to store the database ID of a Lore Entry on an item."""
 
     lore_selected = pyqtSignal(int)
     """
@@ -83,7 +83,6 @@ class LoreOutlineManager(QWidget):
         self.search_input.setPlaceholderText('Search Lore Entries...')
         self.search_input.textChanged.connect(self._handle_search_input)
 
-        # The actual tree widget is a child
         self.tree_widget = LoreTreeWidget(id_role=self.LORE_ID_ROLE, parent=self)
         self.tree_widget.setHeaderHidden(True)
         self.tree_widget.setIndentation(20)
@@ -107,6 +106,7 @@ class LoreOutlineManager(QWidget):
         self.tree_widget.lore_hierarchy_updated.connect(self._handle_lore_parent_update)
         self.tree_widget.customContextMenuRequested.connect(self._show_context_menu)
         self.tree_widget.itemSelectionChanged.connect(self._handle_selection_change)
+        self.tree_widget.itemDoubleClicked.connect(self._handle_item_double_click)
         self.tree_widget.itemChanged.connect(self._handle_item_renamed)
 
         # Load the initial structure
@@ -364,7 +364,6 @@ class LoreOutlineManager(QWidget):
         else:
             QMessageBox.warning(self, "Database Error", "Failed to save the new Lore Entry to the database.")
 
-
     def _delete_lore(self, item: QTreeWidgetItem) -> None:
         """
         Handles confirmation and deletion of a Lore Entry item and its corresponding 
@@ -399,6 +398,7 @@ class LoreOutlineManager(QWidget):
                 self.load_outline()
         else:
                 QMessageBox.critical(self, "Deletion Error", "A database error occurred while trying to delete the lore entry.")
+                
     def check_save_and_delete(self, item: QTreeWidgetItem) -> None:
         """
         Emits :py:attr:`.pre_lore_change` to ensure the currently viewed 
