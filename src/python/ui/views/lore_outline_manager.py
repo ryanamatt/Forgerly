@@ -1,17 +1,15 @@
 # src/python/ui/lore_outline_manager.py
 
 from PyQt6.QtWidgets import (
-    QTreeWidget, QTreeWidgetItem, QMenu, QInputDialog, QMessageBox,
-    QWidget, QVBoxLayout, QLineEdit, QLabel, QFrame, QTreeWidgetItemIterator
+    QTreeWidget, QTreeWidgetItem, QMenu, QInputDialog, QMessageBox, QTreeWidgetItemIterator
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QPoint
+from PyQt6.QtCore import Qt, QPoint
 from PyQt6.QtGui import QIcon
 from typing import Any
 
 from .base_outline_manager import BaseOutlineManager
 from ...resources_rc import *
 from ...repository.lore_repository import LoreRepository
-from ..widgets.nested_tree_widget import NestedTreeWidget
 
 from ...services.app_coordinator import AppCoordinator
 
@@ -245,7 +243,7 @@ class LoreOutlineManager(BaseOutlineManager):
         Prompts the user for a new Lore Entry name, creates the Lore Entry in 
         the database, reloads the outline, and selects the new Lore Entry.
         
-        Emits :py:attr:`.pre_lore_change` before prompting.
+        Emits :py:attr:`.pre_item_change` before prompting.
         
         :rtype: None
         """
@@ -264,18 +262,22 @@ class LoreOutlineManager(BaseOutlineManager):
             text="New Lore Entry"
         )
 
-        if ok and title:
-            new_id = self.lore_repo.create_lore_entry(title=title)
-            
-            if new_id:
-                self.new_item_created.emit()
-                self.load_outline()
-                new_item = self.find_lore_item_by_id(new_id)
-                if new_item:
-                    self.tree_widget.setCurrentItem(new_item)
-                    self._on_item_clicked(new_item, 0)
-        else:
-            QMessageBox.warning(self, "Database Error", "Failed to save the new Lore Entry to the database.")
+        if not ok:
+            return
+        
+        if not title:
+            QMessageBox.warning(self, "Invalid Title", "Title cannot be empty.")
+            return
+
+        new_id = self.lore_repo.create_lore_entry(title=title)
+        
+        if new_id:
+            self.new_item_created.emit()
+            self.load_outline()
+            new_item = self.find_lore_item_by_id(new_id)
+            if new_item:
+                self.tree_widget.setCurrentItem(new_item)
+                self._on_item_clicked(new_item, 0)
 
     def _delete_lore(self, item: QTreeWidgetItem) -> None:
         """
@@ -314,7 +316,7 @@ class LoreOutlineManager(BaseOutlineManager):
                 
     def check_save_and_delete(self, item: QTreeWidgetItem) -> None:
         """
-        Emits :py:attr:`.pre_lore_change` to ensure the currently viewed 
+        Emits :py:attr:`.pre_item_change` to ensure the currently viewed 
         Lore Entry is saved, then triggers the deletion process.
 
         :param item: The Lore Entry item queued for deletion.
@@ -322,7 +324,7 @@ class LoreOutlineManager(BaseOutlineManager):
 
         :rtype: None
         """
-        self.pre_lore_change.emit()
+        self.pre_item_change.emit()
         self._delete_lore(item)
 
     def find_lore_item_by_id(self, lore_id: int) -> QTreeWidgetItem | None:
