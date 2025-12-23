@@ -4,8 +4,8 @@ from PyQt6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QTreeWidgetItemIterator, QMenu, QInputDialog, QMessageBox,
     QAbstractItemView, QWidget, QVBoxLayout, QLabel, QFrame
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QPoint, QEvent
-from PyQt6.QtGui import QDropEvent, QIcon
+from PyQt6.QtCore import Qt, pyqtSignal, QPoint
+from PyQt6.QtGui import QIcon
 
 from ...resources_rc import *
 from ...repository.chapter_repository import ChapterRepository
@@ -13,14 +13,14 @@ from ..widgets.chapter_tree_widget import ChapterTreeWidget
 
 class ChapterOutlineManager(QWidget):
     """
-    A custom :py:class:`~PyQt6.QtWidgets.QTreeWidget` dedicated to displaying the 
+    A custom :py:class:`~PyQt6.QtWidgets.QWidget` dedicated to displaying the 
     hierarchical outline of Chapters and other narrative elements.
     
     It interacts with the data layer via a :py:class:`.ChapterRepository`.
     """
 
     CHAPTER_ID_ROLE = Qt.ItemDataRole.UserRole + 1
-    """The :py:obj:`int` role used to store the database ID of a Chapter on an item."""
+    """The int role used to store the database ID of a Chapter on an item."""
 
     chapter_selected = pyqtSignal(int)
     """
