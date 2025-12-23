@@ -19,7 +19,7 @@ class LoreTreeWidget(QTreeWidget):
     lore_parent_id_updated = pyqtSignal(int, object)
     """:py:class:`~PyQt6.QtCore.pyqtSignal` (int, object): Signal to connect back to the LoreOutlineManager"""
 
-    lore_hierarchy_updated = pyqtSignal(int, int)
+    lore_hierarchy_updated = pyqtSignal(int, object)
     """:py:class:`~PyQt6.QtCore.pyqtSignal` (int, int, int): Signal to connect back to the LoreOutlineManager"""
 
     def __init__(self, id_role: int, parent=None):
@@ -76,8 +76,13 @@ class LoreTreeWidget(QTreeWidget):
                 actual_parent = target_item.parent()
 
         # 4. Extract the ID from the determined parent
-        new_parent_id = actual_parent.data(0, self.id_role) if actual_parent else None
-
+        if actual_parent:
+            new_parent_id = actual_parent.data(0, self.id_role)
+            if new_parent_id == 0 or new_parent_id is None:
+                new_parent_id = None
+        else:
+            new_parent_id = None
+        
         # 5. Update siblings for sort order
         iteration_root = actual_parent or self.invisibleRootItem()
         for i in range(iteration_root.childCount()):
