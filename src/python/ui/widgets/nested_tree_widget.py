@@ -28,8 +28,6 @@ class NestedTreeWidget(QTreeWidget):
         
         :param id_role: The ID of the current entry.
         :type id_role: int
-        :param root_item_role: The root item role.
-        :type root_item_role: int
         :param parent: The parent widget.
         :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`, optional
         """

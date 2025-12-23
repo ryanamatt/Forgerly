@@ -417,8 +417,8 @@ class LoreOutlineManager(QWidget):
         Helper to find a Lore Entry :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem` 
         by its stored database ID.
         
-        :param char_id: The unique ID of the Lore Entry to find.
-        :type char_id: int
+        :param lore_id: The unique ID of the Lore Entry to find.
+        :type lore_id: int
 
         :returns: The matching item or None
         :rtype: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem` or None
