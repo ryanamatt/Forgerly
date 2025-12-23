@@ -73,7 +73,7 @@ class NoteRepository:
             logger.error(f"Failed to retrieve content for Note ID: {note_id}.", exc_info=True)
             raise e
         
-    def get_note_by_title(self, note_id: int) -> str | None:
+    def get_note_title(self, note_id: int) -> str | None:
         """
         Retrieves the note title by Note ID from the database.
 
@@ -233,4 +233,45 @@ class NoteRepository:
             return success
         except DatabaseError as e:
             logger.error(f"Failed to update title for note ID: {note_id}.", exc_info=True)
+            raise e
+        
+    def search_notes(self, user_query: str) -> list[dict] | None:
+        """
+        Accepts a keyword query and performs a hybrid search:
+        1. FTS on Title, Content, and Category (ranked results).
+        2. JOIN search on Tag names (unranked results).
+        3. Merges and deduplicates the results, prioritizing FTS rank.
+
+        :param user_query: The user's search query.
+        :type user_query: str
+
+        :returns: Returns a list of the Notes search results.
+        :rtype: list[dict]
+        """
+
+        clean_query = user_query.strip()
+        if not clean_query:
+            return None
+
+        # Wildcard pattern for case-insensitive LIKE Search
+        like_pattern = f'%{clean_query}%'
+
+        query = """
+        SELECT DISTINCT N.ID, N.Title
+        FROM Notes AS N
+        LEFT JOIN Note_Tags AS NT ON B.ID = NT.Lore_ID
+        LEFT JOIN Tags AS T ON NT.Tag_ID = T.ID
+        WHERE
+            N.Title LIKE ? OR
+            N.Content LIKE ? OR
+            T.Name LIKE ?
+        ORDER BY N.Title ASC;
+        """
+        params = (like_pattern, like_pattern, like_pattern, like_pattern)
+        try:
+            results = self.db._execute_query(query, params, fetch_all=True)
+            logger.info(f"Note search for '{clean_query}' returned {len(results)} results.")
+            return results
+        except DatabaseError as e:
+            logger.error(f"Failed to execute search for notes with query: '{clean_query}'.", exc_info=True)
             raise e
