@@ -8,45 +8,31 @@ from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6.QtGui import QIcon
 from typing import Any
 
+from .base_outline_manager import BaseOutlineManager
 from ...resources_rc import *
 from ...repository.lore_repository import LoreRepository
 from ..widgets.nested_tree_widget import NestedTreeWidget
 
 from ...services.app_coordinator import AppCoordinator
 
-class LoreOutlineManager(QWidget):
+class LoreOutlineManager(BaseOutlineManager):
     """
     A custom :py:class:`~PyQt6.QtWidgets.QWidget` dedicated to displaying the 
     hierarchical outline of Lore Entries and other narrative elements.
     
-    It interacts with the data layer via a :py:class:`.LoreRepository`.
+    Inherits from BaseOutlineManager.
     """
 
     LORE_ID_ROLE = Qt.ItemDataRole.UserRole + 1
     """The int role used to store the database ID of a Lore Entry on an item."""
 
-    lore_selected = pyqtSignal(int)
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int): Emitted when a lore item is 
-    selected, carrying the Lore ID.
-    """
-
-    new_lore_created = pyqtSignal()
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when a lore item is 
-    created. Connects to MainWindow to tell it to switch the view.
-    """
-
-    pre_lore_change = pyqtSignal()
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (): Emitted before a new lore entry is 
-    selected, allowing the main window to save the current lore entry state.
-    """
-
-    def __init__(self, project_title: str = "Narrative Forge Project", lore_repository: LoreRepository | None = None, coordinator: AppCoordinator | None = None) -> None:
+    def __init__(self, project_title: str = "Narrative Forge Project", lore_repository: LoreRepository | None = None, 
+                 coordinator: AppCoordinator | None = None) -> None:
         """
         Initializes the :py:class:`.LoreOutlineManager`.
         
+        :param project_title: The title of the project.
+        :type project_title: str
         :param lore_repository: The repository object for Lore Entry CRUD operations.
         :type lore_repository: :py:class:`.LoreRepository` or None, optional
         :param coordinator: The coordinator object that coordinates to the main window.
@@ -54,60 +40,21 @@ class LoreOutlineManager(QWidget):
 
         :rtype: None
         """
-        super().__init__()
-
-        self.project_title = project_title
         self.lore_repo = lore_repository
         self.coordinator = coordinator
 
-        # --- 1. Setup Main Layout and Components ---
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-
-        # Create Header Label
-        self.header_label = QLabel(f"{self.project_title} Lore Entries")
-        self.header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        font = self.header_label.font()
-        font.setBold(True)
-        font.setPointSize(font.pointSize() + 1)
-        self.header_label.setFont(font)
-        self.header_label.setStyleSheet("""
-            QLabel {
-                padding: 5px
-                }
-        """            
+        super().__init__(
+            project_title=project_title,
+            header_text="Lore Entries",
+            id_role=self.LORE_ID_ROLE,
+            search_placeholder="Search Lore Entries...",
+            is_nested_tree=True
         )
 
-        # Create the Search Bar
-        self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText('Search Lore Entries...')
-        self.search_input.textChanged.connect(self._handle_search_input)
-
-        self.tree_widget = NestedTreeWidget(id_role=self.LORE_ID_ROLE, parent=self)
-        self.tree_widget.setHeaderHidden(True)
-        self.tree_widget.setIndentation(20)
-        self.tree_widget.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
-        self.tree_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-
-
-        container_frame = QFrame(self)
-        container_frame.setObjectName("MainBorderFrame")
-
-        # Create a layout FOR the frame and add the widgets to it
-        frame_layout = QVBoxLayout(container_frame)
-        frame_layout.addWidget(self.header_label)
-        frame_layout.addWidget(self.search_input)
-        frame_layout.addWidget(self.tree_widget)
-
-        main_layout.addWidget(container_frame)
-
-        # --- 2. Configuration and Signals  ---
+        # Connect nested-specific signals not covered by base
         self.tree_widget.item_hierarchy_updated.connect(self._handle_lore_parent_update)
         self.tree_widget.item_parent_id_updated.connect(self._handle_lore_parent_update)
-        self.tree_widget.customContextMenuRequested.connect(self._show_context_menu)
-        self.tree_widget.itemSelectionChanged.connect(self._handle_selection_change)
         self.tree_widget.itemDoubleClicked.connect(self._handle_item_double_click)
-        self.tree_widget.itemChanged.connect(self._handle_item_renamed)
 
         # Load the initial structure
         self.load_outline()
@@ -141,15 +88,16 @@ class LoreOutlineManager(QWidget):
         # Create all items and populate the map
         for entry in lore_entries:
             item = QTreeWidgetItem([entry['Title']])
-            item.setData(0, self.LORE_ID_ROLE, entry['ID'])
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsDragEnabled | Qt.ItemFlag.ItemIsDropEnabled)
+            item.setData(0, self.id_role, entry['ID'])
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable 
+                          | Qt.ItemFlag.ItemIsDragEnabled | Qt.ItemFlag.ItemIsDropEnabled)
             item.setIcon(0, QIcon(":icons/lore-entry.svg"))
             item_map[entry['ID']] = item
 
         # Build Hierarchy
         for entry in lore_entries:
-            lore_id = entry['ID']
-            parent_id = entry['Parent_Lore_ID']
+            lore_id = entry.get('ID')
+            parent_id = entry.get('Parent_Lore_ID')
             child_item = item_map.get(lore_id)
 
             if parent_id is not None and parent_id in item_map:
@@ -180,47 +128,12 @@ class LoreOutlineManager(QWidget):
             else:
                 self.tree_widget.clear()
                 no_result_item = QTreeWidgetItem(self.tree_widget, ["No search results found."])
-                no_result_item.setData(0, self.LORE_ID_ROLE, -1)
+                no_result_item.setData(0, self.id_role, -1)
                 self.tree_widget.expandAll()
         
         # Search is cleared, revert to full outline
         elif not clean_query:
             self.load_outline()
-
-    def _handle_selection_change(self) -> None:
-        """
-        Emits a signal with the selected Lore ID when the selection changes.
-        
-        :rtype: None
-        """
-        current_item = self.tree_widget.currentItem()
-        if current_item:
-            lore_id = current_item.data(0, self.LORE_ID_ROLE)
-            # Only emit if a valid lore entry (not the root or a 'no result' message) is selected
-            if isinstance(lore_id, int) and lore_id > 0:
-                self.lore_selected.emit(lore_id)
-
-    def _handle_item_click(self, item: QTreeWidgetItem, column: int) -> None:
-        """
-        Handles the click event on a tree item.
-        
-        If a lore entry item is clicked, it emits :py:attr:`.pre_lore_change` 
-        followed by :py:attr:`.lore_selected`.
-
-        :param item: The clicked tree item.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
-        :param column: The column index clicked.
-        :type column: int
-
-        :rtype: None
-        """
-        lore_id = item.data(0, self.LORE_ID_ROLE)
-
-        if lore_id is not None:
-            # Emit pre-change signal to allow the main window to save the current lore entry
-            self.pre_lore_change.emit()
-
-            self.lore_selected.emit(lore_id)
 
     def _handle_item_double_click(self, item: QTreeWidget, column: int) -> None:
         """
@@ -342,7 +255,7 @@ class LoreOutlineManager(QWidget):
             return
         
         # Check save status before creating a new Lore Entry (which implicitly changes selection)
-        self.pre_lore_change.emit()
+        self.pre_item_change.emit()
 
         title, ok = QInputDialog.getText(
             self,
@@ -355,12 +268,12 @@ class LoreOutlineManager(QWidget):
             new_id = self.lore_repo.create_lore_entry(title=title)
             
             if new_id:
-                self.new_lore_created.emit()
+                self.new_item_created.emit()
                 self.load_outline()
                 new_item = self.find_lore_item_by_id(new_id)
                 if new_item:
                     self.tree_widget.setCurrentItem(new_item)
-                    self._handle_item_click(new_item, 0)
+                    self._on_item_clicked(new_item, 0)
         else:
             QMessageBox.warning(self, "Database Error", "Failed to save the new Lore Entry to the database.")
 

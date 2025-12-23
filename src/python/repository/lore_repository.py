@@ -327,7 +327,7 @@ class LoreRepository:
         like_pattern = f'%{clean_query}%'
 
         query = """
-        SELECT DISTINCT LE.ID, LE.Title, LE.Category
+        SELECT DISTINCT LE.ID, LE.Title, LE.Category, LE.Parent_Lore_ID
         FROM Lore_Entries AS LE
         LEFT JOIN Lore_Tags AS LT ON LE.ID = LT.Lore_ID
         LEFT JOIN Tags AS T ON LT.Tag_ID = T.ID
