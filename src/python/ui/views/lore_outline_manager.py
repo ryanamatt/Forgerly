@@ -10,7 +10,7 @@ from typing import Any
 
 from ...resources_rc import *
 from ...repository.lore_repository import LoreRepository
-from ..widgets.lore_tree_widget import LoreTreeWidget
+from ..widgets.nested_tree_widget import NestedTreeWidget
 
 from ...services.app_coordinator import AppCoordinator
 
@@ -83,7 +83,7 @@ class LoreOutlineManager(QWidget):
         self.search_input.setPlaceholderText('Search Lore Entries...')
         self.search_input.textChanged.connect(self._handle_search_input)
 
-        self.tree_widget = LoreTreeWidget(id_role=self.LORE_ID_ROLE, parent=self)
+        self.tree_widget = NestedTreeWidget(id_role=self.LORE_ID_ROLE, parent=self)
         self.tree_widget.setHeaderHidden(True)
         self.tree_widget.setIndentation(20)
         self.tree_widget.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
@@ -102,8 +102,8 @@ class LoreOutlineManager(QWidget):
         main_layout.addWidget(container_frame)
 
         # --- 2. Configuration and Signals  ---
-        self.tree_widget.lore_parent_id_updated.connect(self._handle_lore_parent_update)
-        self.tree_widget.lore_hierarchy_updated.connect(self._handle_lore_parent_update)
+        self.tree_widget.item_hierarchy_updated.connect(self._handle_lore_parent_update)
+        self.tree_widget.item_parent_id_updated.connect(self._handle_lore_parent_update)
         self.tree_widget.customContextMenuRequested.connect(self._show_context_menu)
         self.tree_widget.itemSelectionChanged.connect(self._handle_selection_change)
         self.tree_widget.itemDoubleClicked.connect(self._handle_item_double_click)

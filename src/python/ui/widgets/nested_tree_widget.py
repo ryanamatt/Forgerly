@@ -1,4 +1,4 @@
-# src/python/ui/widgets/lore_tree_widget.py
+# src/python/ui/widgets/nested_tree_widget.py
 
 from PyQt6.QtWidgets import QTreeWidget, QAbstractItemView, QTreeWidgetItem, QMessageBox
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -8,23 +8,23 @@ from ...utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-class LoreTreeWidget(QTreeWidget):
+class NestedTreeWidget(QTreeWidget):
     """
     A custom :py:class:`~PyQt6.QtWidgets.TreeWidget` that is used to manage
-    the Tree layout of Lore Entries.
+    the Tree layout of items.
 
-    It allows to drag-and-drop setting of lore entries in a hierachical fashin.
+    It allows to drag-and-drop setting of items in a hierachical fashin.
     """
 
-    lore_parent_id_updated = pyqtSignal(int, object)
-    """:py:class:`~PyQt6.QtCore.pyqtSignal` (int, object): Signal to connect back to the LoreOutlineManager"""
+    item_parent_id_updated = pyqtSignal(int, object)
+    """:py:class:`~PyQt6.QtCore.pyqtSignal` (int, object): Signal to connect back to the OutlineManager"""
 
-    lore_hierarchy_updated = pyqtSignal(int, object)
-    """:py:class:`~PyQt6.QtCore.pyqtSignal` (int, int, int): Signal to connect back to the LoreOutlineManager"""
+    item_hierarchy_updated = pyqtSignal(int, object)
+    """:py:class:`~PyQt6.QtCore.pyqtSignal` (int, object): Signal to connect back to the OutlineManager"""
 
     def __init__(self, id_role: int, parent=None):
         """
-        Initializes a LoreTreeWidget.
+        Initializes a NestedTreeWidget.
         
         :param id_role: The ID of the current entry.
         :type id_role: int
@@ -42,7 +42,7 @@ class LoreTreeWidget(QTreeWidget):
         self.setDropIndicatorShown(True)
         self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
 
-        logger.debug(f"LoreTreeWidget initialized with ID role {self.id_role}")
+        logger.debug(f"NestedTreeWidget initialized with ID role {self.id_role}")
 
     def dropEvent(self, event: QDropEvent) -> None:
         """
@@ -90,4 +90,4 @@ class LoreTreeWidget(QTreeWidget):
             child_id = child.data(0, self.id_role)
             
             # This will now correctly report the parent ID instead of None
-            self.lore_hierarchy_updated.emit(child_id, new_parent_id)
+            self.item_hierarchy_updated.emit(child_id, new_parent_id)
