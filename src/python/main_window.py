@@ -349,7 +349,7 @@ class MainWindow(QMainWindow):
         self.lore_editor_panel = LoreEditor()
         self.character_outline_manager = CharacterOutlineManager(project_title=self.project_title, character_repository=self.coordinator.character_repo)
         self.character_editor_panel = CharacterEditor()
-        self.note_outline_manager = NoteOutlineManager(project_title=self.project_title, note_repository=self.coordinator.note_repo)
+        self.note_outline_manager = NoteOutlineManager(project_title=self.project_title, note_repository=self.coordinator.note_repo, coordinator=self.coordinator)
         self.note_editor_panel = NoteEditor(self.current_settings, self.coordinator)
 
         self.relationship_outline_manager = RelationshipOutlineManager(relationship_repository=self.coordinator.relationship_repo)
