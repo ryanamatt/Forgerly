@@ -7,9 +7,10 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Any
 
+from .base_editor import BaseEditor
 from ...ui.widgets.basic_text_editor import BasicTextEditor
 
-class CharacterEditor(QWidget):
+class CharacterEditor(BaseEditor):
     """
     A composite :py:class:`~PyQt6.QtWidgets.QWidget` for editing a Character's details 
     (Name, Status, Description).
@@ -50,7 +51,7 @@ class CharacterEditor(QWidget):
 
         # --- 1. Sub-components ---
         self.description_editor = BasicTextEditor()
-        self.physical_editor = BasicTextEditor()  # Moved up for clarity
+        self.text_editor = BasicTextEditor()  # Moved up for clarity
         self.name_input = QLineEdit()
         self.name_input.setPlaceholderText("Enter Character Name")
         
@@ -103,7 +104,7 @@ class CharacterEditor(QWidget):
         physical_group = QGroupBox("Physical Description")
         physical_group.setAlignment(Qt.AlignmentFlag.AlignCenter)
         physical_layout = QVBoxLayout(physical_group)
-        physical_layout.addWidget(self.physical_editor)
+        physical_layout.addWidget(self.text_editor)
 
         # Add groups to the horizontal layout
         editors_layout.addWidget(description_group, 1) # Equal stretch
@@ -125,7 +126,8 @@ class CharacterEditor(QWidget):
         self.age_spin.valueChanged.connect(self._set_dirty)
         self.dob_input.textChanged.connect(self._set_dirty)
         self.occupation_input.textChanged.connect(self._set_dirty)
-        self.physical_editor.content_changed.connect(self._set_dirty)
+        self.text_editor.content_changed.connect(self._set_dirty)
+        self.tag_manager.tags_changed.connect(self._set_dirty)
         
         self.name_input.editingFinished.connect(self._emit_name_change)
         
@@ -177,7 +179,7 @@ class CharacterEditor(QWidget):
         self.age_spin.setValue(age)
         self.dob_input.setText(dob)
         self.occupation_input.setText(occupation)
-        self.physical_editor.set_html_content(physical)
+        self.text_editor.set_html_content(physical)
         
         # Update initial states for dirty checking
         self._initial_name = name
@@ -205,8 +207,9 @@ class CharacterEditor(QWidget):
             'age': self.age_spin.value(),
             'date_of_birth': self.dob_input.text().strip(),
             'occupation_school': self.occupation_input.text().strip(),
-            'physical_description': self.physical_editor.get_html_content()
+            'physical_description': self.text_editor.get_html_content()
         }
+    
     def is_dirty(self) -> bool:
         """
         Checks if the content in the editor has unsaved changes compared to 
@@ -219,15 +222,19 @@ class CharacterEditor(QWidget):
         :rtype: bool
         """
         if self.current_char_id is None:
-            return False 
+            return False
+
+        # self.text_editor and self.tag_manager
+        if super().is_dirty():
+            return True 
 
         return (self.name_input.text().strip() != self._initial_name or 
             self.status_combo.currentText().strip() != self._initial_status or
             self.age_spin.value() != self._initial_age or
             self.dob_input.text().strip() != self._initial_dob or
             self.occupation_input.text().strip() != self._initial_occupation or
-            self.description_editor.is_dirty() or
-            self.physical_editor.is_dirty())
+            self.description_editor.is_dirty()
+        )
 
     def mark_saved(self) -> None:
         """
@@ -236,16 +243,15 @@ class CharacterEditor(QWidget):
         
         :rtype: None
         """
-        # Reset the internal state of the basic text editors
-        self.description_editor.mark_saved()
-        self.physical_editor.mark_saved()
-        
-        # Recapture the current state for all basic fields
+
+        super().mark_saved()
+
         self._initial_name = self.name_input.text().strip()
         self._initial_status = self.status_combo.currentText().strip()
         self._initial_age = self.age_spin.value()
         self._initial_dob = self.dob_input.text().strip()
         self._initial_occupation = self.occupation_input.text().strip()
+        self.description_editor.mark_saved()
         
     def set_enabled(self, enabled: bool) -> None:
         """
@@ -256,18 +262,15 @@ class CharacterEditor(QWidget):
 
         :rtype: None
         """
-        # Header fields
+        # self.text_editor and self.tag_manager
+        super().set_enabled(enabled)
+
         self.name_input.setEnabled(enabled)
         self.status_combo.setEnabled(enabled)
-        
-        # Personal details fields
         self.age_spin.setEnabled(enabled)
         self.dob_input.setEnabled(enabled)
         self.occupation_input.setEnabled(enabled)
-        
-        # Rich text editors
         self.description_editor.setEnabled(enabled)
-        self.physical_editor.setEnabled(enabled)
         
     # --- Data Retrieval Methods ---
     
@@ -312,7 +315,9 @@ class CharacterEditor(QWidget):
         
         :rtype: None
         """
-        pass 
+        self.text_editor._set_dirty()
+        self.description_editor._set_dirty()
+        self.tag_manager._set_dirty() 
 
     def _emit_name_change(self) -> None:
         """
