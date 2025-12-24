@@ -1,10 +1,9 @@
 # src/python/ui/views/note_outline_manger
 
 from PyQt6.QtWidgets import (
-    QTreeWidget, QTreeWidgetItem, QMenu, QInputDialog, QMessageBox,
-    QWidget, QVBoxLayout, QLineEdit, QLabel, QFrame, QTreeWidgetItemIterator
+    QTreeWidgetItem, QMenu, QInputDialog, QMessageBox, QTreeWidgetItemIterator
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QPoint
+from PyQt6.QtCore import Qt, QPoint
 from PyQt6.QtGui import QIcon
 from typing import Any
 
