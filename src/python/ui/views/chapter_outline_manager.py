@@ -9,7 +9,7 @@ from PyQt6.QtGui import QIcon
 
 from ...resources_rc import *
 from ...repository.chapter_repository import ChapterRepository
-from ..widgets.chapter_tree_widget import ChapterTreeWidget 
+from ..widgets.reordering_tree_widget import ReorderingTreeWidget 
 
 class ChapterOutlineManager(QWidget):
     """
@@ -75,7 +75,7 @@ class ChapterOutlineManager(QWidget):
         )
 
         # Configuration and Styling
-        self.tree_widget = ChapterTreeWidget(editor=self)
+        self.tree_widget = ReorderingTreeWidget(editor=self)
         self.tree_widget.setHeaderHidden(True)
         self.tree_widget.setIndentation(0)
         self.tree_widget.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)

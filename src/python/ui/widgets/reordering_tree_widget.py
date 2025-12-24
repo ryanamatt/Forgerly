@@ -1,9 +1,9 @@
-# src/python/ui/widgets/chapter_tree.py
+# src/python/ui/widgets/reordering_tree_widget.py
 
 from PyQt6.QtWidgets import QTreeWidget
 from PyQt6.QtGui import QDropEvent
 
-class ChapterTreeWidget(QTreeWidget):
+class ReorderingTreeWidget(QTreeWidget):
     """
     A specialized :py:class:`~PyQt6.QtWidgets.QTreeWidget` that handles the 
     visual representation and drag-and-drop reordering of chapters.
