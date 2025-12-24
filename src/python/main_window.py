@@ -329,7 +329,6 @@ class MainWindow(QMainWindow):
         logger.info("Connecting all application UI and data components.")
 
         # --- MainMenuBar Connections (Menu signal OUT -> MainWindow slot IN) ---
-        self.main_menu_bar.save_requested.connect(self._save_current_item_wrapper)
         self.main_menu_bar.export_requested.connect(self._export)
         self.main_menu_bar.settings_requested.connect(self._open_settings_dialog)
 
@@ -374,51 +373,6 @@ class MainWindow(QMainWindow):
             self.project_open_requested.emit()
 
         logger.debug(f"Signal emitted to ApplicationFlowManager. Current MainWindow is now closing.")
-
-    # -------------------------------------------------------------------------
-    # Logic Delegation / Handlers
-    # -------------------------------------------------------------------------
-
-    def _save_current_item_wrapper(self) -> None:
-        """
-        Wrapper to call coordinator's save method and update status bar.
-        
-        :rtype: None
-        """
-        item_id = self.coordinator.current_item_id
-        view = self.coordinator.current_view
-        
-        # Check if there is an active item to save before proceeding
-        if item_id is None:
-            self.statusBar().showMessage("No active item selected or loaded to save.", 3000)
-            logger.warning("Save requested, but no active item (ID is None). Operation aborted.")
-            return
-
-        logger.info(f"Save requested for item ID: {item_id} in view: {view}")
-        
-        # Delegate the save logic to the coordinator
-        if self.coordinator.save_current_item(item_id, view, parent=self):
-            # Determine the user-friendly name for the item type
-            if view == ViewType.CHAPTER_EDITOR:
-                item_type = 'Chapter'
-            elif view == ViewType.LORE_EDITOR:
-                item_type = 'Lore Entry'
-            elif view == ViewType.CHARACTER_EDITOR:
-                item_type = 'Character'
-            elif view == ViewType.NOTE_EDITOR:
-                item_type = 'Note'
-            else:
-                item_type = 'Item' # Fallback for other views
-                
-            # Success message in status bar
-            message = f"{item_type} ID {item_id} saved successfully."
-            self.statusBar().showMessage(message, 3000)
-            logger.info(message)
-        else:
-            # Saving failed (e.g., database error). 
-            # Note: QMessageBox errors are handled by the Coordinator, so we just log here.
-            logger.error(f"Failed to save item ID: {item_id} in view: {view}. Check coordinator logs for details.")
-            self.statusBar().showMessage("Error: Failed to save the current item. See logs.", 5000)
     
     # -------------------------------------------------------------------------
     # I/O Handlers (Export/Settings)

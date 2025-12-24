@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..services.app_coordinator import AppCoordinator
     from .menu.main_menu_bar import MainMenuBar
+    from .views.base_editor import BaseEditor
     from .views.chapter_outline_manager import ChapterOutlineManager
     from .views.chapter_editor import ChapterEditor
     from .views.lore_outline_manager import LoreOutlineManager
@@ -28,6 +29,8 @@ class ViewManager(QObject):
     """
     Orchestrates the switching of UI panels within MainWindow.
     Manages the synchronization between the Outline Stack and the Editor Stack.
+
+    Connects the OutlineManager, Editor signals to the coordinator.
     """
 
     view_changed = pyqtSignal(int)
@@ -73,6 +76,8 @@ class ViewManager(QObject):
         
         :rtype: None
         """
+        self.main_menu_bar.save_requested.connect(self.coordinator.save_current_item)
+
         self.main_menu_bar.view_switch_requested.connect(self.switch_to_view)
         self.view_changed.connect(self.main_menu_bar.update_view_checkmarks)
 
@@ -128,8 +133,9 @@ class ViewManager(QObject):
         # Load & Reload Graph Data
         self.coordinator.graph_data_loaded.connect(rel_editor.load_graph)
         rel_outline.relationship_types_updated.connect(self.coordinator.reload_relationship_graph_data)
+        rel_editor.request_load_data.connect(self.coordinator.load_relationship_graph_data)
 
-        # Lore Categores
+        # Lore Categories
         self.coordinator.lore_categories_changed.connect(lore_editor.set_available_categories)
 
 
@@ -142,9 +148,9 @@ class ViewManager(QObject):
 
         :rtype: None
         """
-        index = self._view_indices.get(view)
+        index = self._view_indices.get(view, -1)
 
-        if index is None:
+        if index == -1:
             logger.error(f"ViewManager: No stack index defined for {view}")
             return
 
@@ -165,32 +171,20 @@ class ViewManager(QObject):
         :param view: The view to perform on.
         :type view: ViewType
         """
-        editor = self.coordinator.get_current_editor()
+        editor: BaseEditor = self.coordinator.get_current_editor()
 
         if view == ViewType.RELATIONSHIP_GRAPH:
             # Relationships usually load all data immediately
-            if hasattr(editor, 'request_load_data'):
+            if isinstance(editor, RelationshipEditor):
                 editor.request_load_data.emit()
             editor.set_enabled(True)
             
         elif view == ViewType.LORE_EDITOR:
             # Refresh category dropdowns for the lore editor
             self.coordinator.refresh_lore_categories()
-            editor.set_enabled(False)
             
         else:
             # Default behavior: Editors are disabled until an item is clicked in the outline
             if editor:
                 editor.set_enabled(False)
                 logger.debug(f"ViewManager: Disabled {view} editor awaiting selection.")
-
-    def get_view_index(self, view: ViewType) -> int:
-        """
-        Gets the Index of the view.
-        
-        :param view: The view to get the index for.
-        :type view: ViewType
-        :return: The index of the view. Returns -1 if not found.
-        :rtype: int
-        """
-        return self._view_indices.get(view, -1)

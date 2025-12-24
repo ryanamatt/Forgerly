@@ -145,7 +145,6 @@ class AppCoordinator(QObject):
         if ViewType.RELATIONSHIP_GRAPH in self.editors:
             self.relationship_editor: RelationshipEditor = self.editors[ViewType.RELATIONSHIP_GRAPH]
             # The editor signals the coordinator to load the data when it becomes visible
-            self.relationship_editor.request_load_data.connect(self.load_relationship_graph_data)
 
         self.connect_signals()
 
@@ -208,27 +207,19 @@ class AppCoordinator(QObject):
             return False
         
         if save_reply == QMessageBox.StandardButton.Save:
-            self.save_current_item(self.current_item_id, self.current_view, parent)
+            self.save_current_item()
         
         # If discard proceed
         return True
     
-    def save_current_item(self, item_id: int, view: ViewType, parent=None) -> bool:
+    def save_current_item(self) -> bool:
         """
         General Method to save either chapter, character or a lore entry.
-        
-        :param item_id: The ID number of the item to save.
-        :type item_id: int
-        :param view: The current view of the application.
-        :type view: :py:class:`~.ViewType`
-        :param parent: The parent. Default is None.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
 
         :returns: Returns True if saved, otherwise False
         :rtype: bool
         """
-
-        if self.current_view == ViewType.RELATIONSHIP_GRAPH or item_id <= 0:
+        if self.current_view == ViewType.RELATIONSHIP_GRAPH or self.current_item_id <= 0:
             return True
 
         editor: BaseEditor = self.get_current_editor()
@@ -238,22 +229,22 @@ class AppCoordinator(QObject):
         data = editor.get_save_data()
         tags = data.pop('tags', [])
         
-        match view:
+        match self.current_view:
             case ViewType.CHAPTER_EDITOR:
-                content_success = self.chapter_repo.update_chapter_content(item_id, **data)
-                tag_success = self.tag_repo.set_tags_for_chapter(item_id, tags)
+                content_success = self.chapter_repo.update_chapter_content(self.current_item_id, **data)
+                tag_success = self.tag_repo.set_tags_for_chapter(self.current_item_id, tags)
 
             case ViewType.CHARACTER_EDITOR:
-                content_success = self.character_repo.update_character(item_id, **data)
-                tag_success = True
+                content_success = self.character_repo.update_character(self.current_item_id, **data)
+                tag_success = True # No Tags for Character
 
             case ViewType.LORE_EDITOR:
-                content_success = self.lore_repo.update_lore_entry(item_id, **data)
-                tag_success = self.tag_repo.set_tags_for_lore_entry(item_id, tags)
+                content_success = self.lore_repo.update_lore_entry(self.current_item_id, **data)
+                tag_success = self.tag_repo.set_tags_for_lore_entry(self.current_item_id, tags)
 
             case ViewType.NOTE_EDITOR:
-                content_success = self.note_repo.update_note_content(item_id, **data)
-                tag_success = self.tag_repo.set_tags_for_note(item_id, tags)
+                content_success = self.note_repo.update_note_content(self.current_item_id, **data)
+                tag_success = self.tag_repo.set_tags_for_note(self.current_item_id, tags)
             
         if content_success and tag_success:
             editor.mark_saved()
