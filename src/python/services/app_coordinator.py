@@ -73,55 +73,6 @@ class AppCoordinator(QObject):
     :py:class:`~PyQt6.QtCore.pyqtSignal` (list): Emitted to provide the list of 
     all defined relationship types (names, colors, IDs) to the graph and outline manager.
     """
-    
-    # --- Signals for Outline Panel Updates ---
-    chapter_created = pyqtSignal(int, str)           # id, title
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str): Emitted after a new chapter 
-    is successfully created in the database. Carries the new Chapter ID and title.
-    """
-
-    lore_created = pyqtSignal(int, str, str)         # id, title, category
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str, str): Emitted after a new 
-    lore item is successfully created. Carries the new Lore ID, title, and category.
-    """
-
-    character_created = pyqtSignal(int, str)         # id, name
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str): Emitted after a new character 
-    is successfully created. Carries the new Character ID and name.
-    """
-
-    note_created = pyqtSignal(int, str) # id, title
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str): Emitted after a new note 
-    is successfully created. Carries the new Note ID and name.
-    """
-
-    chapter_editor_dirty_status = pyqtSignal(bool)
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (bool): Emitted to indicate the chapter 
-    editor's dirty (unsaved changes) status.
-    """
-
-    lore_editor_dirty_status = pyqtSignal(bool)
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (bool): Emitted to indicate the lore 
-    editor's dirty status.
-    """
-
-    character_editor_dirty_status = pyqtSignal(bool)
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (bool): Emitted to indicate the character 
-    editor's dirty status.
-    """
-
-    note_editor_dirty_status = pyqtSignal(bool)
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (bool): Emitted to indicate the note 
-    editor's dirty status.
-    """
 
     lore_categories_changed = pyqtSignal(list) 
     """:py:class:`~PyQt6.QtCore.pyqtSignal` Emitted when the list of available 
