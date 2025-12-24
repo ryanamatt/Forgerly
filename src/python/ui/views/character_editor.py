@@ -300,10 +300,6 @@ class CharacterEditor(BaseEditor):
         :rtype: str
         """
         return self.description_editor.get_html_content()
-    
-    # =========================================================================
-    # INTERNAL HANDLERS
-    # =========================================================================
         
     def _set_dirty(self) -> None:
         """
@@ -328,3 +324,63 @@ class CharacterEditor(BaseEditor):
         """
         if self.current_char_id is not None:
              self.char_name_changed.emit(self.current_char_id, self.get_name())
+
+    def get_save_data(self) -> dict:
+        """
+        Returns all the current saved data.
+        
+        :returns: A dictionary of the current character data.
+        :rtype: dict
+        """
+        return {
+            "name": self.name_input.text(),
+            "description": self.description_editor.get_html_content(),
+            "status": self.status_combo.currentText(),
+            "age": self.age_spin.value(),
+            "date_of_birth": self.dob_input.text(),
+            "occupation_school": self.occupation_input.text(),
+            "physical_description": self.text_editor.get_html_content(),
+            "tags": self.get_tags()
+        }
+    
+    def load_entity(self, char_id: int, name: str, description: str, status: str, age: int,
+                    dob: str, occupation: str, physical: str) -> None:
+        """
+        Loads all the information into the editor
+        
+        :param char_id: The ID of the character.
+        :type char_id: int
+        :param description: The description of the character.
+        :type description: str
+        :param status: The status of the Character.
+        :type status: str
+        :param age: The Age of the character.
+        :type age: int
+        :param dob: The Date of Birth of the Character.
+        :type dob: str
+        :param occupation: The Occupation of the Character.
+        :type occupation: str
+        :param physical: The physical description of the character.
+        :type physical: str
+
+        :rtype: None
+        """
+        # Update UI Components
+        self.name_input.setText(name)
+        self.description_editor.set_html_content(description)
+        self.status_combo.setCurrentText(status)
+        self.age_spin.setValue(age)
+        self.dob_input.setText(dob)
+        self.occupation_input.setText(occupation)
+        self.text_editor.set_html_content(physical)
+
+        # Store initlka state for dirty checking
+        self._initial_name = name
+        self._initial_status = status
+        self._initial_age = age
+        self._initial_dob = dob
+        self._initial_occupation = occupation
+        self._initial_physical = physical
+
+        self.mark_saved()
+        self.set_enabled(True)

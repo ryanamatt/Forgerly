@@ -47,7 +47,7 @@ class ChapterEditor(BaseEditor):
         :rtype: None
         """
         super().__init__(parent)
-        
+
         self.current_settings = current_settings
         self.coordinator = coordinator
         self.wpm = current_settings['words_per_minute']
@@ -56,7 +56,6 @@ class ChapterEditor(BaseEditor):
 
         # --- Sub-components ---
         self.text_editor = RichTextEditor()
-        self.tag_manager = TagManagerWidget()
         
         # --- Statistics Labels ---
         self.word_count_label = QLabel("Words: 0")
@@ -236,3 +235,32 @@ class ChapterEditor(BaseEditor):
         layout.addWidget(content_viewer)
         
         dialog.show()
+
+    def get_save_data(self) -> dict:
+        """
+        Returns all the current saved data.
+        
+        :returns: A dictionary of the current chapter data.
+        :rtype: dict
+        """
+        return {
+            'content': self.text_editor.get_html_content(),
+            'tags': self.tag_manager.get_tags()
+        }
+    
+    def load_entity(self, chapter_id: int, content: str, tags: list[str]):
+        """
+        Loads all the information into the editor and enables the editor.
+        
+        :param chapter_id: The id of the Chapter.
+        :type chapter_id: int
+        :param content: The Chapter Content
+        :type content: str
+        :param tags: The list of tags.
+        :type tags: list[str]
+        """
+        self.text_editor.set_html_content(content)
+        self.tag_manager.set_tags(tags)
+
+        self.mark_saved()
+        self.set_enabled(True)

@@ -16,6 +16,7 @@ from ..utils.constants import ViewType, EntityType
 
 from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
+    from ..ui.views.base_editor import BaseEditor
     from ..ui.views.chapter_editor import ChapterEditor
     from ..ui.views.lore_editor import LoreEditor
     from ..ui.views.character_editor import CharacterEditor
@@ -276,144 +277,38 @@ class AppCoordinator(QObject):
         :rtype: bool
         """
 
-        if self.current_view == ViewType.RELATIONSHIP_GRAPH:
+        if self.current_view == ViewType.RELATIONSHIP_GRAPH or item_id <= 0:
             return True
 
-        if item_id <= 0:
+        editor: BaseEditor = self.get_current_editor()
+        if not editor:
             return False
+        
+        data = editor.get_save_data()
+        tags = data.pop('tags', [])
         
         match view:
             case ViewType.CHAPTER_EDITOR:
-                return self._save_chapter_content(item_id, parent)
-            
-            case ViewType.LORE_EDITOR:
-                return self._save_lore_entry_content(item_id, parent)
-            
+                content_success = self.chapter_repo.update_chapter_content(item_id, **data)
+                tag_success = self.tag_repo.set_tags_for_chapter(item_id, tags)
+
             case ViewType.CHARACTER_EDITOR:
-                return self._save_character_content(item_id, parent)
-            
+                content_success = self.character_repo.update_character(item_id, **data)
+                tag_success = True
+
+            case ViewType.LORE_EDITOR:
+                content_success = self.lore_repo.update_lore_entry(item_id, **data)
+                tag_success = self.tag_repo.set_tags_for_lore_entry(item_id, tags)
+
             case ViewType.NOTE_EDITOR:
-                return self._save_note_content(item_id, parent)
+                content_success = self.note_repo.update_note_content(item_id, **data)
+                tag_success = self.tag_repo.set_tags_for_note(item_id, tags)
             
-            case _:
-                return False
-            
-    def _save_chapter_content(self, chapter_id: int, parent=None) -> bool:
-        """
-        Saves the current chapter content.
-        
-        :param chapter_id: The ID number of the chapter item to save.
-        :type chapter_id: int
-        :param parent: The parent. Default is None.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
-
-        :returns: Returns True if saved, otherwise False
-        :rtype: bool
-        """
-        editor: ChapterEditor = self.editors[ViewType.CHAPTER_EDITOR]
-        content = editor.get_html_content()
-        tags = editor.get_tags()
-
-        content_saved = self.chapter_repo.update_chapter_content(chapter_id, content)
-        tags_saved = self.tag_repo.set_tags_for_chapter(chapter_id, tags)
-
-        if content_saved and tags_saved:
+        if content_success and tag_success:
             editor.mark_saved()
             return True
-        else:
-            QMessageBox.critical(parent, "Save Failed", f"Failed to save Chapter ID {chapter_id}.")
-            return False
-
-    def _save_lore_entry_content(self, lore_id: int, parent=None) -> bool:
-        """
-        Saves the current lore entry content.
         
-        :param lore_id: The ID number of the lore item to save.
-        :type lore_id: int
-        :param parent: The parent. Default is None.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
-
-        :returns: Returns True if saved, otherwise False
-        :rtype: bool
-        """
-        editor: LoreEditor = self.lore_editor
-        data = editor.get_data()
-        
-        title = data['title']
-        category = data['category']
-        content = data['content']
-        tags = data['tags']
-
-        content_saved = self.lore_repo.update_lore_entry(lore_id, title, content, category)
-        tags_saved = self.tag_repo.set_tags_for_lore_entry(lore_id, tags)
-
-        if content_saved and tags_saved:
-            # Reload to reset the editor's internal state (dirtiness tracking)
-            editor.load_lore(lore_id, title, category, content, tags) 
-            editor.mark_saved()
-            return True
-        else:
-            QMessageBox.critical(parent, "Save Failed", f"Failed to save Lore Entry ID {lore_id}.")
-            return False
-        
-    def _save_character_content(self, char_id: int, parent=None) -> bool:
-        """
-        Saves the current character content.
-        
-        :param char_id: The ID number of the character item to save.
-        :type char_id: int
-        :param parent: The parent. Default is None.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
-
-        :returns: Returns True if saved, otherwise False
-        :rtype: bool
-        """
-        editor: CharacterEditor = self.character_editor
-        data = editor.get_data()
-
-        content_saved = self.character_repo.update_character(
-            char_id, 
-            data['name'], data['description'], data['status'],
-            data['age'], data['date_of_birth'], data['occupation_school'], data['physical_description']
-        )
-
-        if content_saved:
-            editor.load_character(
-                char_id, 
-                data['name'], data['description'], data['status'],
-                data['age'], data['date_of_birth'], data['occupation_school'], data['physical_description']
-            )
-            editor.mark_saved()
-            return True
-        else:
-            QMessageBox.critical(parent, "Save Failed", f"Failed to save Character ID {char_id}.")
-            return False
-        
-    def _save_note_content(self, note_id: int, parent=None) -> bool:
-        """
-        Saves the current note content.
-        
-        :param note_id: The ID number of the chapter item to save.
-        :type note_id: int
-        :param parent: The parent. Default is None.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
-
-        :returns: Returns True if saved, otherwise False
-        :rtype: bool
-        """
-        editor: NoteEditor = self.editors[ViewType.NOTE_EDITOR]
-        content = editor.get_html_content()
-        tags = editor.get_tags()
-
-        content_saved = self.note_repo.update_note_content(note_id, content)
-        tags_saved = self.tag_repo.set_tags_for_note(note_id, tags)
-
-        if content_saved and tags_saved:
-            editor.mark_saved()
-            return True
-        else:
-            QMessageBox.critical(parent, "Save Failed", f"Failed to save note ID {note_id}.")
-            return False
+        return False
         
     def save_node_position(self, char_id: int, x_pos: float, y_pos: float, node_color: str, node_shape: str, is_hidden: int) -> bool:
         """
@@ -485,115 +380,47 @@ class AppCoordinator(QObject):
         
     # --- Load Content Logic (Called by Outline Managers) ---
 
-    def load_chapter(self, chapter_id: int) -> None:
+    def load_item(self, item_id: int, view: ViewType):
         """
-        Fetches a chapter from the repository and emits the :py:attr:`.chapter_loaded` signal.
-
-        :param chapter_id: The ID of the chapter to load.
-        :type chapter_id: int
+        Loads an items item from the database into the correct editor.
         
-        :rtype: None
+        :param item_id: The ID of the item.
+        :type item_id: int
+        :param view: The current view.
+        :type view: ViewType
         """
-        
-        # 1. Update Coordinator State
-        self.current_item_id = chapter_id
-        self.current_view = ViewType.CHAPTER_EDITOR
+        self.current_item_id = item_id
+        self.current_view = view
 
-        # 2. Load Content
-        content = self.chapter_repo.get_chapter_content(chapter_id)
-        
-        if content is None:
-            content = "<h1>Error Loading Chapter</h1><p>Content could not be retrieved from the database.</p>"
+        if view == ViewType.CHAPTER_EDITOR:
+            content = self.chapter_repo.get_chapter_content(chapter_id=item_id)
+            if content is None: content = ""
+            tags_data = self.tag_repo.get_tags_for_chapter(chapter_id=item_id)
+            tag_names = [name for _, name in tags_data] if tags_data else []
+            self.chapter_loaded.emit(item_id, content, tag_names)
 
-        # 3. Load Tags
-        tags_data = self.tag_repo.get_tags_for_chapter(chapter_id)
-        tag_names = [name for _, name in tags_data] if tags_data else []
-        
-        # 4. Emit signal to the ChapterEditor
-        self.chapter_loaded.emit(chapter_id, content, tag_names)
+        elif view == ViewType.LORE_EDITOR:
+            data = self.lore_repo.get_lore_entry_details(lore_id=item_id)
+            tags_data = self.tag_repo.get_tags_for_lore_entry(item_id)
+            tag_names = [name for _, name in tags_data] if tags_data else []
+            self.lore_loaded.emit(item_id, data['Title'], data['Content'], data['Category'], tag_names)
 
-    def load_lore(self, lore_id: int) -> None:
-        """
-        Fetches a lore item from the repository and emits the :py:attr:`.lore_loaded` signal.
-
-        :param lore_id: The ID of the lore item to load.
-        :type lore_id: int
-        
-        :rtype: None
-        """
-        
-        # 1. Update Coordinator State
-        self.current_item_id = lore_id
-        self.current_view = ViewType.LORE_EDITOR
-
-        # 2. Load Lore Details
-        lore_details = self.lore_repo.get_lore_entry_details(lore_id)
-        
-        if lore_details is None:
-            # Emit empty content to disable editor
-            self.lore_loaded.emit(lore_id, "", "", "", [])
-            return
-        
-        title = lore_details['Title']
-        category = lore_details['Category']
-        content = lore_details['Content']
-
-        # 3. Load Tags
-        tags_data = self.tag_repo.get_tags_for_lore_entry(lore_id)
-        tag_names = [name for _, name in tags_data] if tags_data else []
-        
-        # 4. Emit signal to the LoreEditor
-        self.lore_loaded.emit(lore_id, title, category, content, tag_names)
-
-    def load_character(self, char_id: int) -> None:
-        """
-        Fetches a character from the repository and emits the :py:attr:`.char_loaded` signal.
-
-        :param char_id: The ID of the character to load.
-        :type char_id: int
-        
-        :rtype: None
-        """
-        self.current_item_id = char_id
-        self.current_view = ViewType.CHARACTER_EDITOR
-        
-        char_details = self.character_repo.get_character_details(char_id)
-        if char_details:
+        elif view == ViewType.CHARACTER_EDITOR:
+            data = self.character_repo.get_character_details(char_id=item_id)
             self.char_loaded.emit(
-                char_id, 
-                char_details['Name'], char_details['Description'], char_details['Status'],
-                char_details.get('Age', -1),
-                char_details.get('Date_Of_Birth', ""),
-                char_details.get('Occupation_School', ""),
-                char_details.get('Physical_Description', "")
+                item_id, 
+                data['Name'], data['Description'], data['Status'],
+                data.get('Age', -1),
+                data.get('Date_Of_Birth', ""),
+                data.get('Occupation_School', ""),
+                data.get('Physical_Description', "")
             )
 
-    def load_note(self, note_id: int) -> None:
-        """
-        Fetches a note from the repository and emits the :py:attr:`.note_loaded` signal.
-
-        :param note_id: The ID of the note to load.
-        :type note_id: int
-        
-        :rtype: None
-        """
-        
-        # 1. Update Coordinator State
-        self.current_item_id = note_id
-        self.current_view = ViewType.NOTE_EDITOR
-
-        # 2. Load Content
-        content = self.note_repo.get_note_content(note_id)
-        
-        if content is None:
-            content = "<h1>Error Loading Note</h1><p>Content could not be retrieved from the database.</p>"
-
-        # 3. Load Tags
-        tags_data = self.tag_repo.get_tags_for_note(note_id)
-        tag_names = [name for _, name in tags_data] if tags_data else []
-        
-        # 4. Emit signal to the ChapterEditor
-        self.note_loaded.emit(note_id, content, tag_names)
+        elif view == ViewType.NOTE_EDITOR:
+            content = self.note_repo.get_note_content(note_id=item_id)
+            tags_data = self.tag_repo.get_tags_for_note(item_id)
+            tag_names = [name for _, name in tags_data] if tags_data else []
+            self.note_loaded.emit(item_id, content, tag_names)
 
     # --- Updating Parent Lore ID ---
 

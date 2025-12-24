@@ -85,3 +85,12 @@ class BaseEditor(QWidget):
         :rtype: None
         """
         self.tag_manager.set_tags(tag_names)
+
+    # --- Save and Load Data ---
+    def get_save_data(self) -> dict:
+        """Subclasses MUST override this to return a dict of their current UI state."""
+        raise NotImplementedError("Subclasses must implement get_save_data")
+
+    def load_entity(self, *args, **kwargs):
+        """Subclasses MUST override this to populate UI and reset initial state."""
+        raise NotImplementedError("Subclasses must implement load_entity")

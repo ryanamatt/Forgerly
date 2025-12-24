@@ -169,21 +169,21 @@ class NoteRepository:
             logger.error(f"Failed to create new note with title: '{title}'.", exc_info=True)
             raise e
         
-    def update_note_content(self, note_id: int, new_content: str) -> bool:
+    def update_note_content(self, note_id: int, content: str) -> bool:
         """
         Updates the Content of a Note in the database.
         
         :param note_id: The ID of the Note to update.
         :type note_id: int
-        :param new_content: The new content of the note.
-        :type new_content: str
+        :param content: The new content of the note.
+        :type content: str
 
         :return: Retunrns True if successful, otherwise False.
         :rtype: bool
         """
         query = "UPDATE Notes SET Content = ? WHERE ID = ?;"
         try:
-            success = self.db._execute_commit(query, (new_content, note_id))
+            success = self.db._execute_commit(query, (content, note_id))
             if success:
                 logger.info(f"Content updated for note ID: {note_id}.")
             return success

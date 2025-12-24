@@ -8,7 +8,6 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Any
 
 from .base_editor import BaseEditor
-from ...ui.widgets.tag_widget import TagManagerWidget
 from ...ui.widgets.basic_text_editor import BasicTextEditor
 
 class LoreEditor(BaseEditor):
@@ -228,10 +227,6 @@ class LoreEditor(BaseEditor):
         self.title_input.setEnabled(enabled)
         self.category_combo.setEnabled(enabled)
         
-    # =========================================================================
-    # INTERNAL HANDLERS
-    # =========================================================================
-        
     def _set_dirty(self) -> None:
         """
         Placeholder for dirtiness signals. Actual dirtiness is checked in is_dirty().
@@ -248,3 +243,45 @@ class LoreEditor(BaseEditor):
         """
         if self.current_lore_id is not None:
              self.lore_title_changed.emit(self.current_lore_id, self.title_input.text().strip())
+
+    def get_save_data(self) -> dict:
+        """
+        Returns all the current saved data.
+        
+        :returns: A dictionary of the current lore entry data.
+        :rtype: dict
+        """
+        return {
+            'title': self.title_input.text().strip(),
+            'content': self.text_editor.get_html_content(),
+            'category': self.category_combo.currentText().strip(),
+            'tags': self.tag_manager.get_tags()
+        }
+    
+    def load_entity(self, lore_id: int, title: str, content: str, category: str, tags: list[str]) -> None:
+        """
+        Loads all the information into the editor
+        
+        :param lore_id: The ID of the Lore Entry.
+        :type; lore_id: int
+        :param title: The Title of the Lore Entry.
+        :type title: str
+        :param content: The Content of the Lore Entry.
+        :type content: str
+        :param category: The Category of the Lore Entry.
+        :type category: str
+        :param tags: The List of Tags of the Lore Entry.
+        :type tags: list[str]
+
+        :rtype: None
+        """
+        self.title_input.setText(title)
+        self.text_editor.set_html_content(content)
+        self.category_combo.setCurrentText(category)
+        self.tag_manager.set_tags(tags)
+
+        self._initial_title = title
+        self._initial_category = category
+
+        self.mark_saved()
+        self.set_enabled(True)
