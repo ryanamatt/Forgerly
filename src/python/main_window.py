@@ -10,7 +10,9 @@ import sys
 import ctypes
 from typing import Any
 
+from .ui.view_manager import ViewManager
 from .ui.menu.main_menu_bar import MainMenuBar
+
 from .ui.views.chapter_outline_manager import ChapterOutlineManager
 from .ui.views.chapter_editor import ChapterEditor
 from .ui.views.lore_outline_manager import LoreOutlineManager
@@ -171,7 +173,7 @@ class MainWindow(QMainWindow):
         self._connect_components()
 
         # Initially set the view to Chapters
-        self._switch_to_view(ViewType.CHAPTER_EDITOR)
+        self.view_manager.switch_to_view(ViewType.CHAPTER_EDITOR)
 
         # Enable geometry saving after initial setup is complete
         self._is_ready_to_save_geometry = True
@@ -256,80 +258,6 @@ class MainWindow(QMainWindow):
             logger.debug("Resize event received. Debouncing geometry save.")
 
     # -------------------------------------------------------------------------
-    # View Management
-    # -------------------------------------------------------------------------
-
-    def _switch_to_view(self, view: ViewType) -> None:
-        """
-        Switches between all the different views.
-        
-        :param view: The view that will be changed to.
-        :type view: :py:class:`~app.utils.types.ViewType`
-
-        :rtype: None
-        """
-        logger.info(f"Requested view switch to: {view}")
-
-        if not self.coordinator.check_and_save_dirty(parent=self):
-            logger.debug("View switch canceled by user due to unsaved changes.")
-            return
-        
-        if self.current_view == view:
-            logger.debug(f"View is already set to {view}. Aborting switch.")
-            return
-        
-        # Update the view and notify coordinator
-        self.current_view = view
-        self.coordinator.set_current_view(view)
-        logger.debug(f"MainWindow state updated to {view}.")
-        
-        
-        # Define a mapping from ViewType to the internal index property name for cleaner access
-        view_map = {
-            ViewType.CHAPTER_EDITOR: self._chapter_index,
-            ViewType.LORE_EDITOR: self._lore_index,
-            ViewType.CHARACTER_EDITOR: self._character_index,
-            ViewType.NOTE_EDITOR: self._note_index,
-            ViewType.RELATIONSHIP_GRAPH: self._relationship_index
-        }
-    
-        # Use .get() with a default value to handle unexpected or unhandled views safely
-        view_index = view_map.get(self.current_view, -1)
-            
-        # Switch the QStackedWidgets to the correct panel index
-        if view_index != -1:
-            self.outline_stack.setCurrentIndex(view_index)
-            self.editor_stack.setCurrentIndex(view_index)
-            logger.debug(f"Switched outline and editor stacks to index {view_index}.")
-        else:
-            logger.error(f"Failed to find a stack index for ViewType: {self.current_view}")
-        
-        # 4. Disable the newly visible editor until an item is selected
-        editor = self.coordinator.get_current_editor()
-        if not editor:
-            # This shouldn't happen if coordinator is set up correctly, but is a good safety check
-            logger.warning(f"Coordinator returned no editor for view: {self.current_view}")
-            return
-
-        if self.current_view == ViewType.RELATIONSHIP_GRAPH:
-            # The relationship editor typically manages its own loading logic
-            # and should remain enabled to show the graph.
-            self.relationship_editor_panel.request_load_data.emit()
-            # Ensure it is explicitly enabled (if it was disabled by a previous logic path)
-            editor.set_enabled(True) 
-            logger.debug("Requested data load for Relationship Graph and ensured it is enabled.")
-        elif self.current_view == ViewType.LORE_EDITOR:
-            # Load all Unique Lore Categories
-            self.coordinator.refresh_lore_categories()
-        else:
-            # Standard editors (Chapter, Lore, Character) should be disabled 
-            # until a specific item is selected from the outline.
-            editor.set_enabled(False)
-            logger.debug(f"{self.current_view} editor disabled (awaiting item selection).")
-
-        self.main_menu_bar.update_view_checkmarks(current_view=self.current_view)
-
-    # -------------------------------------------------------------------------
     # UI Setup
     # -------------------------------------------------------------------------
 
@@ -371,19 +299,12 @@ class MainWindow(QMainWindow):
         self.editor_stack.addWidget(self.note_editor_panel)
         self.editor_stack.addWidget(self.relationship_editor_panel)
 
-        # Store the indices for the new QStackedWidget
-        self._chapter_index = 0
-        self._lore_index = 1
-        self._character_index = 2
-        self._note_index = 3
-        self._relationship_index = 4
-        logger.debug(f"UI Stack Indices: Chapter={self._chapter_index}, Lore={self._lore_index}, Character={self._character_index}, Note={self._note_index}," 
-                     "Relationship={self._relationship_index}")
-
         # 5. Main Splitter
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.main_splitter.addWidget(self.outline_stack)
         self.main_splitter.addWidget(self.editor_stack)
+
+        self.view_manager = ViewManager(self.outline_stack, self.editor_stack, self.coordinator)
 
         outline_width = self.current_settings.get('outline_width_pixels', 300)
         self.main_splitter.setSizes([outline_width, self.width() - outline_width])  # Initial width distribution
@@ -424,11 +345,11 @@ class MainWindow(QMainWindow):
 
         # --- MainMenuBar Connections (Menu signal OUT -> MainWindow slot IN) ---
         self.main_menu_bar.new_chapter_requested.connect(self.chapter_outline_manager.prompt_and_add_chapter)
-        self.chapter_outline_manager.new_item_created.connect(lambda: self._switch_to_view(ViewType.CHAPTER_EDITOR))
+        self.chapter_outline_manager.new_item_created.connect(lambda: self.view_manager.switch_to_view(ViewType.CHAPTER_EDITOR))
         self.main_menu_bar.new_lore_requested.connect(self.lore_outline_manager.prompt_and_add_lore)
-        self.lore_outline_manager.new_item_created.connect(lambda: self._switch_to_view(ViewType.LORE_EDITOR))
+        self.lore_outline_manager.new_item_created.connect(lambda: self.view_manager.switch_to_view(ViewType.LORE_EDITOR))
         self.main_menu_bar.new_character_requested.connect(self.character_outline_manager.prompt_and_add_character)
-        self.character_outline_manager.new_item_created.connect(lambda: self._switch_to_view(ViewType.CHARACTER_EDITOR))
+        self.character_outline_manager.new_item_created.connect(lambda: self.view_manager.switch_to_view(ViewType.CHARACTER_EDITOR))
 
         self.main_menu_bar.save_requested.connect(self._save_current_item_wrapper)
         self.main_menu_bar.export_requested.connect(self._export)
@@ -439,7 +360,10 @@ class MainWindow(QMainWindow):
         self.main_menu_bar.open_project_requested.connect(lambda: self._request_project_switch(is_new=False))
 
         # Connect the view switching signal from the menu bar
-        self.main_menu_bar.view_switch_requested.connect(self._switch_to_view)
+        self.main_menu_bar.view_switch_requested.connect(self.view_manager.switch_to_view)
+
+        # Connect view to menu bar for checking/unchecking
+        self.view_manager.view_changed.connect(self.main_menu_bar.update_view_checkmarks)
         
         # Connect Main Menu Project Stats Dialog Openm
         self.main_menu_bar.project_stats_requested.connect(self._open_project_stats_dialog)

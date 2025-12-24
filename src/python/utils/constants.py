@@ -1,6 +1,8 @@
 # src/python/utils/constants.py
 
-class ViewType:
+from enum import IntEnum
+
+class ViewType(IntEnum):
     """
     Defines integer constants representing the primary views or editors in the application.
     
