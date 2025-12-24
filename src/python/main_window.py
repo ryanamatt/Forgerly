@@ -413,14 +413,14 @@ class MainWindow(QMainWindow):
         self.chapter_outline_manager.chapter_selected.connect(self.coordinator.load_chapter)
         self.lore_outline_manager.item_selected.connect(self.coordinator.load_lore)
         self.character_outline_manager.char_selected.connect(self.coordinator.load_character)
-        self.note_outline_manager.note_selected.connect(self.coordinator.load_note)
+        self.note_outline_manager.item_selected.connect(self.coordinator.load_note)
         
         # Pre-change signal now checks for dirty state via the coordinator
         # The outlines emit pre_change, and the main window delegates the action
         self.chapter_outline_manager.pre_chapter_change.connect(self._check_save_before_change)
         self.lore_outline_manager.pre_item_change.connect(self._check_save_before_change)
         self.character_outline_manager.pre_char_change.connect(self._check_save_before_change)
-        self.note_outline_manager.pre_note_change.connect(self._check_save_before_change)
+        self.note_outline_manager.pre_item_change.connect(self._check_save_before_change)
 
         # --- MainMenuBar Connections (Menu signal OUT -> MainWindow slot IN) ---
         self.main_menu_bar.new_chapter_requested.connect(self.chapter_outline_manager.prompt_and_add_chapter)

@@ -52,7 +52,6 @@ class LoreOutlineManager(BaseOutlineManager):
         # Connect nested-specific signals not covered by base
         self.tree_widget.item_hierarchy_updated.connect(self._handle_lore_parent_update)
         self.tree_widget.item_parent_id_updated.connect(self._handle_lore_parent_update)
-        self.tree_widget.itemDoubleClicked.connect(self._handle_item_double_click)
 
         # Load the initial structure
         self.load_outline()
@@ -133,22 +132,6 @@ class LoreOutlineManager(BaseOutlineManager):
         elif not clean_query:
             self.load_outline()
 
-    def _handle_item_double_click(self, item: QTreeWidget, column: int) -> None:
-        """
-        Handles double click on a Lore Entry item to initiate the rename process.
-        
-        The editor is only activated if the item is a valid lore entry item (not the root).
-        
-        :param item: The double-clicked tree item.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
-        :param column: The column index.
-        :type column: :py:obj:`int`
-
-        :rtype: None
-        """
-        if item.data(0, self.LORE_ID_ROLE) is not None:
-            self.tree_widget.editItem(item, 0)
-
     def _handle_item_renamed(self, item: QTreeWidgetItem, column: int) -> None:
         """
         Handles the signal emitted when a tree item has been successfully renamed.
@@ -162,7 +145,7 @@ class LoreOutlineManager(BaseOutlineManager):
 
         :rtype: None
         """
-        lore_id = item.data(0, self.LORE_ID_ROLE)
+        lore_id = item.data(0, self.id_role)
         new_title = item.text(0).strip()
         
         # Handle missing repository or root item
@@ -226,7 +209,7 @@ class LoreOutlineManager(BaseOutlineManager):
         new_action.triggered.connect(self.prompt_and_add_lore)
         
         if item:
-            is_lore_entry = item.data(0, self.LORE_ID_ROLE)
+            is_lore_entry = item.data(0, self.id_role)
 
             if is_lore_entry:
                 rename_action = menu.addAction("Rename Lore Entry")
@@ -289,7 +272,7 @@ class LoreOutlineManager(BaseOutlineManager):
 
         :rtype: None
         """
-        lore_id = item.data(0, self.LORE_ID_ROLE)
+        lore_id = item.data(0, self.id_role)
         title = item.text(0)
 
         if lore_id is None:
@@ -341,7 +324,7 @@ class LoreOutlineManager(BaseOutlineManager):
         iterator = QTreeWidgetItemIterator(self.tree_widget)
         while iterator.value():
             item = iterator.value()
-            if item.data(0, self.LORE_ID_ROLE) == lore_id:
+            if item.data(0, self.id_role) == lore_id:
                 return item
             iterator += 1
         return None
