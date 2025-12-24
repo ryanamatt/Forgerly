@@ -149,7 +149,6 @@ class ChapterEditor(BaseEditor):
 
         :rtype: None
         """
-        print(f"ChapterEditor.setwpm(): {new_wpm}")
         if new_wpm <= 0:
             new_wpm = 250
         self.wpm = new_wpm
