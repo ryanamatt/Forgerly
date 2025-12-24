@@ -16,6 +16,7 @@ from ..utils.constants import ViewType, EntityType
 
 from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
+    from ..ui.view_manager import ViewManager
     from ..ui.views.base_editor import BaseEditor
     from ..ui.views.chapter_editor import ChapterEditor
     from ..ui.views.lore_editor import LoreEditor
@@ -101,78 +102,22 @@ class AppCoordinator(QObject):
         self.relationship_repo = RelationshipRepository(self.db)
 
         # State Tracking
-        self.current_item_id = 0
-        self.current_view = ViewType.CHAPTER_EDITOR
+        self.current_item_id: int = 0
 
-        # References to the active Outline/Editor panels (set by MainWindow)
-        self.editors = {}
-        # Keep for signal
-        self.lore_editor = None
-        self.character_editor = None
-        self.note_editor = None
-        self.relationship_editor = None
-        
-    def connect_signals(self) -> None:
-        """
-        Connects signals. Called in MainWindow after set_editors
-        
-        :rtype: None
-        """
-        self.relationship_editor.relationship_created.connect(self.save_new_relationship)
-        self.relationship_editor.relationship_deleted.connect(self.handle_relationship_deletion)
+        self.view_manager: 'ViewManager' | None = None
 
     # --- View Logic ---
 
-    def set_editors(self, editor_map: dict[ViewType, Any]) -> None:
+    def set_view_manager(self, view_manager: 'ViewManager') -> None:
         """
-        Sets all editor references using a dictionary map where keys are ViewType constants.
-        Example: {ViewType.CHAPTER_EDITOR: chapter_editor, ViewType.LORE_EDITOR: lore_editor...}
+        Sets the view_managers
         
-        :param editor_map: A dictionary map of all
-
-        :rtype: None
+        :param view_manager: The ViewManager object to set
+        :type view_manager: 'ViewManager'
         """
-        self.editors = editor_map
-
-        if ViewType.LORE_EDITOR in self.editors:
-            self.lore_editor: LoreEditor = self.editors[ViewType.LORE_EDITOR]
-        if ViewType.CHARACTER_EDITOR in self.editors:
-            self.character_editor: CharacterEditor = self.editors[ViewType.CHARACTER_EDITOR]
-        if ViewType.NOTE_EDITOR in self.editors:
-            self.note_editor: NoteEditor = self.editors[ViewType.NOTE_EDITOR]
-        
-        # Handle specific editor connections separately (like title change signals)
-        if ViewType.RELATIONSHIP_GRAPH in self.editors:
-            self.relationship_editor: RelationshipEditor = self.editors[ViewType.RELATIONSHIP_GRAPH]
-            # The editor signals the coordinator to load the data when it becomes visible
-
-        self.connect_signals()
-
-    def set_current_view(self, view_type: ViewType) -> None:
-        """
-        Called by MainWindow when the view is explicitly switched.
-        
-        :param view_type: The view that is being set as the current view.
-        :type view_type: :py:class:`~.ViewType`
-
-        :rtype: None
-        """
-        self.current_view = view_type
-
-        if view_type != ViewType.RELATIONSHIP_GRAPH:
-            self.current_item_id = 0 # Reset current item id
-        elif view_type == ViewType.RELATIONSHIP_GRAPH:
-            self.load_relationship_graph_data()
+        self.view_manager = view_manager
 
     # --- Save / Dirty Check Logic (Core Business Logic) ---
-
-    def get_current_editor(self) -> ViewType:
-        """
-        Helper to get the currently visible editor panel
-        
-        :rtype: :py:class:`~.ViewType`
-        """
-        return self.editors.get(self.current_view)
 
     def check_and_save_dirty(self, parent=None) -> bool:
         """
@@ -185,14 +130,16 @@ class AppCoordinator(QObject):
         :returns: Returns True if saved, otherwise False
         :rtype: bool
         """
-        if self.current_view == ViewType.RELATIONSHIP_GRAPH:
+        view = self.view_manager.get_current_view()
+        editor = self.view_manager.get_current_editor()
+
+        if view == ViewType.RELATIONSHIP_GRAPH:
             return True
 
-        if self.current_item_id == 0:
+        if self.current_item_id == 0 or not view:
             return True # No item loeaded
         
-        editor_panel = self.get_current_editor()
-        if not editor_panel or not editor_panel.is_dirty():
+        if not editor or not editor.is_dirty():
             return True # Editor is clean
         
         save_reply = QMessageBox.question(
@@ -207,29 +154,33 @@ class AppCoordinator(QObject):
             return False
         
         if save_reply == QMessageBox.StandardButton.Save:
-            self.save_current_item()
+            return self.save_current_item(view=view, editor=editor)
         
         # If discard proceed
         return True
     
-    def save_current_item(self) -> bool:
+    def save_current_item(self, view: ViewType, editor: 'BaseEditor') -> bool:
         """
         General Method to save either chapter, character or a lore entry.
+
+        :param view: The current view.
+        :type view: 'ViewType'
+        :param editor: The current editor.
+        :type editor: 'BaseEditor'
 
         :returns: Returns True if saved, otherwise False
         :rtype: bool
         """
-        if self.current_view == ViewType.RELATIONSHIP_GRAPH or self.current_item_id <= 0:
+        if view == ViewType.RELATIONSHIP_GRAPH or self.current_item_id <= 0:
             return True
 
-        editor: BaseEditor = self.get_current_editor()
         if not editor:
             return False
         
         data = editor.get_save_data()
         tags = data.pop('tags', [])
         
-        match self.current_view:
+        match view:
             case ViewType.CHAPTER_EDITOR:
                 content_success = self.chapter_repo.update_chapter_content(self.current_item_id, **data)
                 tag_success = self.tag_repo.set_tags_for_chapter(self.current_item_id, tags)
@@ -332,7 +283,7 @@ class AppCoordinator(QObject):
         :type view: ViewType
         """
         self.current_item_id = item_id
-        self.current_view = view
+        self.view_manager.current_view = view
 
         if view == ViewType.CHAPTER_EDITOR:
             content = self.chapter_repo.get_chapter_content(chapter_id=item_id)
@@ -420,7 +371,7 @@ class AppCoordinator(QObject):
         """
         # Update Coordinator State
         self.current_item_id = 0
-        self.current_view = ViewType.RELATIONSHIP_GRAPH
+        self.view_manager.current_view = ViewType.RELATIONSHIP_GRAPH
 
         # Fetch all components
         relationships = self.relationship_repo.get_all_relationships_for_graph() or []

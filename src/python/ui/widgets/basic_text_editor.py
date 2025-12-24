@@ -62,15 +62,6 @@ class BasicTextEditor(QWidget):
         self.editor.selectionChanged.connect(self.selection_changed.emit)
         self.editor.selectionChanged.connect(self._log_selection_change)
 
-    def __del__(self) -> None:
-        """
-        Logs the destruction of the widget.
-
-        :rtype: None
-        """
-        logger.debug(f"BasicTextEditor instance being destroyed (collected by GC or deleted).")
-        super().__del__()
-
     # --- Dirty Flag Management ---
 
     def _set_dirty(self) -> None:
