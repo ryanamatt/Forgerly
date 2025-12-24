@@ -1,17 +1,17 @@
 # src/python/ui/widgets/reordering_tree_widget.py
 
 from PyQt6.QtWidgets import QTreeWidget, QAbstractItemView
-from PyQt6.QtGui import QDropEvent, QDragMoveEvent
+from PyQt6.QtGui import QDropEvent
 from PyQt6.QtCore import pyqtSignal
 
 class ReorderingTreeWidget(QTreeWidget):
     """
     A specialized :py:class:`~PyQt6.QtWidgets.QTreeWidget` that handles the 
-    visual representation and drag-and-drop reordering of chapters.
+    visual representation and drag-and-drop reordering of items.
 
-    This widget is designed to work in tandem with a parent editor (typically 
-    a :py:class:`.ChapterOutlineManager`) to ensure that any structural 
-    changes made via the UI are synchronized with the underlying database.
+    This widget is designed to work in tandem with a parent editor to ensure that 
+    any structural changes made via the UI are synchronized with the underlying 
+    database.
     """
 
     order_changed = pyqtSignal()
@@ -24,8 +24,8 @@ class ReorderingTreeWidget(QTreeWidget):
         """
         Initializes the ChapterTree.
         
-        :param editor: The parent manager managing the data synchronization.
-        :type editor: :py:class:`ChapterOutlineManager` or :py:obj:`None`, optional
+        :param parent: The parent. Default None
+        :type editor: :py:class:`~PyQt6.QtWidgets.QWidget``, optional
         """
         super().__init__(parent)
         self.setDragEnabled(True)

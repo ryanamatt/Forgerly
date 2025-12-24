@@ -1,7 +1,7 @@
 # src/python/ui/views/character_outline_manager.py
 
 from PyQt6.QtWidgets import (
-    QTreeWidgetItem, QMenu, QInputDialog, QMessageBox, QTreeWidgetItemIterator
+    QTreeWidgetItem, QMenu, QInputDialog, QMessageBox, QTreeWidgetItemIterator, QTreeWidget
 )
 from PyQt6.QtCore import Qt, QPoint
 from PyQt6.QtGui import QIcon
@@ -45,6 +45,12 @@ class CharacterOutlineManager(BaseOutlineManager):
             is_nested_tree=False
         )
 
+        # Turn off Drag and Drop for tree widget
+        self.tree_widget.setDragEnabled(True)
+        self.tree_widget.setAcceptDrops(True)
+        self.tree_widget.setDropIndicatorShown(True)
+        self.tree_widget.setDragDropMode(QTreeWidget.DragDropMode.NoDragDrop)
+        
         self.load_outline()
 
     def load_outline(self, characters: list[dict] | None = None) -> None:

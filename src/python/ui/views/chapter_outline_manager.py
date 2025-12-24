@@ -1,8 +1,7 @@
 # src/python/ui/outline_manager.py
 
 from PyQt6.QtWidgets import (
-    QTreeWidget, QTreeWidgetItem, QTreeWidgetItemIterator, QMenu, QInputDialog, QMessageBox,
-    QAbstractItemView, QWidget, QVBoxLayout, QLabel, QFrame
+    QTreeWidgetItem, QTreeWidgetItemIterator, QMenu, QInputDialog, QMessageBox
 )
 from PyQt6.QtCore import Qt, QPoint
 from PyQt6.QtGui import QIcon
@@ -10,7 +9,6 @@ from PyQt6.QtGui import QIcon
 from .base_outline_manager import BaseOutlineManager
 from ...resources_rc import *
 from ...repository.chapter_repository import ChapterRepository
-from ..widgets.reordering_tree_widget import ReorderingTreeWidget 
 
 class ChapterOutlineManager(BaseOutlineManager):
     """
