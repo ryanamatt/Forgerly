@@ -7,10 +7,11 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Any
 
+from .base_editor import BaseEditor
 from ...ui.widgets.tag_widget import TagManagerWidget
 from ...ui.widgets.basic_text_editor import BasicTextEditor
 
-class LoreEditor(QWidget):
+class LoreEditor(BaseEditor):
     """
     A composite :py:class:`~PyQt6.QtWidgets.QWidget` for editing a Lore Entry's details 
     (Title, Content, Category).
@@ -30,6 +31,7 @@ class LoreEditor(QWidget):
     # State tracking for unsaved changes
     _initial_title = ""
     _initial_category = ""
+
     current_lore_id: int | None = None
     """The database ID of the Lore Entry currently loaded in the editor, or :py:obj:`None`."""
     
@@ -45,8 +47,7 @@ class LoreEditor(QWidget):
         super().__init__(parent)
         
         # --- Sub-components ---
-        self.basic_text_editor = BasicTextEditor()
-        self.tag_manager = TagManagerWidget()
+        self.text_editor = BasicTextEditor()
 
         # --- Lore-Specific Components (Title and Category) ---
         self.title_input = QLineEdit()
@@ -85,13 +86,13 @@ class LoreEditor(QWidget):
         metadata_layout.addWidget(tag_group)
         
         content_splitter.addWidget(metadata_container)
-        content_splitter.addWidget(self.basic_text_editor)
+        content_splitter.addWidget(self.text_editor)
         
         content_splitter.setSizes([200, 800]) 
         main_layout.addWidget(content_splitter)
         
         # --- Connections: All changes trigger a dirtiness state check ---
-        self.basic_text_editor.content_changed.connect(self._set_dirty)
+        self.text_editor.content_changed.connect(self._set_dirty)
         self.tag_manager.tags_changed.connect(self._set_dirty)
         self.title_input.textChanged.connect(self._set_dirty)
         self.category_combo.currentIndexChanged.connect(self._set_dirty)
@@ -135,7 +136,7 @@ class LoreEditor(QWidget):
         else:
             self.category_combo.setCurrentIndex(index)
             
-        self.basic_text_editor.set_html_content(content)
+        self.text_editor.set_html_content(content)
         self.tag_manager.set_tags(tag_names)
         
         # Store initial state for dirtiness check
@@ -172,7 +173,7 @@ class LoreEditor(QWidget):
             'id': self.current_lore_id,
             'title': self.title_input.text().strip(),
             'category': self.category_combo.currentText().strip(),
-            'content': self.basic_text_editor.get_html_content(),
+            'content': self.text_editor.get_html_content(),
             'tags': self.tag_manager.get_tags()
         }
         
@@ -189,14 +190,15 @@ class LoreEditor(QWidget):
         """
         if not self.current_lore_id:
             return False # Nothing is loaded, so nothing is dirty
+        
+        # self.text_editor and self.tag_manager
+        if super().is_dirty():
+            return True
 
         title_changed = self.title_input.text().strip() != self._initial_title
         category_changed = self.category_combo.currentText().strip() != self._initial_category
         
-        return (title_changed or 
-                category_changed or
-                self.basic_text_editor.is_dirty() or 
-                self.tag_manager.is_dirty())
+        return (title_changed or category_changed)
 
     def mark_saved(self) -> None:
         """
@@ -204,8 +206,12 @@ class LoreEditor(QWidget):
         
         :rtype: None
         """
-        self.basic_text_editor.mark_saved()
-        self.tag_manager.mark_saved()
+        # # self.text_editor and self.tag_manager
+        super().mark_saved()
+
+        self._initial_title = self.title_input.text().strip()
+        self._initial_category = self.category_combo.currentText().strip()
+        
         
     def set_enabled(self, enabled: bool) -> None:
         """
@@ -216,10 +222,11 @@ class LoreEditor(QWidget):
         
         :rtype: None
         """
+        # self.text_editor and self.tag_manager
+        super().set_enabled(enabled)
+
         self.title_input.setEnabled(enabled)
         self.category_combo.setEnabled(enabled)
-        self.basic_text_editor.setEnabled(enabled)
-        self.tag_manager.setEnabled(enabled)
         
     # =========================================================================
     # INTERNAL HANDLERS
