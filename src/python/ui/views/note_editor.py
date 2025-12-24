@@ -93,3 +93,32 @@ class NoteEditor(BaseEditor):
         :rtype: None
         """
         self.text_editor.set_html_content(html_content)
+
+    def get_save_data(self) -> dict:
+        """
+        Returns all the current saved data.
+        
+        :returns: A dictionary of the current lore entry data.
+        :rtype: dict
+        """
+        return {
+            'content': self.text_editor.get_html_content(),
+            'tags': self.tag_manager.get_tags()
+        }
+    
+    def load_entity(self, note_id: int, content: str, tags: list[str]) -> None:
+        """
+        Loads all the information into the editor
+        
+        :param note_id: The ID of the note.
+        :type note_id: int
+        :param content: The content of the note.
+        :type content: str
+        :param tags: The tags of the note
+        :type tags: list[str]
+        """
+        self.text_editor.set_html_content(content)
+        self.tag_manager.set_tags(tags)
+
+        self.mark_saved()
+        self.set_enabled(True)

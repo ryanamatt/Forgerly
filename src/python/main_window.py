@@ -410,10 +410,10 @@ class MainWindow(QMainWindow):
 
         # --- Outline Managers (UI signal OUT -> Coordinator slot IN) ---
         # The outline manager now signals the coordinator to load data
-        self.chapter_outline_manager.item_selected.connect(self.coordinator.load_chapter)
-        self.lore_outline_manager.item_selected.connect(self.coordinator.load_lore)
-        self.character_outline_manager.item_selected.connect(self.coordinator.load_character)
-        self.note_outline_manager.item_selected.connect(self.coordinator.load_note)
+        self.chapter_outline_manager.item_selected.connect(self._on_chapter_selected)
+        self.lore_outline_manager.item_selected.connect(self._on_lore_selected)
+        self.character_outline_manager.item_selected.connect(self._on_character_selected)
+        self.note_outline_manager.item_selected.connect(self._on_note_selected)
         
         # Pre-change signal now checks for dirty state via the coordinator
         # The outlines emit pre_change, and the main window delegates the action
@@ -446,10 +446,10 @@ class MainWindow(QMainWindow):
         
         # --- Coordinator (Coordinator signal OUT -> Editor/UI slot IN) ---
         # The coordinator signals the editors when data is ready
-        self.coordinator.chapter_loaded.connect(self._handle_chapter_loaded)
-        self.coordinator.lore_loaded.connect(self._handle_lore_loaded)
-        self.coordinator.char_loaded.connect(self._handle_character_loaded)
-        self.coordinator.note_loaded.connect(self._handle_note_loaded)
+        self.coordinator.chapter_loaded.connect(self.chapter_editor_panel.load_entity)
+        self.coordinator.lore_loaded.connect(self.lore_editor_panel.load_entity)
+        self.coordinator.char_loaded.connect(self.character_editor_panel.load_entity)
+        self.coordinator.note_loaded.connect(self.note_editor_panel.load_entity)
 
         self.coordinator.graph_data_loaded.connect(self.relationship_editor_panel.load_graph)
         self.coordinator.lore_categories_changed.connect(self.lore_editor_panel.set_available_categories)
@@ -554,108 +554,49 @@ class MainWindow(QMainWindow):
             logger.error(f"Failed to save item ID: {item_id} in view: {view}. Check coordinator logs for details.")
             self.statusBar().showMessage("Error: Failed to save the current item. See logs.", 5000)
 
-    def _handle_chapter_loaded(self, chapter_id: int, content: str, tag_names: list[str]) -> None:
+    def _on_chapter_selected(self, item_id: int) -> None:
         """
-        Receives loaded chapter data from coordinator and updates the editor/status.
+        Calls the Coordinator load_item signal for Chapters.
         
-        :param chapter_id: The ID of the chapter.
-        :type chapter: int
-        :param content: The content of the chapter.
-        :type content: str
-        :param tag_names: A list of all the tag names for the chapter.
-        :type tag_names: list[str]
+        :param item_id: The ID of the item.
+        :type item_id: int
 
         :rtype: None
         """
-        logger.info(f"Chapter load attempt for ID: {chapter_id}.")
+        self.coordinator.load_item(item_id, ViewType.CHAPTER_EDITOR)
 
-        # --- Coordinator-Reported Error Check ---
-        # This check relies on the coordinator embedding a specific error string on failure.
-        if "Error Loading Chapter" in content:
-            logger.warning(f"Coordinator signaled a load error for Chapter ID {chapter_id}.")
-            # Use the error content to display the issue directly to the user
-            self.chapter_editor_panel.set_html_content(content)
-            self.chapter_editor_panel.set_enabled(False)
-            self.statusBar().showMessage(f"Error loading Chapter ID {chapter_id}. See editor for details.", 5000)
-            return
-
-        # --- Successful Load & UI Update ---
-        try:
-            self.chapter_editor_panel.set_html_content(content)
-            self.chapter_editor_panel.set_tags(tag_names)
-            self.chapter_editor_panel.set_enabled(True)
-            self.chapter_editor_panel.mark_saved() # Important: Reset dirtiness after load
-
-            # Success update
-            self.statusBar().showMessage(f"Chapter ID {chapter_id} selected and loaded.", 3000)
-            logger.info(f"Chapter ID {chapter_id} successfully loaded into the editor (tags: {len(tag_names)}).")
-
-        except EditorContentError as e:
-            error_message = f"FATAL UI Error loading Chapter ID {chapter_id}: Editor failed to render content."
-            logger.critical(error_message, exc_info=True)
-            
-            QMessageBox.critical(
-                self, 
-                "Editor Load Error", 
-                f"The editor failed to display content for Chapter ID {chapter_id} due to an internal UI issue. Please check the application log for details."
-            )
-            # Ensure the editor is disabled to prevent further interaction after a critical failure
-            self.chapter_editor_panel.set_enabled(False)
-
-    def _handle_lore_loaded(self, lore_id: int, title: str, category: str, content: str, tag_names: list[str]) -> None:
+    def _on_character_selected(self, item_id: int):
         """
-        Receives loaded lore data from coordinator and updates the editor/status.
+        Calls the Coordinator load_item signal for Characters.
         
-        :param lore_id: The ID of the lore entry.
-        :type lore_id: int
-        :param title: The title of the lore entry.
-        :type title: str
-        :param category: The category of the lore entry.
-        :type category: str
-        :param content: The content of the lore entry.
-        :type content: str
-        :param tag_names: A list of all the tag names that the lore entry has.
-        :type tag_names: list[str]
+        :param item_id: The ID of the item.
+        :type item_id: int
 
         :rtype: None
         """
-        logger.info(f"Lore load attempt for ID: {lore_id}. Title: '{title}'.")
+        self.coordinator.load_item(item_id, ViewType.CHARACTER_EDITOR)
 
-        # Check for Coordinator-Reported Failure (e.g., item not found)
-        if not title: 
-            logger.warning(f"Coordinator signaled a load error for Lore ID {lore_id}. Title was empty.")
-            
-            # Disable the editor panel and report the failure
-            self.lore_editor_panel.set_enabled(False)
-            self.statusBar().showMessage(f"Error: Lore Entry ID {lore_id} could not be loaded.", 5000)
-            return
-            
-        # Successful Load & UI Update
-        try:
-            # The LoreEditor handles setting its internal state (title, category, content, tags)
-            self.lore_editor_panel.load_lore(lore_id, title, category, content, tag_names)
-            
-            self.lore_editor_panel.set_enabled(True)
-            self.lore_editor_panel.mark_saved() # Reset dirtiness after load
+    def _on_lore_selected(self, item_id: int):
+        """
+        Calls the Coordinator load_item signal for Lore Entries.
+        
+        :param item_id: The ID of the item.
+        :type item_id: int
 
-            # Success update
-            self.statusBar().showMessage(f"Lore Entry '{title}' (ID {lore_id}) selected and loaded.", 3000)
-            logger.info(f"Lore Entry ID {lore_id} ('{title}') successfully loaded.")
-            
-        except EditorContentError as e:
-            # Critical UI/Editor Error Handling
-            # Catches failures that happen *within* the editor widget itself (e.g., malformed HTML/UI issue)
-            error_message = f"FATAL UI Error loading Lore ID {lore_id} ('{title}'): Editor failed to render content."
-            logger.critical(error_message, exc_info=True)
-            
-            # Notify user with a critical message box
-            QMessageBox.critical(
-                self, 
-                "Editor Load Error", 
-                f"The editor failed to display content for Lore Entry ID {lore_id} due to an internal UI issue. Please check the application log for details."
-            )
-            # Ensure the editor is disabled to prevent further interaction
-            self.lore_editor_panel.set_enabled(False)
+        :rtype: None
+        """
+        self.coordinator.load_item(item_id, ViewType.LORE_EDITOR)
+
+    def _on_note_selected(self, item_id: int):
+        """
+        Calls the Coordinator load_item signal for Notes.
+        
+        :param item_id: The ID of the item.
+        :type item_id: int
+
+        :rtype: None
+        """
+        self.coordinator.load_item(item_id, ViewType.NOTE_EDITOR)
 
     def _update_lore_outline_title(self, lore_id: int, new_title: str) -> None:
         """
@@ -697,58 +638,6 @@ class MainWindow(QMainWindow):
                 # Catch any unexpected low-level GUI error during the update
                 logger.error(f"Critical error during Lore Outline title synchronization for ID {lore_id}.", exc_info=True)
 
-    def _handle_character_loaded(self, char_id: int, name: str, description: str, status: str,
-                                 age: int, dob: str, occupation: str, physical: str) -> None:
-        """
-        Receives loaded character data from coordinator and updates the editor/status.
-        
-        :param char_id: The Character ID to load.
-        :type char_id: int
-        :param name: The name of the character.
-        :type name: str
-        :param description: The description of the character.
-        :type descriptionL str
-        :param status: The status of the character.
-        :type status: str
-
-        :rtype: None
-        """
-
-        logger.info(f"Character load attempt for ID: {char_id}. Name: '{name}'.")
-
-        # 1. Check for Coordinator-Reported Failure (e.g., item not found)
-        if not name:
-            logger.warning(f"Coordinator signaled a load error for Character ID {char_id}. Name was empty.")
-            self.character_editor_panel.set_enabled(False)
-            self.statusBar().showMessage(f"Error: Character ID {char_id} could not be loaded.", 5000)
-            return
-            
-        # 2. Successful Load & UI Update
-        try:
-            # Delegate the actual setting of data (including rich-text description) to the panel
-            self.character_editor_panel.load_character(char_id, name, description, status, age, dob, occupation, physical)
-            
-            self.character_editor_panel.set_enabled(True)
-            self.character_editor_panel.mark_saved() # Reset dirtiness after load
-            
-            # Success update
-            self.statusBar().showMessage(f"Character '{name}' (ID {char_id}) selected and loaded.", 3000)
-            logger.info(f"Character ID {char_id} ('{name}') successfully loaded into the editor.")
-
-        except EditorContentError as e:
-            # 3. Critical UI/Editor Error Handling
-            # Catches failures that happen *within* the editor widget itself
-            error_message = f"FATAL UI Error loading Character ID {char_id} ('{name}'): Editor failed to render content."
-            logger.critical(error_message, exc_info=True)
-            
-            QMessageBox.critical(
-                self, 
-                "Editor Load Error", 
-                f"The editor failed to display content for Character '{name}' (ID {char_id}) due to an internal UI issue. Please check the application log for details."
-            )
-            # Ensure the editor is disabled to prevent further interaction
-            self.character_editor_panel.set_enabled(False)
-
     def _update_character_outline_name(self, char_id: int, new_name: str) -> None:
         """
         Updates the name in the CharacterOutlineManager when the editor name changes (relayed by coordinator).
@@ -786,54 +675,6 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 # Catch any unexpected low-level GUI error during the update
                 logger.error(f"Critical error during Character Outline name synchronization for ID {char_id}.", exc_info=True)
-
-    def _handle_note_loaded(self, note_id: int, content: str, tag_names: list[str]) -> None:
-        """
-        Receives loaded lore data from coordinator and updates the editor/status.
-        
-        :param note_id: The ID of the note.
-        :type note_id: int
-        :param content: The content of the note.
-        :type content: str
-        :param tag_names: A list of all the tag names that the note has.
-        :type tag_names: list[str]
-
-        :rtype: None
-        """
-        logger.info(f"Note load attempt for ID: {note_id}.")
-
-        # --- Coordinator-Reported Error Check ---
-        # This check relies on the coordinator embedding a specific error string on failure.
-        if "Error Loading Note" in content:
-            logger.warning(f"Coordinator signaled a load error for Note ID {note_id}.")
-            # Use the error content to display the issue directly to the user
-            self.note_editor_panel.set_html_content(content)
-            self.note_editor_panel.set_enabled(False)
-            self.statusBar().showMessage(f"Error loading Note ID {note_id}. See editor for details.", 5000)
-            return
-
-        # --- Successful Load & UI Update ---
-        try:
-            self.note_editor_panel.set_html_content(content)
-            self.note_editor_panel.set_tags(tag_names)
-            self.note_editor_panel.set_enabled(True)
-            self.note_editor_panel.mark_saved() # Important: Reset dirtiness after load
-
-            # Success update
-            self.statusBar().showMessage(f"Note ID {note_id} selected and loaded.", 3000)
-            logger.info(f"Note ID {note_id} successfully loaded into the editor (tags: {len(tag_names)}).")
-
-        except EditorContentError as e:
-            error_message = f"FATAL UI Error loading Note ID {note_id}: Editor failed to render content."
-            logger.critical(error_message, exc_info=True)
-            
-            QMessageBox.critical(
-                self, 
-                "Editor Load Error", 
-                f"The editor failed to display content for Note ID {note_id} due to an internal UI issue. Please check the application log for details."
-            )
-            # Ensure the editor is disabled to prevent further interaction after a critical failure
-            self.note_editor_panel.set_enabled(False)
 
     def _update_note_outline_title(self, note_id: int, new_title: str) -> None:
         """
