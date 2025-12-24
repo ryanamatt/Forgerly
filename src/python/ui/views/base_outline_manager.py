@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 
 from ..widgets.nested_tree_widget import NestedTreeWidget
+from ..widgets.reordering_tree_widget import ReorderingTreeWidget
 
 class BaseOutlineManager(QWidget):
     """
@@ -81,7 +82,7 @@ class BaseOutlineManager(QWidget):
         if is_nested_tree:
             self.tree_widget = NestedTreeWidget(id_role=id_role, parent=self)
         else:
-            self.tree_widget = QTreeWidget(parent=self)
+            self.tree_widget = ReorderingTreeWidget(parent=self)
         self._setup_tree_widget()
 
         # Build UI

@@ -1,27 +1,37 @@
 # src/python/ui/widgets/reordering_tree_widget.py
 
-from PyQt6.QtWidgets import QTreeWidget
+from PyQt6.QtWidgets import QTreeWidget, QAbstractItemView
 from PyQt6.QtGui import QDropEvent
+from PyQt6.QtCore import pyqtSignal
 
 class ReorderingTreeWidget(QTreeWidget):
     """
     A specialized :py:class:`~PyQt6.QtWidgets.QTreeWidget` that handles the 
-    visual representation and drag-and-drop reordering of chapters.
+    visual representation and drag-and-drop reordering of items.
 
-    This widget is designed to work in tandem with a parent editor (typically 
-    a :py:class:`.ChapterOutlineManager`) to ensure that any structural 
-    changes made via the UI are synchronized with the underlying database.
+    This widget is designed to work in tandem with a parent editor to ensure that 
+    any structural changes made via the UI are synchronized with the underlying 
+    database.
     """
 
-    def __init__(self, editor=None) -> None:
+    order_changed = pyqtSignal()
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (): Emitted to notify a 
+    successfuly drop to the manager.
+    """
+
+    def __init__(self, parent=None) -> None:
         """
         Initializes the ChapterTree.
         
-        :param editor: The parent manager managing the data synchronization.
-        :type editor: :py:class:`ChapterOutlineManager` or :py:obj:`None`, optional
+        :param parent: The parent. Default None
+        :type editor: :py:class:`~PyQt6.QtWidgets.QWidget``, optional
         """
-        self.editor = editor
-        super().__init__()
+        super().__init__(parent)
+        self.setDragEnabled(True)
+        self.setAcceptDrops(True)
+        self.setDropIndicatorShown(True)
+        self.setDragDropMode(QTreeWidget.DragDropMode.InternalMove)
 
     def dropEvent(self, event: QDropEvent) -> None:
         """
@@ -37,22 +47,23 @@ class ReorderingTreeWidget(QTreeWidget):
         
         :rtype: None
         """
+        if self.dropIndicatorPosition() == QAbstractItemView.DropIndicatorPosition.OnItem:
+            event.ignore()
+            return
+
         super().dropEvent(event)
 
         dropped_item = self.currentItem()
         if not dropped_item:
             return
 
-        # 1. Save current work before re-ordering in DB
-        if self.editor:
-            self.editor.pre_chapter_change.emit()
+        if dropped_item.parent() is not None:
+            parent = dropped_item.parent()
+            index = parent.indexOfChild(dropped_item)
+            item = parent.takeChild(index)
+            self.addTopLevelItem(item)
+            self.setCurrentItem(item)
 
-        # 2. Sync the NEW order (established by super()) to the database
-        if self.editor:
-            # This reads the tree in its current state and updates DB 'sort_order'
-            self.editor._update_all_chapter_sort_orders()
-            
-            # 3. Reload to ensure consistency (and refresh item widgets if any)
-            self.editor.load_outline()
+        self.order_changed.emit()
         
         event.accept()

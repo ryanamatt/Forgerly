@@ -1,17 +1,16 @@
 # src/python/ui/outline_manager.py
 
 from PyQt6.QtWidgets import (
-    QTreeWidget, QTreeWidgetItem, QTreeWidgetItemIterator, QMenu, QInputDialog, QMessageBox,
-    QAbstractItemView, QWidget, QVBoxLayout, QLabel, QFrame
+    QTreeWidgetItem, QTreeWidgetItemIterator, QMenu, QInputDialog, QMessageBox
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QPoint
+from PyQt6.QtCore import Qt, QPoint
 from PyQt6.QtGui import QIcon
 
+from .base_outline_manager import BaseOutlineManager
 from ...resources_rc import *
 from ...repository.chapter_repository import ChapterRepository
-from ..widgets.reordering_tree_widget import ReorderingTreeWidget 
 
-class ChapterOutlineManager(QWidget):
+class ChapterOutlineManager(BaseOutlineManager):
     """
     A custom :py:class:`~PyQt6.QtWidgets.QWidget` dedicated to displaying the 
     hierarchical outline of Chapters and other narrative elements.
@@ -21,24 +20,6 @@ class ChapterOutlineManager(QWidget):
 
     CHAPTER_ID_ROLE = Qt.ItemDataRole.UserRole + 1
     """The int role used to store the database ID of a Chapter on an item."""
-
-    chapter_selected = pyqtSignal(int)
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int): Emitted when a chapter item is selected, 
-    carrying the Chapter ID.
-    """
-
-    new_chapter_created = pyqtSignal()
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when a new chapter is created. Tells
-    MainWindow to switch the view to Chapter View.
-    """
-
-    pre_chapter_change = pyqtSignal()
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (): Emitted before a new chapter is 
-    selected, allowing the main window to save the current chapter state.
-    """
 
     def __init__(self, project_title: str = "Narrative Forge Project",
                   chapter_repository: ChapterRepository | None = None) -> None:
@@ -50,60 +31,18 @@ class ChapterOutlineManager(QWidget):
         :param chapter_repository: The repository object for chapter CRUD operations.
         :type chapter_repository: :py:class:`.ChapterRepository` or :py:obj:`None`, optional
         """
-        super().__init__()
         self.project_title = project_title
-
-        # Renamed attribute to clearly show its new role
         self.chapter_repo = chapter_repository 
 
-        # UI Setup
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-
-        # Header Layout
-        self.header_label = QLabel(f"{project_title} Chapters")
-        self.header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        font = self.header_label.font()
-        font.setBold(True)
-        font.setPointSize(font.pointSize() + 1)
-        self.header_label.setFont(font)
-        self.header_label.setStyleSheet("""
-            QLabel {
-                padding: 5px
-                }
-        """            
+        super().__init__(
+            project_title=project_title,
+            header_text="Chapters",
+            id_role=self.CHAPTER_ID_ROLE,
+            search_placeholder="Search Chapters...",
+            is_nested_tree=False
         )
 
-        # Configuration and Styling
-        self.tree_widget = ReorderingTreeWidget(editor=self)
-        self.tree_widget.setHeaderHidden(True)
-        self.tree_widget.setIndentation(0)
-        self.tree_widget.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
-        self.tree_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-
-        # --- Enable Drag and Drop for Reordering
-        self.tree_widget.setDragEnabled(True)
-        self.tree_widget.setAcceptDrops(True)
-        self.tree_widget.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
-
-        self.tree_widget.installEventFilter(self)
-
-        # Connect Signals for Tree Widget
-        self.tree_widget.itemClicked.connect(self._handle_item_click)
-        self.tree_widget.customContextMenuRequested.connect(self._show_context_menu)
-        self.tree_widget.itemDoubleClicked.connect(self._handle_item_double_click)
-        self.tree_widget.itemChanged.connect(self._handle_item_renamed)
-
-
-        container_frame = QFrame(self)
-        container_frame.setObjectName("MainBorderFrame")
-
-        # Create a layout FOR the frame and add the widgets to it
-        frame_layout = QVBoxLayout(container_frame)
-        frame_layout.addWidget(self.header_label)
-        frame_layout.addWidget(self.tree_widget)
-
-        main_layout.addWidget(container_frame)
+        self.tree_widget.order_changed.connect(self._update_sort_orders)
 
         # Load the initial structure
         self.load_outline()
@@ -128,20 +67,14 @@ class ChapterOutlineManager(QWidget):
 
         for chapter in chapter_data:
             item = QTreeWidgetItem([chapter['Title']])
-            item.setData(0, self.CHAPTER_ID_ROLE, chapter['ID'])
+            item.setData(0, self.id_role, chapter['ID'])
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
             item.setIcon(0, chapter_icon)
             self.tree_widget.addTopLevelItem(item)
 
         self.tree_widget.blockSignals(False)
 
-        # # Auto-select first chapter if available
-        # if self.tree_widget.topLevelItemCount() > 0:
-        #     first_item = self.tree_widget.topLevelItem(0)
-        #     self.tree_widget.setCurrentItem(first_item)
-        #     self.chapter_selected.emit(first_item.data(0, self.CHAPTER_ID_ROLE))
-
-    def _update_all_chapter_sort_orders(self) -> None:
+    def _update_sort_orders(self) -> None:
         """
         Calculates the new Sort_Order for all chapters based on their current 
         visual position under the root item and updates the database via a 
@@ -156,7 +89,7 @@ class ChapterOutlineManager(QWidget):
         
         for i in range(self.tree_widget.topLevelItemCount()):
             item = self.tree_widget.topLevelItem(i)
-            chapter_id = item.data(0, self.CHAPTER_ID_ROLE)
+            chapter_id = item.data(0, self.id_role)
             if chapter_id is not None:
                 # 1-based index for Sort_Order
                 chapter_updates.append((chapter_id, i + 1))
@@ -166,43 +99,6 @@ class ChapterOutlineManager(QWidget):
             if not success:
                 QMessageBox.critical(self, "Reordering Error", "Database update failed.")
                 self.load_outline()
-
-    def _handle_item_click(self, item: QTreeWidgetItem, column: int) -> None:
-        """
-        Handles the click event on a tree item.
-        
-        If a chapter is clicked, it emits :py:attr:`.pre_chapter_change` followed 
-        by :py:attr:`.chapter_selected`.
-
-        :param item: The clicked tree item.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
-        :param column: The column index clicked (always 0 in this case).
-        :type column: int
-
-        :rtype: None
-        """
-        chapter_id = item.data(0, self.CHAPTER_ID_ROLE)
-        
-        if chapter_id is not None:
-            # Emit pre-change signal to allow the main window to save the current chapter
-            self.pre_chapter_change.emit()
-
-            self.chapter_selected.emit(chapter_id)
-
-    def _handle_item_double_click(self, item: QTreeWidgetItem, column: int) -> None:
-        """
-        Handles double click to initiate renaming for chapter items.
-        
-        :param item: The double-clicked tree item.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
-        :param column: The column index.
-        :type column: :py:obj:`int`
-
-        :rtype: None
-        """
-        if item.data(0, self.CHAPTER_ID_ROLE) is not None:
-            # Only allow renaming for chapter items
-            self.tree_widget.editItem(item, 0)
 
     def _handle_item_renamed(self, item: QTreeWidgetItem, column: int) -> None:
         """
@@ -217,7 +113,7 @@ class ChapterOutlineManager(QWidget):
 
         :rtype: None
         """
-        chapter_id = item.data(0, self.CHAPTER_ID_ROLE)
+        chapter_id = item.data(0, self.id_role)
         new_title = item.text(0).strip()
         
         if not self.chapter_repo:
@@ -264,7 +160,7 @@ class ChapterOutlineManager(QWidget):
         new_action.triggered.connect(self.prompt_and_add_chapter)
 
         if item:            
-            is_chapter = item.data(0, self.CHAPTER_ID_ROLE) is not None
+            is_chapter = item.data(0, self.id_role) is not None
         
             # Actions for Chapters (visible if clicking a chapter item)
             if is_chapter:
@@ -294,7 +190,7 @@ class ChapterOutlineManager(QWidget):
             return
 
         # Check save status before creating a new chapter (which implicitly changes selection)
-        self.pre_chapter_change.emit() 
+        self.pre_item_change.emit() 
         
         title, ok = QInputDialog.getText(
             self, 
@@ -313,14 +209,14 @@ class ChapterOutlineManager(QWidget):
             )
 
             if new_id:
-                self.new_chapter_created.emit()
+                self.new_item_created.emit()
                 # Reload the outline to display the new chapter
                 self.load_outline()
                 # Automatically select the new chapter
                 new_item = self.find_chapter_item_by_id(new_id)
                 if new_item:
                      self.tree_widget.setCurrentItem(new_item)
-                     self._handle_item_click(new_item, 0) 
+                     self._on_item_clicked(new_item, 0) 
             else:
                 QMessageBox.warning(self, "Database Error", "Failed to save the new chapter to the database.")
 
@@ -334,7 +230,7 @@ class ChapterOutlineManager(QWidget):
 
         :rtype: None
         """
-        chapter_id = item.data(0, self.CHAPTER_ID_ROLE)
+        chapter_id = item.data(0, self.id_role)
         title = item.text(0)
         
         if chapter_id is None:
@@ -369,7 +265,7 @@ class ChapterOutlineManager(QWidget):
 
         :rtype: None
         """
-        self.pre_chapter_change.emit()
+        self.pre_item_change.emit()
         self._delete_chapter(item)
 
     def find_chapter_item_by_id(self, chapter_id: int) -> QTreeWidgetItem | None:
@@ -386,7 +282,7 @@ class ChapterOutlineManager(QWidget):
         iterator = QTreeWidgetItemIterator(self.tree_widget)
         while iterator.value():
             item = iterator.value()
-            if item.data(0, self.CHAPTER_ID_ROLE) == chapter_id:
+            if item.data(0, self.id_role) == chapter_id:
                 return item
             iterator += 1
         return None
