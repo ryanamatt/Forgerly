@@ -8,13 +8,13 @@ from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6.QtGui import QIcon
 from typing import Any
 
+from .base_outline_manager import BaseOutlineManager
 from ...resources_rc import *
 from ...repository.note_repository import NoteRepository
-from ..widgets.nested_tree_widget import NestedTreeWidget
 
 from ...services.app_coordinator import AppCoordinator
 
-class NoteOutlineManager(QWidget):
+class NoteOutlineManager(BaseOutlineManager):
     """
     A custom :py:class:`~PyQt6.QtWidgets.QWidget` dedicated to displaying the 
     hierarchical outline of Notes and other narrative elements.
@@ -24,24 +24,6 @@ class NoteOutlineManager(QWidget):
 
     NOTE_ID_ROLE = Qt.ItemDataRole.UserRole + 1
     """The int role used to store the database ID of a Note on an item."""
-
-    note_selected = pyqtSignal(int)
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int): Emitted when a Note item is 
-    selected, carrying the Note ID.
-    """
-
-    new_note_created = pyqtSignal()
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when a Note item is 
-    created. Connects to MainWindow to tell it to switch the view.
-    """
-
-    pre_note_change = pyqtSignal()
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (): Emitted before a new note is 
-    selected, allowing the main window to save the current note state.
-    """
 
     def __init__(self, project_title: str = "Narrative Forge Project", note_repository: NoteRepository | None = None, coordinator: AppCoordinator | None = None) -> None:
         """
@@ -54,61 +36,22 @@ class NoteOutlineManager(QWidget):
 
         :rtype: None
         """
-        super().__init__()
+        
 
-        self.project_title = project_title
         self.note_repo = note_repository
         self.coordinator = coordinator
 
-        # --- 1. Setup Main Layout and Components ---
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-
-        # Create Header Label
-        self.header_label = QLabel(f"{self.project_title} Notes")
-        self.header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        font = self.header_label.font()
-        font.setBold(True)
-        font.setPointSize(font.pointSize() + 1)
-        self.header_label.setFont(font)
-        self.header_label.setStyleSheet("""
-            QLabel {
-                padding: 5px
-                }
-        """            
+        super().__init__(
+            project_title=project_title,
+            header_text=f"{project_title} Notes",
+            id_role=self.NOTE_ID_ROLE,
+            search_placeholder="Search Notes...",
+            is_nested_tree=True
         )
 
-        # Create the Search Bar
-        self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText('Search Notes...')
-        self.search_input.textChanged.connect(self._handle_search_input)
-
-        self.tree_widget = NestedTreeWidget(id_role=self.NOTE_ID_ROLE, parent=self)
-        self.tree_widget.setHeaderHidden(True)
-        self.tree_widget.setIndentation(20)
-        self.tree_widget.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
-        self.tree_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-
-
-        container_frame = QFrame(self)
-        container_frame.setObjectName("MainBorderFrame")
-
-        # Create a layout FOR the frame and add the widgets to it
-        frame_layout = QVBoxLayout(container_frame)
-        frame_layout.addWidget(self.header_label)
-        frame_layout.addWidget(self.search_input)
-        frame_layout.addWidget(self.tree_widget)
-
-        main_layout.addWidget(container_frame)
-
-        # --- 2. Configuration and Signals  ---
-        self.tree_widget.item_parent_id_updated.connect(self._handle_note_parent_update)
+        # Connect nested-specific signals not covered by base
         self.tree_widget.item_hierarchy_updated.connect(self._handle_note_parent_update)
-        self.tree_widget.customContextMenuRequested.connect(self._show_context_menu)
-        # self.tree_widget.itemSelectionChanged.connect(self._handle_selection_change)
-        self.tree_widget.itemClicked.connect(self._handle_item_click)
-        self.tree_widget.itemDoubleClicked.connect(self._handle_item_double_click)
-        self.tree_widget.itemChanged.connect(self._handle_item_renamed)
+        self.tree_widget.item_parent_id_updated.connect(self._handle_note_parent_update)
 
         # Load the initial structure
         self.load_outline()
@@ -141,7 +84,7 @@ class NoteOutlineManager(QWidget):
         # Create all items and populate the map
         for note in notes:
             item = QTreeWidgetItem([note['Title']])
-            item.setData(0, self.NOTE_ID_ROLE, note['ID'])
+            item.setData(0, self.id_role, note['ID'])
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsDragEnabled | Qt.ItemFlag.ItemIsDropEnabled)
             item.setIcon(0, QIcon(":icons/note.svg"))
             item_map[note['ID']] = item
@@ -180,63 +123,12 @@ class NoteOutlineManager(QWidget):
             else:
                 self.tree_widget.clear()
                 no_result_item = QTreeWidgetItem(self.tree_widget, ["No search results found."])
-                no_result_item.setData(0, self.NOTE_ID_ROLE, -1)
+                no_result_item.setData(0, self.id_role, -1)
                 self.tree_widget.expandAll()
         
         # Search is cleared, revert to full outline
         elif not clean_query:
             self.load_outline()
-
-    def _handle_selection_change(self, item: QTreeWidgetItem, column: int) -> None:
-        """
-        Emits a signal with the selected Note ID when the selection changes.
-        
-        :rtype: None
-        """
-        current_item = self.tree_widget.currentItem()
-        if current_item:
-            note_id = current_item.data(0, self.NOTE_ID_ROLE)
-            # Only emit if a valid note (not the root or a 'no result' message) is selected
-            if isinstance(note_id, int) and note_id > 0:
-                self.note_selected.emit(note_id)
-
-    def _handle_item_click(self, item: QTreeWidgetItem, column: int) -> None:
-        """
-        Handles the click event on a tree item.
-        
-        If a note item is clicked, it emits :py:attr:`.pre_note_change` 
-        followed by :py:attr:`.note_selected`.
-
-        :param item: The clicked tree item.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
-        :param column: The column index clicked.
-        :type column: int
-
-        :rtype: None
-        """
-        note_id = item.data(0, self.NOTE_ID_ROLE)
-
-        if note_id is not None:
-            # Emit pre-change signal to allow the main window to save the current note
-            self.pre_note_change.emit()
-
-            self.note_selected.emit(note_id)
-
-    def _handle_item_double_click(self, item: QTreeWidget, column: int) -> None:
-        """
-        Handles double click on a Note item to initiate the rename process.
-        
-        The editor is only activated if the item is a valid note item (not the root).
-        
-        :param item: The double-clicked tree item.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
-        :param column: The column index.
-        :type column: :py:obj:`int`
-
-        :rtype: None
-        """
-        if item.data(0, self.NOTE_ID_ROLE) is not None:
-            self.tree_widget.editItem(item, 0)
 
     def _handle_item_renamed(self, item: QTreeWidgetItem, column: int) -> None:
         """
@@ -251,7 +143,7 @@ class NoteOutlineManager(QWidget):
 
         :rtype: None
         """
-        note_id = item.data(0, self.NOTE_ID_ROLE)
+        note_id = item.data(0, self.id_role)
         new_title = item.text(0).strip()
         
         # Handle missing repository or root item
@@ -315,7 +207,7 @@ class NoteOutlineManager(QWidget):
         new_action.triggered.connect(self.prompt_and_add_note)
         
         if item:
-            is_note = item.data(0, self.NOTE_ID_ROLE)
+            is_note = item.data(0, self.id_role)
 
             if is_note:
                 rename_action = menu.addAction("Rename Note")
@@ -342,7 +234,7 @@ class NoteOutlineManager(QWidget):
             return
         
         # Check save status before creating a new note (which implicitly changes selection)
-        self.pre_note_change.emit()
+        self.pre_item_change.emit()
 
         title, ok = QInputDialog.getText(
             self,
@@ -357,12 +249,12 @@ class NoteOutlineManager(QWidget):
             new_id = self.note_repo.create_note(title=title, sort_order=current_sort_order + 1)
             
             if new_id:
-                self.new_note_created.emit()
+                self.new_item_created.emit()
                 self.load_outline()
                 new_item = self.find_note_item_by_id(new_id)
                 if new_item:
                     self.tree_widget.setCurrentItem(new_item)
-                    self._handle_item_click(new_item, 0)
+                    self._on_item_clicked(new_item, 0)
         else:
             QMessageBox.warning(self, "Database Error", "Failed to save the new Note to the database.")
 
@@ -376,7 +268,7 @@ class NoteOutlineManager(QWidget):
 
         :rtype: None
         """
-        note_id = item.data(0, self.NOTE_ID_ROLE)
+        note_id = item.data(0, self.id_role)
         title = item.text(0)
 
         if note_id is None:
@@ -409,7 +301,7 @@ class NoteOutlineManager(QWidget):
 
         :rtype: None
         """
-        self.pre_note_change.emit()
+        self.pre_item_change.emit()
         self._delete_note(item)
 
     def find_note_item_by_id(self, note_id: int) -> QTreeWidgetItem | None:
@@ -426,7 +318,7 @@ class NoteOutlineManager(QWidget):
         iterator = QTreeWidgetItemIterator(self.tree_widget)
         while iterator.value():
             item = iterator.value()
-            if item.data(0, self.NOTE_ID_ROLE) == note_id:
+            if item.data(0, self.id_role) == note_id:
                 return item
             iterator += 1
         return None
