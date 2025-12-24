@@ -79,8 +79,8 @@ class MainWindow(QMainWindow):
         :type project_path: str
         :param settings_manager: The settings manager class to manage all settings.
         :type settings_manager: :py:class:'~services.SettingsManager`
-        :param settings_manager: The database connector to connect to the database.
-        :type settings_manager: :py:class:'~DBConnectorr`
+        :param db_connector: The database connector to connect to the database.
+        :type db_connector: :py:class:'~DBConnector`
 
         :rtype: None
         """
@@ -145,12 +145,19 @@ class MainWindow(QMainWindow):
         self._apply_settings(self.current_settings)
         logger.info(f"Current theme applied: {self.current_settings.get('theme', 'N/A')}.")
 
-        # State tracking now primarily managed by Coordinator, but keep a pointer to the ID for convenience
         self.current_view = ViewType.CHAPTER_EDITOR
+
+        self.main_menu_bar = MainMenuBar(
+            current_view=self.current_view,
+            app_version=__version__,
+            is_macos=self.is_macos,
+            parent=self
+        )
+        self.setMenuBar(self.main_menu_bar)
 
         self._setup_ui()
         
-        # NEW: Link editors to the coordinator using a dictionary map for scalability
+        # Link editors to the coordinator using a dictionary map for scalability
         editor_map = {
             ViewType.CHAPTER_EDITOR: self.chapter_editor_panel,
             ViewType.LORE_EDITOR: self.lore_editor_panel,
@@ -161,14 +168,6 @@ class MainWindow(QMainWindow):
         self.coordinator.set_editors(editor_map)
         self.coordinator.connect_signals()
         logger.debug("Editors linked to Coordinator and signals connected.")
-
-        self.main_menu_bar = MainMenuBar(
-            current_view=self.current_view,
-            app_version=__version__,
-            is_macos=self.is_macos,
-            parent=self
-        )
-        self.setMenuBar(self.main_menu_bar)
 
         self._connect_components()
 
@@ -304,7 +303,7 @@ class MainWindow(QMainWindow):
         self.main_splitter.addWidget(self.outline_stack)
         self.main_splitter.addWidget(self.editor_stack)
 
-        self.view_manager = ViewManager(self.outline_stack, self.editor_stack, self.coordinator)
+        self.view_manager = ViewManager(self.outline_stack, self.editor_stack, self.coordinator, self.main_menu_bar)
 
         outline_width = self.current_settings.get('outline_width_pixels', 300)
         self.main_splitter.setSizes([outline_width, self.width() - outline_width])  # Initial width distribution
@@ -329,28 +328,7 @@ class MainWindow(QMainWindow):
         """
         logger.info("Connecting all application UI and data components.")
 
-        # --- Outline Managers (UI signal OUT -> Coordinator slot IN) ---
-        # The outline manager now signals the coordinator to load data
-        self.chapter_outline_manager.item_selected.connect(self._on_chapter_selected)
-        self.lore_outline_manager.item_selected.connect(self._on_lore_selected)
-        self.character_outline_manager.item_selected.connect(self._on_character_selected)
-        self.note_outline_manager.item_selected.connect(self._on_note_selected)
-        
-        # Pre-change signal now checks for dirty state via the coordinator
-        # The outlines emit pre_change, and the main window delegates the action
-        self.chapter_outline_manager.pre_item_change.connect(self._check_save_before_change)
-        self.lore_outline_manager.pre_item_change.connect(self._check_save_before_change)
-        self.character_outline_manager.pre_item_change.connect(self._check_save_before_change)
-        self.note_outline_manager.pre_item_change.connect(self._check_save_before_change)
-
         # --- MainMenuBar Connections (Menu signal OUT -> MainWindow slot IN) ---
-        self.main_menu_bar.new_chapter_requested.connect(self.chapter_outline_manager.prompt_and_add_chapter)
-        self.chapter_outline_manager.new_item_created.connect(lambda: self.view_manager.switch_to_view(ViewType.CHAPTER_EDITOR))
-        self.main_menu_bar.new_lore_requested.connect(self.lore_outline_manager.prompt_and_add_lore)
-        self.lore_outline_manager.new_item_created.connect(lambda: self.view_manager.switch_to_view(ViewType.LORE_EDITOR))
-        self.main_menu_bar.new_character_requested.connect(self.character_outline_manager.prompt_and_add_character)
-        self.character_outline_manager.new_item_created.connect(lambda: self.view_manager.switch_to_view(ViewType.CHARACTER_EDITOR))
-
         self.main_menu_bar.save_requested.connect(self._save_current_item_wrapper)
         self.main_menu_bar.export_requested.connect(self._export)
         self.main_menu_bar.settings_requested.connect(self._open_settings_dialog)
@@ -358,27 +336,9 @@ class MainWindow(QMainWindow):
         # Connections for MainMenuBar Projects
         self.main_menu_bar.new_project_requested.connect(lambda: self._request_project_switch(is_new=True))
         self.main_menu_bar.open_project_requested.connect(lambda: self._request_project_switch(is_new=False))
-
-        # Connect the view switching signal from the menu bar
-        self.main_menu_bar.view_switch_requested.connect(self.view_manager.switch_to_view)
-
-        # Connect view to menu bar for checking/unchecking
-        self.view_manager.view_changed.connect(self.main_menu_bar.update_view_checkmarks)
         
         # Connect Main Menu Project Stats Dialog Openm
         self.main_menu_bar.project_stats_requested.connect(self._open_project_stats_dialog)
-        
-        # --- Coordinator (Coordinator signal OUT -> Editor/UI slot IN) ---
-        # The coordinator signals the editors when data is ready
-        self.coordinator.chapter_loaded.connect(self.chapter_editor_panel.load_entity)
-        self.coordinator.lore_loaded.connect(self.lore_editor_panel.load_entity)
-        self.coordinator.char_loaded.connect(self.character_editor_panel.load_entity)
-        self.coordinator.note_loaded.connect(self.note_editor_panel.load_entity)
-
-        self.coordinator.graph_data_loaded.connect(self.relationship_editor_panel.load_graph)
-        self.coordinator.lore_categories_changed.connect(self.lore_editor_panel.set_available_categories)
-        
-        self.relationship_outline_manager.relationship_types_updated.connect(self.coordinator.reload_relationship_graph_data)
 
         logger.info("Component signal connections complete.")
 
@@ -418,24 +378,6 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
     # Logic Delegation / Handlers
     # -------------------------------------------------------------------------
-
-    def _check_save_before_change(self) -> bool:
-        """
-        Prompts the user to save if the active editor is dirty via the Coordinator.
-
-        :returns: Returns True if safe to proceed (saved or discarded), False otherwise.
-        :rtype: bool
-        """
-        logger.info("Checking for unsaved changes before selection change...")
-        # The coordinator handles the prompt and returns the result of the user's action
-        is_safe_to_proceed = self.coordinator.check_and_save_dirty(parent=self)
-        
-        if is_safe_to_proceed:
-            logger.debug("Dirty check passed. Safe to proceed with item change.")
-        else:
-            logger.info("Dirty check failed. Item change was cancelled by user.")
-            
-        return is_safe_to_proceed
 
     def _save_current_item_wrapper(self) -> None:
         """
@@ -477,168 +419,6 @@ class MainWindow(QMainWindow):
             # Note: QMessageBox errors are handled by the Coordinator, so we just log here.
             logger.error(f"Failed to save item ID: {item_id} in view: {view}. Check coordinator logs for details.")
             self.statusBar().showMessage("Error: Failed to save the current item. See logs.", 5000)
-
-    def _on_chapter_selected(self, item_id: int) -> None:
-        """
-        Calls the Coordinator load_item signal for Chapters.
-        
-        :param item_id: The ID of the item.
-        :type item_id: int
-
-        :rtype: None
-        """
-        self.coordinator.load_item(item_id, ViewType.CHAPTER_EDITOR)
-
-    def _on_character_selected(self, item_id: int):
-        """
-        Calls the Coordinator load_item signal for Characters.
-        
-        :param item_id: The ID of the item.
-        :type item_id: int
-
-        :rtype: None
-        """
-        self.coordinator.load_item(item_id, ViewType.CHARACTER_EDITOR)
-
-    def _on_lore_selected(self, item_id: int):
-        """
-        Calls the Coordinator load_item signal for Lore Entries.
-        
-        :param item_id: The ID of the item.
-        :type item_id: int
-
-        :rtype: None
-        """
-        self.coordinator.load_item(item_id, ViewType.LORE_EDITOR)
-
-    def _on_note_selected(self, item_id: int):
-        """
-        Calls the Coordinator load_item signal for Notes.
-        
-        :param item_id: The ID of the item.
-        :type item_id: int
-
-        :rtype: None
-        """
-        self.coordinator.load_item(item_id, ViewType.NOTE_EDITOR)
-
-    def _update_lore_outline_title(self, lore_id: int, new_title: str) -> None:
-        """
-        Updates the title in the LoreOutlineManager when the editor title changes (relayed by coordinator).
-        
-        :param lore_id: The ID of the lore entry.
-        :type lore_id: int
-        :param new_title: The new title of the lore entry.
-        :type new_title: str
-
-        :rtype: None
-        """
-        display_title = new_title.strip()
-    
-        if not display_title:
-            display_title = f"Untitled Lore Entry (ID {lore_id})"
-            logger.warning(f"Lore ID {lore_id} saved with an empty title. Using placeholder: '{display_title}'.")
-
-        logger.debug(f"Attempting to update outline title for Lore ID {lore_id} to '{display_title}'.")
-
-        # The outline update only needs to happen if the Lore panel is currently active.
-        # If the user is on the Lore view stack, the outline manager should be updated.
-        if self.current_view == ViewType.LORE_EDITOR: 
-            try:
-                item = self.lore_outline_manager.find_lore_item_by_id(lore_id)
-                
-                if item:
-                    # Block signals to prevent the outline's itemChanged signal from firing 
-                    # back to the coordinator/repository, causing a recursive update.
-                    self.lore_outline_manager.blockSignals(True)
-                    item.setText(0, display_title)
-                    self.lore_outline_manager.blockSignals(False)
-                    
-                    logger.info(f"Successfully synchronized Lore Outline title for ID {lore_id}.")
-                else:
-                    logger.warning(f"Lore Outline item not found for ID {lore_id}. Cannot update title.")
-            
-            except Exception as e:
-                # Catch any unexpected low-level GUI error during the update
-                logger.error(f"Critical error during Lore Outline title synchronization for ID {lore_id}.", exc_info=True)
-
-    def _update_character_outline_name(self, char_id: int, new_name: str) -> None:
-        """
-        Updates the name in the CharacterOutlineManager when the editor name changes (relayed by coordinator).
-        
-        :param char_id: The ID of the Character.
-        :type char_id: int
-        :param new_name: The new name to set the Character to.
-        :type new_name: str
-
-        :rtype: None
-        """
-        display_name = new_name.strip()
-    
-        if not display_name:
-            display_name = f"Untitled Character (ID {char_id})"
-            logger.warning(f"Character ID {char_id} saved with an empty name. Using placeholder: '{display_name}'.")
-
-        logger.debug(f"Attempting to update outline name for Character ID {char_id} to '{display_name}'.")
-
-        if self.current_view == ViewType.CHARACTER_EDITOR:
-            try:
-                item = self.character_outline_manager.find_character_item_by_id(char_id)
-                
-                if item:
-                    # Block signals to prevent the outline's itemChanged signal from firing 
-                    # back to the coordinator/repository, causing a recursive update loop.
-                    self.character_outline_manager.blockSignals(True)
-                    item.setText(0, display_name)
-                    self.character_outline_manager.blockSignals(False)
-                    
-                    logger.info(f"Successfully synchronized Character Outline name for ID {char_id}.")
-                else:
-                    logger.warning(f"Character Outline item not found for ID {char_id}. Cannot update name.")
-            
-            except Exception as e:
-                # Catch any unexpected low-level GUI error during the update
-                logger.error(f"Critical error during Character Outline name synchronization for ID {char_id}.", exc_info=True)
-
-    def _update_note_outline_title(self, note_id: int, new_title: str) -> None:
-        """
-        Updates the title in the NoteOutlineManager when the editor title changes (relayed by coordinator).
-        
-        :param note_id: The ID of the note.
-        :type note_id: int
-        :param new_title: The new title of the note.
-        :type new_title: str
-
-        :rtype: None
-        """
-        display_title = new_title.strip()
-    
-        if not display_title:
-            display_title = f"Untitled Note (ID {note_id})"
-            logger.warning(f"Note ID {note_id} saved with an empty title. Using placeholder: '{display_title}'.")
-
-        logger.debug(f"Attempting to update outline title for Note ID {note_id} to '{display_title}'.")
-
-        # The outline update only needs to happen if the Lore panel is currently active.
-        # If the user is on the Lore view stack, the outline manager should be updated.
-        if self.current_view == ViewType.LORE_EDITOR: 
-            try:
-                item = self.note_outline_manager.find_note_item_by_id(note_id)
-                
-                if item:
-                    # Block signals to prevent the outline's itemChanged signal from firing 
-                    # back to the coordinator/repository, causing a recursive update.
-                    self.note_outline_manager.blockSignals(True)
-                    item.setText(0, display_title)
-                    self.note_outline_manager.blockSignals(False)
-                    
-                    logger.info(f"Successfully synchronized Note Outline title for ID {note_id}.")
-                else:
-                    logger.warning(f"Note Outline item not found for ID {note_id}. Cannot update title.")
-            
-            except Exception as e:
-                # Catch any unexpected low-level GUI error during the update
-                logger.error(f"Critical error during Note Outline title synchronization for ID {note_id}.", exc_info=True)
     
     # -------------------------------------------------------------------------
     # I/O Handlers (Export/Settings)
