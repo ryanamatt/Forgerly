@@ -74,7 +74,7 @@ class MainMenuBar(QMenuBar):
     """
 
 
-    def __init__(self, current_view: ViewType, app_version: str, is_macos: bool, parent=None) -> None:
+    def __init__(self, app_version: str, is_macos: bool, parent=None) -> None:
         """
         Initializes the main menu bar.
 
@@ -90,7 +90,6 @@ class MainMenuBar(QMenuBar):
         :rtype: None
         """
         super().__init__(parent=parent)
-        self.current_view = current_view
         self.app_version = app_version
 
         self._mod_key = "Meta" if is_macos else "Ctrl"
@@ -202,11 +201,6 @@ class MainMenuBar(QMenuBar):
             action = QAction(text, self)
             action.setIcon(QIcon(icon_path))
             action.setCheckable(True)
-            
-            # Check the action if it matches current_view
-            is_active = (self.current_view == view_type)
-            action.setChecked(is_active)
-            action.setIconVisibleInMenu(not is_active)
             
             action.triggered.connect(lambda: self.view_switch_requested.emit(view_type))
             

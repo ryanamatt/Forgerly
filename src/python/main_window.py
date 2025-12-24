@@ -10,6 +10,7 @@ import sys
 import ctypes
 from typing import Any
 
+from .ui.ui_factory import UIFactory
 from .ui.view_manager import ViewManager
 from .ui.menu.main_menu_bar import MainMenuBar
 
@@ -145,10 +146,7 @@ class MainWindow(QMainWindow):
         self._apply_settings(self.current_settings)
         logger.info(f"Current theme applied: {self.current_settings.get('theme', 'N/A')}.")
 
-        self.current_view = ViewType.CHAPTER_EDITOR
-
         self.main_menu_bar = MainMenuBar(
-            current_view=self.current_view,
             app_version=__version__,
             is_macos=self.is_macos,
             parent=self
@@ -157,18 +155,6 @@ class MainWindow(QMainWindow):
 
         self._setup_ui()
         
-        # Link editors to the coordinator using a dictionary map for scalability
-        editor_map = {
-            ViewType.CHAPTER_EDITOR: self.chapter_editor_panel,
-            ViewType.LORE_EDITOR: self.lore_editor_panel,
-            ViewType.CHARACTER_EDITOR: self.character_editor_panel,
-            ViewType.RELATIONSHIP_GRAPH: self.relationship_editor_panel,
-            ViewType.NOTE_EDITOR: self.note_editor_panel
-        }
-        self.coordinator.set_editors(editor_map)
-        self.coordinator.connect_signals()
-        logger.debug("Editors linked to Coordinator and signals connected.")
-
         self._connect_components()
 
         # Initially set the view to Chapters
@@ -203,7 +189,8 @@ class MainWindow(QMainWindow):
         """
 
         # If check_and_save_dirty returns False, the user canceled the exit.
-        if not self.coordinator.check_and_save_dirty(parent=self):
+        can_exit = self.coordinator.check_and_save_dirty(parent=self)
+        if not can_exit:
             logger.debug("Close event ignored: User canceled due to unsaved changes.")
             event.ignore()
             return
@@ -269,50 +256,31 @@ class MainWindow(QMainWindow):
         """
         logger.info("Initializing main application UI structure.")
         
-        # 2. Instantiate Main Components
-        self.chapter_outline_manager = ChapterOutlineManager(project_title=self.project_title, chapter_repository=self.coordinator.chapter_repo)
-        self.chapter_editor_panel = ChapterEditor(self.current_settings, self.coordinator)
-        self.lore_outline_manager = LoreOutlineManager(project_title=self.project_title, lore_repository=self.coordinator.lore_repo, coordinator=self.coordinator)
-        self.lore_editor_panel = LoreEditor()
-        self.character_outline_manager = CharacterOutlineManager(project_title=self.project_title, character_repository=self.coordinator.character_repo)
-        self.character_editor_panel = CharacterEditor()
-        self.note_outline_manager = NoteOutlineManager(project_title=self.project_title, note_repository=self.coordinator.note_repo, coordinator=self.coordinator)
-        self.note_editor_panel = NoteEditor(self.current_settings, self.coordinator)
+        self.outline_stack, self.editor_stack, editor_map = UIFactory.create_components(
+            project_title=self.project_title,
+            coordinator=self.coordinator,
+            settings=self.current_settings
+        )
 
-        self.relationship_outline_manager = RelationshipOutlineManager(relationship_repository=self.coordinator.relationship_repo)
-        self.relationship_editor_panel = RelationshipEditor(coordinator=self.coordinator)
-
-        # 3. Left Panel: Outline Stack
-        self.outline_stack = QStackedWidget()
-        self.outline_stack.addWidget(self.chapter_outline_manager)
-        self.outline_stack.addWidget(self.lore_outline_manager)
-        self.outline_stack.addWidget(self.character_outline_manager)
-        self.outline_stack.addWidget(self.note_outline_manager)
-        self.outline_stack.addWidget(self.relationship_outline_manager)
-        
-        # 4. Right Panel: Editor Stack
-        self.editor_stack = QStackedWidget()
-        self.editor_stack.addWidget(self.chapter_editor_panel)
-        self.editor_stack.addWidget(self.lore_editor_panel)
-        self.editor_stack.addWidget(self.character_editor_panel)
-        self.editor_stack.addWidget(self.note_editor_panel)
-        self.editor_stack.addWidget(self.relationship_editor_panel)
-
-        # 5. Main Splitter
+        # Main Splitter
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.main_splitter.addWidget(self.outline_stack)
         self.main_splitter.addWidget(self.editor_stack)
 
-        self.view_manager = ViewManager(self.outline_stack, self.editor_stack, self.coordinator, self.main_menu_bar)
+        self.view_manager = ViewManager(
+            outline_stack=self.outline_stack, 
+            editor_stack=self.editor_stack, 
+            coordinator=self.coordinator, 
+            main_menu_bar=self.main_menu_bar
+        )
+
+        self.coordinator.set_view_manager(self.view_manager)
 
         outline_width = self.current_settings.get('outline_width_pixels', 300)
         self.main_splitter.setSizes([outline_width, self.width() - outline_width])  # Initial width distribution
         self.main_splitter.setStretchFactor(1, 1) # Editor side stretches
 
         self.setCentralWidget(self.main_splitter)
-
-        # Initialize relationship editor's signals
-        self.relationship_editor_panel.set_coordinator_signals(self.coordinator)
 
         logger.info("UI setup finalized.")
 
@@ -565,7 +533,7 @@ class MainWindow(QMainWindow):
 
         if old_wpm != new_wpm:
             logger.debug(f"WPM setting changed: {old_wpm} -> {new_wpm}. Updating ChapterEditor.")
-            self.chapter_editor_panel.set_wpm(new_wpm)
+            self.view_manager.set_wpm(new_wpm)
 
         # CRITICAL: Update the main window's internal state to the new settings dictionary
         self.current_settings = new_settings

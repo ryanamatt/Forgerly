@@ -59,6 +59,9 @@ class ViewManager(QObject):
         self.coordinator = coordinator
         self.main_menu_bar = main_menu_bar
 
+        # Default View is Chapter Editor when first launching
+        self.current_view = ViewType.CHAPTER_EDITOR
+
         # Map ViewType to Stack Index
         self._view_indices = {
             ViewType.CHAPTER_EDITOR: 0,
@@ -76,7 +79,10 @@ class ViewManager(QObject):
         
         :rtype: None
         """
-        self.main_menu_bar.save_requested.connect(self.coordinator.save_current_item)
+        self.main_menu_bar.save_requested.connect(
+            lambda: self.coordinator.save_current_item(
+                view=self.get_current_view(), editor=self.get_current_editor()
+            ))
 
         self.main_menu_bar.view_switch_requested.connect(self.switch_to_view)
         self.view_changed.connect(self.main_menu_bar.update_view_checkmarks)
@@ -135,9 +141,31 @@ class ViewManager(QObject):
         rel_outline.relationship_types_updated.connect(self.coordinator.reload_relationship_graph_data)
         rel_editor.request_load_data.connect(self.coordinator.load_relationship_graph_data)
 
+        # Relationship Editor -> Coordinator
+        rel_editor.set_coordinator_signals(self.coordinator)
+        rel_editor.relationship_created.connect(self.coordinator.save_new_relationship)
+        rel_editor.relationship_deleted.connect(self.coordinator.handle_relationship_deletion)
+
         # Lore Categories
         self.coordinator.lore_categories_changed.connect(lore_editor.set_available_categories)
 
+    def get_current_editor(self) -> 'BaseEditor':
+        """
+        Gets the current Editor
+        
+        :return: The current Editors
+        :rtype: BaseEditor
+        """
+        return self.editor_stack.currentWidget()
+    
+    def get_current_view(self) -> ViewType:
+        """
+        Gets the current view
+        
+        :return: The current View
+        :rtype: ViewType
+        """
+        return self.current_view
 
     def switch_to_view(self, view: ViewType) -> None:
         """
@@ -156,13 +184,15 @@ class ViewManager(QObject):
 
         logger.info(f"ViewManager: Switching stacks to index {index} for {view}")
 
+        self.current_view = view
         self.outline_stack.setCurrentIndex(index)
         self.editor_stack.setCurrentIndex(index)
 
-        self.coordinator.set_current_view(view)
+        # self.coordinator.set_current_view(view)
         self._perform_view_entry_logic(view)
 
         self.view_changed.emit(view)
+
 
     def _perform_view_entry_logic(self, view: ViewType) -> None:
         """
@@ -171,13 +201,13 @@ class ViewManager(QObject):
         :param view: The view to perform on.
         :type view: ViewType
         """
-        editor: BaseEditor = self.coordinator.get_current_editor()
+        editor: BaseEditor = self.get_current_editor()
 
         if view == ViewType.RELATIONSHIP_GRAPH:
             # Relationships usually load all data immediately
-            if isinstance(editor, RelationshipEditor):
+            if hasattr(editor, 'request_load_data'):
+                editor: RelationshipEditor = editor
                 editor.request_load_data.emit()
-            editor.set_enabled(True)
             
         elif view == ViewType.LORE_EDITOR:
             # Refresh category dropdowns for the lore editor
@@ -188,3 +218,13 @@ class ViewManager(QObject):
             if editor:
                 editor.set_enabled(False)
                 logger.debug(f"ViewManager: Disabled {view} editor awaiting selection.")
+
+    def set_wpm(self, wpm: int) -> None:
+        """
+        Sets the WPM in ChapterEditor
+        
+        :param wpm: The new WPM
+        :type wpm: int
+        """
+        print(f"ViewManager.set_wpm() {wpm}")
+        self.editor_stack['chapter_editor'].set_wpm(wpm)
