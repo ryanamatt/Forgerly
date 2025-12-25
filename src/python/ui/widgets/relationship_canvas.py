@@ -1,8 +1,8 @@
 # src/python/ui/widgets/relationship_canvas.py
 
-from PyQt6.QtWidgets import QGraphicsView
-from PyQt6.QtCore import QLineF, QRectF
-from PyQt6.QtGui import QWheelEvent, QPainter, QMouseEvent, QPen, QColor
+from PySide6.QtWidgets import QGraphicsView
+from PySide6.QtCore import QLineF, QRectF
+from PySide6.QtGui import QWheelEvent, QPainter, QMouseEvent, QPen, QColor
 
 class RelationshipCanvas(QGraphicsView):
     """

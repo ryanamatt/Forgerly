@@ -1,6 +1,6 @@
 # src/python/ui/views/base_editor.py
 
-from PyQt6.QtWidgets import QWidget
+from PySide6.QtWidgets import QWidget
 from ...ui.widgets.tag_widget import TagManagerWidget
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:

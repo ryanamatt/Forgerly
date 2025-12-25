@@ -1,8 +1,8 @@
 # src/python/ui/widgets/reordering_tree_widget.py
 
-from PyQt6.QtWidgets import QTreeWidget, QAbstractItemView
-from PyQt6.QtGui import QDropEvent
-from PyQt6.QtCore import pyqtSignal
+from PySide6.QtWidgets import QTreeWidget, QAbstractItemView
+from PySide6.QtGui import QDropEvent
+from PySide6.QtCore import Signal
 
 class ReorderingTreeWidget(QTreeWidget):
     """
@@ -14,9 +14,9 @@ class ReorderingTreeWidget(QTreeWidget):
     database.
     """
 
-    order_changed = pyqtSignal()
+    order_changed = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (): Emitted to notify a 
+    :py:class:`~PyQt6.QtCore.Signal` (): Emitted to notify a 
     successfuly drop to the manager.
     """
 

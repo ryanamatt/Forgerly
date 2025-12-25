@@ -5,8 +5,8 @@ from xhtml2pdf import pisa
 import json
 import yaml
 
-from PyQt6.QtWidgets import QFileDialog, QMessageBox, QWidget
-from PyQt6.QtGui import QTextDocument
+from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
+from PySide6.QtGui import QTextDocument
 
 from ..services.exporter import Exporter
 from ..utils.constants import FileFormats, generate_file_filter

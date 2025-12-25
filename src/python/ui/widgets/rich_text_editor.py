@@ -1,14 +1,14 @@
 # src/python/rich_text_editor.py
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QToolBar, QWidget, QFontComboBox, QComboBox, QColorDialog, QMessageBox,
     QSizePolicy
 )
-from PyQt6.QtGui import (
+from PySide6.QtGui import (
     QAction, QTextCharFormat, QFont, QTextCursor, QKeyEvent,
     QTextListFormat, QTextBlockFormat, QIcon, QBrush, QIcon
 )
-from PyQt6.QtCore import Qt, QSize, pyqtSignal
+from PySide6.QtCore import Qt, QSize, Signal
 
 from ...resources_rc import *
 from .basic_text_editor import BasicTextEditor
@@ -35,9 +35,9 @@ class RichTextEditor(BasicTextEditor):
     :vartype editor: :py:class:`PyQt6.QtWidgets.QTextEdit`
     """
 
-    popup_lookup_requested = pyqtSignal(str)
+    popup_lookup_requested = Signal(str)
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (str): Emitted to when the user wants to lookup
+    :py:class:`~PyQt6.QtCore.Signal` (str): Emitted to when the user wants to lookup
         something in the editor. Contains the Name of whatever it is they want to lookup.
     """
 

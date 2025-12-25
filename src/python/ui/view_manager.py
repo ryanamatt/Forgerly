@@ -1,7 +1,7 @@
 # src/python/ui/view_manager.py
 
-from PyQt6.QtWidgets import QStackedWidget
-from PyQt6.QtCore import QObject, pyqtSignal
+from PySide6.QtWidgets import QStackedWidget
+from PySide6.QtCore import QObject, Signal
 
 from ..utils.constants import ViewType
 from ..utils.logger import get_logger
@@ -32,27 +32,27 @@ class ViewManager(QObject):
     Connects the OutlineManager, Editor signals to the coordinator.
     """
 
-    view_changed = pyqtSignal(int)
+    view_changed = Signal(int)
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (ViewType). Emitted When the View changes
+    :py:class:`~PyQt6.QtCore.Signal` (ViewType). Emitted When the View changes
     carrying the new ViewType.
     """
 
-    save_requested = pyqtSignal(object, int) # (editor_instance, ViewType)
+    save_requested = Signal(object, int) # (editor_instance, ViewType)
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (editor ,ViewType). Emitted When a save is requested
+    :py:class:`~PyQt6.QtCore.Signal` (editor ,ViewType). Emitted When a save is requested
     carrying the Editor, View
     """
 
-    load_requested = pyqtSignal(int, int)    # (item_id, ViewType)
+    load_requested = Signal(int, int)    # (item_id, ViewType)
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (editor ,ViewType). Emitted When a load is requested
+    :py:class:`~PyQt6.QtCore.Signal` (editor ,ViewType). Emitted When a load is requested
     carrying the item_id, View
     """
 
-    item_selected = pyqtSignal(int, int)
+    item_selected = Signal(int, int)
 
-    check_save = pyqtSignal(int, object)
+    check_save = Signal(int, object)
 
 
     def __init__(self, outline_stack: QStackedWidget, editor_stack: QStackedWidget, 

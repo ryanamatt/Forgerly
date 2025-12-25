@@ -2,10 +2,9 @@
 
 import sys
 import traceback
-from PyQt6.QtWidgets import QMessageBox
-from PyQt6.QtCore import QCoreApplication
+from PySide6.QtWidgets import QMessageBox
+from PySide6.QtCore import QCoreApplication
 
-# Assuming relative import from the same utils package
 from .logger import get_logger
 
 logger = get_logger(__name__)

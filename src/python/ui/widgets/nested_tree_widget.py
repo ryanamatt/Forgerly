@@ -1,8 +1,8 @@
 # src/python/ui/widgets/nested_tree_widget.py
 
-from PyQt6.QtWidgets import QTreeWidget, QAbstractItemView, QTreeWidgetItem, QMessageBox
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QDropEvent
+from PySide6.QtWidgets import QTreeWidget, QAbstractItemView, QTreeWidgetItem, QMessageBox
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QDropEvent
 
 from ...utils.logger import get_logger
 
@@ -16,11 +16,11 @@ class NestedTreeWidget(QTreeWidget):
     It allows to drag-and-drop setting of items in a hierachical fashin.
     """
 
-    item_parent_id_updated = pyqtSignal(int, object)
-    """:py:class:`~PyQt6.QtCore.pyqtSignal` (int, object): Signal to connect back to the OutlineManager"""
+    item_parent_id_updated = Signal(int, object)
+    """:py:class:`~PyQt6.QtCore.Signal` (int, object): Signal to connect back to the OutlineManager"""
 
-    item_hierarchy_updated = pyqtSignal(int, object)
-    """:py:class:`~PyQt6.QtCore.pyqtSignal` (int, object): Signal to connect back to the OutlineManager"""
+    item_hierarchy_updated = Signal(int, object)
+    """:py:class:`~PyQt6.QtCore.Signal` (int, object): Signal to connect back to the OutlineManager"""
 
     def __init__(self, id_role: int, parent=None):
         """

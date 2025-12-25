@@ -1,10 +1,10 @@
 # src/python/ui/lore_editor.py
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QGroupBox, QSplitter, 
     QLineEdit, QComboBox, QHBoxLayout
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PySide6.QtCore import Qt, Signal
 from typing import Any
 
 from .base_editor import BaseEditor
@@ -21,9 +21,9 @@ class LoreEditor(BaseEditor):
     with repositories directly.
     """
 
-    lore_title_changed = pyqtSignal(int, str)
+    lore_title_changed = Signal(int, str)
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str): Emitted when the Lore Entry's 
+    :py:class:`~PyQt6.QtCore.Signal` (int, str): Emitted when the Lore Entry's 
     title changes, carrying the Lore Entry ID and the new title.
     """
     

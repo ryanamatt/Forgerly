@@ -1,7 +1,7 @@
 # src/python/services/app_coordinator.py
 
-from PyQt6.QtCore import QObject, pyqtSignal
-from PyQt6.QtWidgets import QMessageBox
+from PySide6.QtCore import QObject, Signal
+from PySide6.QtWidgets import QMessageBox
 
 from ..db_connector import DBConnector
 from ..repository.chapter_repository import ChapterRepository
@@ -34,27 +34,27 @@ class AppCoordinator(QObject):
     with each other via signals, and interact with the database only via this coordinator.
     """
 
-    graph_data_loaded = pyqtSignal(dict)
+    graph_data_loaded = Signal(dict)
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (dict): Emitted to provide all necessary 
+    :py:class:`~PyQt6.QtCore.Signal` (dict): Emitted to provide all necessary 
     data for the relationship graph. Carries a dictionary containing node and edge data.
     """
 
-    data_loaded = pyqtSignal(dict)
+    data_loaded = Signal(dict)
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (dict) Emitted when a item's data is loaded
+    :py:class:`~PyQt6.QtCore.Signal` (dict) Emitted when a item's data is loaded
     carrying a dictionary of all needed stuff for that item to be displayed in the
     edutir.
     """
     
-    relationship_types_available = pyqtSignal(list) # list[dict]
+    relationship_types_available = Signal(list) # list[dict]
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (list): Emitted to provide the list of 
+    :py:class:`~PyQt6.QtCore.Signal` (list): Emitted to provide the list of 
     all defined relationship types (names, colors, IDs) to the graph and outline manager.
     """
 
-    lore_categories_changed = pyqtSignal(list) 
-    """:py:class:`~PyQt6.QtCore.pyqtSignal` Emitted when the list of available 
+    lore_categories_changed = Signal(list) 
+    """:py:class:`~PyQt6.QtCore.Signal` Emitted when the list of available 
     categories is refreshed containing list[str] of all unique category names.
     """
 

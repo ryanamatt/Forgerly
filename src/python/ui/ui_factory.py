@@ -1,6 +1,6 @@
 # src/python/ui/ui_factory.py
 
-from PyQt6.QtWidgets import QStackedWidget
+from PySide6.QtWidgets import QStackedWidget
 
 from .views.chapter_outline_manager import ChapterOutlineManager
 from .views.chapter_editor import ChapterEditor

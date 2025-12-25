@@ -1,9 +1,9 @@
 # src/python/ui/widgets/relationship_dialog.py
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QDialog, QFormLayout, QComboBox, QLineEdit, QSpinBox, QDialogButtonBox, QLabel
 )
-from PyQt6.QtCore import Qt
+from PySide6.QtCore import Qt
 
 class RelationshipCreationDialog(QDialog):
     """

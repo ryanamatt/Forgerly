@@ -1,9 +1,9 @@
 # src/python/basic_text_editor.py
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QTextEdit, QWidget, QVBoxLayout, QMessageBox
 )
-from PyQt6.QtCore import pyqtSignal
+from PySide6.QtCore import Signal
 
 from ...utils.logger import get_logger
 from ...utils.exceptions import EditorContentError
@@ -20,14 +20,14 @@ class BasicTextEditor(QWidget):
     public access functions to get the text contained in the editor.
     """
     # Signal to notify listeners (like ChapterEditor/LoreEditor) of content changes
-    content_changed = pyqtSignal()
+    content_changed = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when the content of the editor changes.
+    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the content of the editor changes.
     """
 
-    selection_changed = pyqtSignal()
+    selection_changed = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when the selection has changed..
+    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the selection has changed..
     """
 
     def __init__(self, parent=None) -> None:

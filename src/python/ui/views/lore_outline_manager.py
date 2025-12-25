@@ -1,10 +1,10 @@
 # src/python/ui/lore_outline_manager.py
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QMenu, QInputDialog, QMessageBox, QTreeWidgetItemIterator
 )
-from PyQt6.QtCore import Qt, QPoint
-from PyQt6.QtGui import QIcon
+from PySide6.QtCore import Qt, QPoint
+from PySide6.QtGui import QIcon
 from typing import Any
 
 from .base_outline_manager import BaseOutlineManager
