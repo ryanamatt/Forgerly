@@ -12,7 +12,6 @@ from .views.note_outline_manager import NoteOutlineManager
 from .views.note_editor import NoteEditor
 from .views.relationship_outline_manager import RelationshipOutlineManager
 from .views.relationship_editor import RelationshipEditor
-from ..utils.constants import ViewType
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -70,13 +69,4 @@ class UIFactory:
         editor_stack.addWidget(components['note_editor'])
         editor_stack.addWidget(components['relationship_editor'])
 
-        # Create the mapping for the Coordinator
-        editor_map = {
-            ViewType.CHAPTER_EDITOR: components['chapter_editor'],
-            ViewType.LORE_EDITOR: components['lore_editor'],
-            ViewType.CHARACTER_EDITOR: components['character_editor'],
-            ViewType.RELATIONSHIP_GRAPH: components['relationship_editor'],
-            ViewType.NOTE_EDITOR: components['note_editor']
-        }
-
-        return outline_stack, editor_stack, editor_map
+        return outline_stack, editor_stack

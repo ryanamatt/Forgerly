@@ -1,8 +1,6 @@
 # src/python/main_window.py
 
-from PyQt6.QtWidgets import (
-    QMainWindow, QSplitter, QMessageBox, QDialog, QStackedWidget
-)
+from PyQt6.QtWidgets import QMainWindow, QSplitter, QMessageBox, QDialog
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QCloseEvent, QResizeEvent, QIcon
 import os
@@ -14,17 +12,6 @@ from .ui.ui_factory import UIFactory
 from .ui.view_manager import ViewManager
 from .ui.menu.main_menu_bar import MainMenuBar
 
-from .ui.views.chapter_outline_manager import ChapterOutlineManager
-from .ui.views.chapter_editor import ChapterEditor
-from .ui.views.lore_outline_manager import LoreOutlineManager
-from .ui.views.lore_editor import LoreEditor
-from .ui.views.character_outline_manager import CharacterOutlineManager
-from .ui.views.character_editor import CharacterEditor
-from .ui.views.note_outline_manager import NoteOutlineManager
-from .ui.views.note_editor import NoteEditor
-
-from .ui.views.relationship_outline_manager import RelationshipOutlineManager
-from .ui.views.relationship_editor import RelationshipEditor
 from .ui.dialogs.settings_dialog import SettingsDialog
 from .ui.dialogs.exporter_dialog import ExporterDialog
 from .ui.dialogs.project_stats_dialog import ProjectStatsDialog
@@ -257,7 +244,7 @@ class MainWindow(QMainWindow):
         """
         logger.info("Initializing main application UI structure.")
         
-        self.outline_stack, self.editor_stack, editor_map = UIFactory.create_components(
+        self.outline_stack, self.editor_stack = UIFactory.create_components(
             project_title=self.project_title,
             coordinator=self.coordinator,
             settings=self.current_settings
@@ -274,8 +261,6 @@ class MainWindow(QMainWindow):
             coordinator=self.coordinator, 
             main_menu_bar=self.main_menu_bar
         )
-
-        # self.coordinator.set_view_manager(self.view_manager)
 
         outline_width = self.current_settings.get('outline_width_pixels', 300)
         self.main_splitter.setSizes([outline_width, self.width() - outline_width])  # Initial width distribution
