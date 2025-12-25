@@ -106,17 +106,17 @@ class NoteEditor(BaseEditor):
             'tags': self.tag_manager.get_tags()
         }
     
-    def load_entity(self, note_id: int, content: str, tags: list[str]) -> None:
+    def load_entity(self, data: dict) -> None:
         """
         Loads all the information into the editor
         
-        :param note_id: The ID of the note.
-        :type note_id: int
-        :param content: The content of the note.
-        :type content: str
-        :param tags: The tags of the note
-        :type tags: list[str]
+        param data: A dict with all Note Data.
+        :type data: dict
+
+        :rtype: None
         """
+        id, content, tags = data['id'], data['content'], data['tags']
+
         self.text_editor.set_html_content(content)
         self.tag_manager.set_tags(tags)
 

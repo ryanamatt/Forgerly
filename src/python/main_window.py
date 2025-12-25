@@ -189,7 +189,8 @@ class MainWindow(QMainWindow):
         """
 
         # If check_and_save_dirty returns False, the user canceled the exit.
-        can_exit = self.coordinator.check_and_save_dirty(parent=self)
+        can_exit = self.coordinator.check_and_save_dirty(self.view_manager.get_current_view(),
+                                                     self.view_manager.get_current_editor(), parent=self)
         if not can_exit:
             logger.debug("Close event ignored: User canceled due to unsaved changes.")
             event.ignore()
@@ -274,7 +275,7 @@ class MainWindow(QMainWindow):
             main_menu_bar=self.main_menu_bar
         )
 
-        self.coordinator.set_view_manager(self.view_manager)
+        # self.coordinator.set_view_manager(self.view_manager)
 
         outline_width = self.current_settings.get('outline_width_pixels', 300)
         self.main_splitter.setSizes([outline_width, self.width() - outline_width])  # Initial width distribution
@@ -296,6 +297,14 @@ class MainWindow(QMainWindow):
         """
         logger.info("Connecting all application UI and data components.")
 
+        self.view_manager.check_save.connect(self.coordinator.check_and_save_dirty)
+
+        self.view_manager.load_requested.connect(self.coordinator.load_item)
+
+        self.coordinator.data_loaded.connect(self._distribute_data_to_editor)
+
+        self.main_menu_bar.save_requested.connect(self._on_save_triggered)
+
         # --- MainMenuBar Connections (Menu signal OUT -> MainWindow slot IN) ---
         self.main_menu_bar.export_requested.connect(self._export)
         self.main_menu_bar.settings_requested.connect(self._open_settings_dialog)
@@ -308,6 +317,28 @@ class MainWindow(QMainWindow):
         self.main_menu_bar.project_stats_requested.connect(self._open_project_stats_dialog)
 
         logger.info("Component signal connections complete.")
+
+    # --- Coordinator/ViewManager ---
+
+    def _distribute_data_to_editor(self, data) -> None:
+        """
+        Distributes data to Edtior
+        
+        :rtype: None
+        """
+        editor = self.view_manager.get_current_editor()
+        if editor:
+            editor.load_entity(data)
+
+    def _on_save_triggered(self) -> None:
+        """
+        Called When Save is triggered
+        
+        :rtype: None
+        """
+        editor = self.view_manager.get_current_editor()
+        view = self.view_manager.get_current_view()
+        self.coordinator.save_current_item(view=view, editor=editor)
 
     # --- For Creating/Opening other Projects ---
 
@@ -328,7 +359,8 @@ class MainWindow(QMainWindow):
 
         # Check for and save unsaved changes before switching
         # The coordinator handles the QMessageBox logic and returns False if the user cancels.
-        if not self.coordinator.check_and_save_dirty(parent=self):
+        if not self.coordinator.check_and_save_dirty(self.view_manager.get_current_view(),
+                                                     self.view_manager.get_current_editor(), parent=self):
             logger.info(f"User cancelled {action} action during save prompt. Aborting switch.")
             return
 
@@ -359,7 +391,8 @@ class MainWindow(QMainWindow):
         
         # 1. Check for unsaved changes before exporting. 
         # If check_and_save_dirty returns False, the user canceled the operation.
-        if not self.coordinator.check_and_save_dirty(parent=self):
+        if not self.coordinator.check_and_save_dirty(self.view_manager.get_current_view(),
+                                                     self.view_manager.get_current_editor(), parent=self):
             logger.info("Export canceled by user during unsaved changes check.")
             self.statusBar().showMessage("Export canceled.", 3000)
             return
