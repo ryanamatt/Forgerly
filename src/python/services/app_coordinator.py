@@ -34,39 +34,17 @@ class AppCoordinator(QObject):
     with each other via signals, and interact with the database only via this coordinator.
     """
 
-    # --- Signals for Editor Panel Updates ---
-    chapter_loaded = pyqtSignal(int, str, list)      # id, content_html, tags
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str, list): Emitted to load a 
-    chapter's content into the editor. Carries the Chapter ID, its content 
-    as HTML, and a list of associated tags.
-    """
-
-    lore_loaded = pyqtSignal(int, str, str, str, list) # id, title, category, content_html, tags
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str, str, str, list): Emitted 
-    to load a lore item's content. Carries the Lore ID, title, category, 
-    content as HTML, and a list of associated tags.
-    """
-
-    char_loaded = pyqtSignal(int, str, str, str, int, str, str, str)
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str, str, str): Emitted to load 
-    a character's data into the editor. Carries (ID, Name, Description, Status, 
-    Age, DOB, Occupation, Physical).
-    """
-
-    note_loaded = pyqtSignal(int, str , list) # id, content_html, tags
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str, list): Emitted to load a 
-    notes's content into the editor. Carries the Note ID, its content 
-    as HTML, and a list of associated tags.
-    """
-
     graph_data_loaded = pyqtSignal(dict)
     """
     :py:class:`~PyQt6.QtCore.pyqtSignal` (dict): Emitted to provide all necessary 
     data for the relationship graph. Carries a dictionary containing node and edge data.
+    """
+
+    data_loaded = pyqtSignal(dict)
+    """
+    :py:class:`~PyQt6.QtCore.pyqtSignal` (dict) Emitted when a item's data is loaded
+    carrying a dictionary of all needed stuff for that item to be displayed in the
+    edutir.
     """
     
     relationship_types_available = pyqtSignal(list) # list[dict]
@@ -104,35 +82,23 @@ class AppCoordinator(QObject):
         # State Tracking
         self.current_item_id: int = 0
 
-        self.view_manager: 'ViewManager' | None = None
-
-    # --- View Logic ---
-
-    def set_view_manager(self, view_manager: 'ViewManager') -> None:
-        """
-        Sets the view_managers
-        
-        :param view_manager: The ViewManager object to set
-        :type view_manager: 'ViewManager'
-        """
-        self.view_manager = view_manager
-
     # --- Save / Dirty Check Logic (Core Business Logic) ---
 
-    def check_and_save_dirty(self, parent=None) -> bool:
+    def check_and_save_dirty(self, view: ViewType, editor: 'BaseEditor', parent=None) -> bool:
         """
         Prompts the user to save if the active editor is dirty.
         Returns True if safe to proceed (saved or discarded), False otherwise (canceled).
 
+        :param view: The current view.
+        :type view: 'ViewType'
+        :param editor: The current editor.
+        :type editor: 'BaseEditor'
         :param parent: The parent. Default is None.
         :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
 
         :returns: Returns True if saved, otherwise False
         :rtype: bool
         """
-        view = self.view_manager.get_current_view()
-        editor = self.view_manager.get_current_editor()
-
         if view == ViewType.RELATIONSHIP_GRAPH:
             return True
 
@@ -283,37 +249,38 @@ class AppCoordinator(QObject):
         :type view: ViewType
         """
         self.current_item_id = item_id
-        self.view_manager.current_view = view
+
+        data = {}
 
         if view == ViewType.CHAPTER_EDITOR:
             content = self.chapter_repo.get_chapter_content(chapter_id=item_id)
             if content is None: content = ""
             tags_data = self.tag_repo.get_tags_for_chapter(chapter_id=item_id)
             tag_names = [name for _, name in tags_data] if tags_data else []
-            self.chapter_loaded.emit(item_id, content, tag_names)
+            data['ID'] = item_id
+            data['content'] = content
+            data['tags'] = tag_names
 
         elif view == ViewType.LORE_EDITOR:
-            data = self.lore_repo.get_lore_entry_details(lore_id=item_id)
+            lore = self.lore_repo.get_lore_entry_details(lore_id=item_id)
             tags_data = self.tag_repo.get_tags_for_lore_entry(item_id)
             tag_names = [name for _, name in tags_data] if tags_data else []
-            self.lore_loaded.emit(item_id, data['Title'], data['Content'], data['Category'], tag_names)
+            data['ID'] = item_id
+            data |= lore
+            data['tags'] = tag_names
 
         elif view == ViewType.CHARACTER_EDITOR:
             data = self.character_repo.get_character_details(char_id=item_id)
-            self.char_loaded.emit(
-                item_id, 
-                data['Name'], data['Description'], data['Status'],
-                data.get('Age', -1),
-                data.get('Date_Of_Birth', ""),
-                data.get('Occupation_School', ""),
-                data.get('Physical_Description', "")
-            )
 
         elif view == ViewType.NOTE_EDITOR:
             content = self.note_repo.get_note_content(note_id=item_id)
             tags_data = self.tag_repo.get_tags_for_note(item_id)
             tag_names = [name for _, name in tags_data] if tags_data else []
-            self.note_loaded.emit(item_id, content, tag_names)
+            data['ID'] = item_id
+            data['content'] = content
+            data['tags'] = tag_names
+
+        self.data_loaded.emit(data)
 
     # --- Updating Parent Lore ID ---
 
@@ -371,7 +338,7 @@ class AppCoordinator(QObject):
         """
         # Update Coordinator State
         self.current_item_id = 0
-        self.view_manager.current_view = ViewType.RELATIONSHIP_GRAPH
+        # self.view_manager.current_view = ViewType.RELATIONSHIP_GRAPH
 
         # Fetch all components
         relationships = self.relationship_repo.get_all_relationships_for_graph() or []
