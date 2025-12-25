@@ -258,18 +258,23 @@ class LoreEditor(BaseEditor):
             'tags': self.tag_manager.get_tags()
         }
     
-    def load_entity(self, data: dict) -> None:
+    def load_entity(self, lore_id: int, title: str, content: str, category: str, tags: list[str]) -> None:
         """
         Loads all the information into the editor
         
-        :param data: A dict with all Lore Data.
-        :type data: dict
+        :param lore_id: The ID of the Lore Entry.
+        :type; lore_id: int
+        :param title: The Title of the Lore Entry.
+        :type title: str
+        :param content: The Content of the Lore Entry.
+        :type content: str
+        :param category: The Category of the Lore Entry.
+        :type category: str
+        :param tags: The List of Tags of the Lore Entry.
+        :type tags: list[str]
 
         :rtype: None
         """
-        id, title, content = data['ID'], data['Title'], data['Content']
-        category, tags = data['Category'], data['tags']
-
         self.title_input.setText(title)
         self.text_editor.set_html_content(content)
         self.category_combo.setCurrentText(category)

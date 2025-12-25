@@ -39,23 +39,6 @@ class ViewManager(QObject):
     carrying the new ViewType.
     """
 
-    save_requested = pyqtSignal(object, int) # (editor_instance, ViewType)
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (editor ,ViewType). Emitted When a save is requested
-    carrying the Editor, View
-    """
-
-    load_requested = pyqtSignal(int, int)    # (item_id, ViewType)
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (editor ,ViewType). Emitted When a load is requested
-    carrying the item_id, View
-    """
-
-    item_selected = pyqtSignal(int, int)
-
-    check_save = pyqtSignal(int, object)
-
-
     def __init__(self, outline_stack: QStackedWidget, editor_stack: QStackedWidget, 
                  coordinator: 'AppCoordinator', main_menu_bar: 'MainMenuBar') -> None:
         """
@@ -123,41 +106,35 @@ class ViewManager(QObject):
         note_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.NOTE_EDITOR))
 
         # Pre Item Change Connect to AppCoordinator.check_save_before_change
-        chapter_outline.pre_item_change.connect(
-            lambda: self.check_save.emit(
-                self.get_current_view(), self.get_current_editor()
-            ))
-        lore_outline.pre_item_change.connect(
-            lambda: self.check_save.emit(
-                self.get_current_view(), self.get_current_editor()
-            ))
-        char_outline.pre_item_change.connect(
-            lambda: self.check_save.emit(
-                self.get_current_view(), self.get_current_editor()
-            ))
-        note_outline.pre_item_change.connect(
-            lambda: self.check_save.emit(
-                self.get_current_view(), self.get_current_editor()
-            ))
+        chapter_outline.pre_item_change.connect(self.coordinator.check_and_save_dirty)
+        lore_outline.pre_item_change.connect(self.coordinator.check_and_save_dirty)
+        char_outline.pre_item_change.connect(self.coordinator.check_and_save_dirty)
+        note_outline.pre_item_change.connect(self.coordinator.check_and_save_dirty)
 
         # Outline Item Select -> AppCoordinator.load_item(item_id, ViewType)
         chapter_outline.item_selected.connect(
-            lambda item_id: self.load_requested.emit(item_id, ViewType.CHAPTER_EDITOR)
+            lambda item_id: self.coordinator.load_item(item_id, ViewType.CHAPTER_EDITOR)
         )
         lore_outline.item_selected.connect(
-            lambda item_id: self.load_requested.emit(item_id, ViewType.LORE_EDITOR)
+            lambda item_id: self.coordinator.load_item(item_id, ViewType.LORE_EDITOR)
         )
         char_outline.item_selected.connect(
-            lambda item_id: self.load_requested.emit(item_id, ViewType.CHARACTER_EDITOR)
+            lambda item_id: self.coordinator.load_item(item_id, ViewType.CHARACTER_EDITOR)
         )
         note_outline.item_selected.connect(
-            lambda item_id: self.load_requested.emit(item_id, ViewType.NOTE_EDITOR)
+            lambda item_id: self.coordinator.load_item(item_id, ViewType.NOTE_EDITOR)
         )
 
         # MainMenuBar New Item Connect to outline.prompt_and_add_*item*
         self.main_menu_bar.new_chapter_requested.connect(chapter_outline.prompt_and_add_chapter)
         self.main_menu_bar.new_lore_requested.connect(lore_outline.prompt_and_add_lore)
         self.main_menu_bar.new_character_requested.connect(char_outline.prompt_and_add_character)
+
+        # Item Selected to Coordinator.load_item(item_id, ViewType.Editor)
+        self.coordinator.chapter_loaded.connect(chapter_editor.load_entity)
+        self.coordinator.lore_loaded.connect(lore_editor.load_entity)
+        self.coordinator.char_loaded.connect(char_editor.load_entity)
+        self.coordinator.note_loaded.connect(note_editor.load_entity)
 
         # Load & Reload Graph Data
         self.coordinator.graph_data_loaded.connect(rel_editor.load_graph)

@@ -343,24 +343,33 @@ class CharacterEditor(BaseEditor):
             "tags": self.get_tags()
         }
     
-    def load_entity(self, data: dict) -> None:
+    def load_entity(self, char_id: int, name: str, description: str, status: str, age: int,
+                    dob: str, occupation: str, physical: str) -> None:
         """
         Loads all the information into the editor
         
-        :param data: A dictionary with all Character data.
-        :type data: dict
+        :param char_id: The ID of the character.
+        :type char_id: int
+        :param description: The description of the character.
+        :type description: str
+        :param status: The status of the Character.
+        :type status: str
+        :param age: The Age of the character.
+        :type age: int
+        :param dob: The Date of Birth of the Character.
+        :type dob: str
+        :param occupation: The Occupation of the Character.
+        :type occupation: str
+        :param physical: The physical description of the character.
+        :type physical: str
 
         :rtype: None
         """
-        id, name, description = data['ID'], data['Name'], data['Description']
-        status, age, dob = data['Status'], data['Age'], data['Date_of_Birth']
-        occupation, physical = data['Occupation_School'], data['Physical_Description']
-
         # Update UI Components
         self.name_input.setText(name)
         self.description_editor.set_html_content(description)
         self.status_combo.setCurrentText(status)
-        self.age_spin.setValue(int(age))
+        self.age_spin.setValue(age)
         self.dob_input.setText(dob)
         self.occupation_input.setText(occupation)
         self.text_editor.set_html_content(physical)
