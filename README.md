@@ -7,7 +7,7 @@ Narrative Forge is a comprehensive desktop application designed to assist **auth
 ## **🛠️ Requirements**
 
 * **Python:** 3.14.0  
-* **GUI Framework:** PyQt6 6.10.0  
+* **GUI Framework:** PySide6 6.10.1  
 * **Build Tools:** C++ compiler (for core library optimization)
 
 ## **✨ Key Features**
@@ -42,7 +42,7 @@ narrative-forge/
 │   ├── python/  
 │   │   ├── repository/ \# Data access layer (SQLite)  
 │   │   ├── services/   \# Business logic & Exporters  
-│   │   ├── ui/         \# PyQt6 Windows, Widgets, Menu and Dialogs  
+│   │   ├── ui/         \# PySide6 Windows, Widgets, Menu and Dialogs  
 │   │   └── utils/      \# Custom UI components (Graph, Text Editors)  
 │   └── sql/            \# Database schema migrations  
 ├── tools/              \# Developer utility scripts  

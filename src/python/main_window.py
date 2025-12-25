@@ -1,8 +1,8 @@
 # src/python/main_window.py
 
-from PyQt6.QtWidgets import QMainWindow, QSplitter, QMessageBox, QDialog
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QCloseEvent, QResizeEvent, QIcon
+from PySide6.QtWidgets import QMainWindow, QSplitter, QMessageBox, QDialog
+from PySide6.QtCore import Qt, Signal, QTimer
+from PySide6.QtGui import QCloseEvent, QResizeEvent, QIcon
 import os
 import sys
 import ctypes
@@ -46,14 +46,14 @@ class MainWindow(QMainWindow):
     5. **Settings/Theming:** Loading and saving window geometry and applying the current theme.
     """
 
-    project_open_requested = pyqtSignal() 
+    project_open_requested = Signal() 
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (bool): Emitted when the user selects 
+    :py:class:`~PyQt6.QtCore.Signal` (bool): Emitted when the user selects 
     'Open Project' from the file menu. 
     """
-    project_new_requested = pyqtSignal()
+    project_new_requested = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (bool): Emitted when the user selects 
+    :py:class:`~PyQt6.QtCore.Signal` (bool): Emitted when the user selects 
     'New Project' from the file menu. 
     """
 

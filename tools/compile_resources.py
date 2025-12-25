@@ -44,25 +44,6 @@ def compile_resources():
         print("Error: 'pyside6-rcc' not found. Please install PySide6 (pip install PySide6).")
         return
 
-    # 2. Patch the output file for PyQt6 compatibility
-    # PyQt6 doesn't ship with a standalone rcc tool, so we use PySide's and fix imports.
-    try:
-        with open(output_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-
-        # Use regex for more robust replacement
-        updated_content = re.sub(r'from PySide6', 'from PyQt6', content)
-        
-        if updated_content != content:
-            with open(output_file, 'w', encoding='utf-8') as f:
-                f.write(updated_content)
-            print("Successfully converted imports to PyQt6.")
-        else:
-            print("Note: No 'PySide6' imports found to convert.")
-            
-    except Exception as e:
-        print(f"Error while modifying file: {e}")
-
 def clean_resources():
     """Removes generated resource files matching .gitignore patterns."""
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

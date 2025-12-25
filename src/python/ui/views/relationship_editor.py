@@ -1,11 +1,11 @@
 # src\python\ui\views\relationship_editor.py
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QGraphicsView, QGraphicsScene, QGraphicsLineItem, QMessageBox, 
     QFrame, QDialog, QToolBar
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QLineF
-from PyQt6.QtGui import QPen, QAction, QIcon
+from PySide6.QtCore import Qt, Signal, QLineF
+from PySide6.QtGui import QPen, QAction, QIcon
 from typing import Any
 
 from ...resources_rc import *
@@ -27,33 +27,33 @@ class RelationshipEditor(QWidget):
     persistence managed by an external controller (:py:class:`~app.services.app_coordinator.AppCoordinator`).
     """
 
-    request_load_data = pyqtSignal()
+    request_load_data = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted to request all graph data from the coordinator.
+    :py:class:`~PyQt6.QtCore.Signal`: Emitted to request all graph data from the coordinator.
     """
 
-    save_node_attributes = pyqtSignal(int, float, float, str, str, int)
+    save_node_attributes = Signal(int, float, float, str, str, int)
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, float, float, str, str, int): 
+    :py:class:`~PyQt6.QtCore.Signal` (int, float, float, str, str, int): 
     Emitted to save a character node's position and attributes.
     """
 
-    relationship_created = pyqtSignal(int, int, int, str, int)
+    relationship_created = Signal(int, int, int, str, int)
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, int, int, str, int): 
+    :py:class:`~PyQt6.QtCore.Signal` (int, int, int, str, int): 
     Emitted when a new relationship is created, carrying 
     (Source ID, Target ID, Type ID, Description, Intensity).
     """
 
-    relationship_deleted = pyqtSignal(int)
-    """:py:class:`~PyQt6.QtCore.pyqtSignal` (int):
+    relationship_deleted = Signal(int)
+    """:py:class:`~PyQt6.QtCore.Signal` (int):
     Emitted when a relationshipo is deleted, carrying
     (Relationship_ID)
     """
 
-    request_load_rel_types = pyqtSignal()
+    request_load_rel_types = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted to request the list of available relationship types.
+    :py:class:`~PyQt6.QtCore.Signal`: Emitted to request the list of available relationship types.
     """
 
     def __init__(self, coordinator: AppCoordinator, parent=None) -> None:

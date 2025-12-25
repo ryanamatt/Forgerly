@@ -1,11 +1,11 @@
 # src/python/ui/views/relationship_outline_manager.py
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
     QPushButton, QMenu, QMessageBox, QInputDialog, QColorDialog, QLineEdit
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QPoint
-from PyQt6.QtGui import QColor
+from PySide6.QtCore import Qt, Signal, QPoint
+from PySide6.QtGui import QColor
 
 from ...repository.relationship_repository import RelationshipRepository
 
@@ -21,16 +21,16 @@ class RelationshipOutlineManager(QWidget):
     RELATIONSHIP_TYPE_ID_ROLE = Qt.ItemDataRole.UserRole + 1
     """The :py:obj:`int` role used to store the database ID of a Relationship_Type on an item."""
 
-    type_selected = pyqtSignal(int)
+    type_selected = Signal(int)
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int): Emitted when a relationship 
+    :py:class:`~PyQt6.QtCore.Signal` (int): Emitted when a relationship 
     type in the list is selected or double-clicked. Carries the Relationship 
     Type ID of the selected item.
     """
     
-    relationship_types_updated = pyqtSignal()
+    relationship_types_updated = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when the list of 
+    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the list of 
     relationship types has been modified (created, edited, or deleted). 
     The recipient (e.g., the application coordinator) should use this 
     to trigger a refresh of all views that depend on relationship types.

@@ -1,7 +1,7 @@
 import sys
 import os
 import json
-from PyQt6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication
 
 from .services.settings_manager import SettingsManager
 from .db_connector import DBConnector

@@ -1,17 +1,17 @@
 # src/python/ui/diaglogs/exporter_dialog.py
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QGroupBox, QComboBox, 
     QLabel, QDialogButtonBox, QHBoxLayout,
     QMessageBox, QListWidget, QWidget
 )
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QGroupBox, QComboBox, 
     QLabel, QDialogButtonBox, QHBoxLayout,
     QMessageBox, QWidget, QStackedWidget
 )
-from PyQt6.QtCore import pyqtSignal
+from PySide6.QtCore import Signal
 
 from ...utils.constants import ExportType
 
@@ -29,9 +29,9 @@ class ExporterDialog(QDialog):
     selection widgets.
     """
 
-    export_requested = pyqtSignal(str, list) # (export_type, selected_ids)
+    export_requested = Signal(str, list) # (export_type, selected_ids)
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (str, list): Emitted when the user confirms 
+    :py:class:`~PyQt6.QtCore.Signal` (str, list): Emitted when the user confirms 
     the export. Carries the selected export type (str) and a list of selected 
     item IDs (list[int]).
     """

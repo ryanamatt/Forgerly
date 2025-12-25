@@ -1,10 +1,10 @@
 # src/python/ui/tag_widget.py
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QMessageBox, 
     QPushButton, QLabel, QSizePolicy, QLayoutItem
 )
-from PyQt6.QtCore import QSize, pyqtSignal
+from PySide6.QtCore import QSize, Signal
 
 from .flow_layout import QFlowLayout
 from ...utils.logger import get_logger #
@@ -20,9 +20,9 @@ class TagLabel(QWidget):
     It emits a signal when the remove button is clicked.
     """
     
-    tag_removed = pyqtSignal(str)
+    tag_removed = Signal(str)
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (str): Emitted when the tag is removed carrying the tag's name.
+    :py:class:`~PyQt6.QtCore.Signal` (str): Emitted when the tag is removed carrying the tag's name.
     """
 
     def __init__(self, tag_name: str, parent=None) -> None:
@@ -96,9 +96,9 @@ class TagManagerWidget(QWidget):
     Tags are stored as a unique set (case-insensitive, converted to lowercase).
     """
 
-    tags_changed = pyqtSignal(list)
+    tags_changed = Signal(list)
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when the list of tags has been modified.
+    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the list of tags has been modified.
     """
 
     def __init__(self, initial_tags: list[str] = None, parent=None) -> None:

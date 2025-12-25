@@ -3,15 +3,15 @@
 # A helpful tool to view what a qss file might look like on the full application
 
 import sys
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLineEdit, QTextEdit, QTreeWidget,
     QMenuBar, QMainWindow, QToolBar, QSplitter,
     QTreeWidgetItem, QCheckBox, QGroupBox, QRadioButton,
     QLabel
 )
-from PyQt6.QtGui import QIcon
-from PyQt6.QtCore import Qt
+from PySide6.QtGui import QIcon
+from PySide6.QtCore import Qt
 import sys
 import os
 from pathlib import Path
@@ -116,3 +116,4 @@ if __name__ == '__main__':
     window = ThemePreviewWindow(QSS_FILE)
     window.show()
     sys.exit(app.exec())
+    

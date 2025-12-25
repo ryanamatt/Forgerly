@@ -1,7 +1,7 @@
 # src/python/utils/theme_utils.py
 
 import os
-from PyQt6.QtWidgets import QWidget
+from PySide6.QtWidgets import QWidget
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:

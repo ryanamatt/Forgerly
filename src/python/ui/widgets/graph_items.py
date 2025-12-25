@@ -1,10 +1,10 @@
 # src\python\ui\widgets/graph_items.py
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem, QMenu
 )
-from PyQt6.QtCore import Qt, QPointF, pyqtSignal, QRectF, QObject, QLineF, QEvent
-from PyQt6.QtGui import QColor, QPen, QBrush, QFont
+from PySide6.QtCore import Qt, QPointF, Signal, QRectF, QObject, QLineF, QEvent
+from PySide6.QtGui import QColor, QPen, QBrush, QFont
 import math
 from typing import Any
 
@@ -16,9 +16,9 @@ class CharacterNodeSignals(QObject):
     :py:class:`~PyQt6.QtWidgets.QGraphicsEllipseItem` and cannot be a 
     direct subclass of :py:class:`~PyQt6.QtCore.QObject`.
     """
-    node_moved = pyqtSignal(int, float, float, str, str, int)
+    node_moved = Signal(int, float, float, str, str, int)
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, float, float, str, str, int): 
+    :py:class:`~PyQt6.QtCore.Signal` (int, float, float, str, str, int): 
     Emitted when a node is dragged and released.
     
     Carries the Character ID, new X position, new Y position, Name, Color, and Shape ID.

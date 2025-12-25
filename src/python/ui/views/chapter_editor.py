@@ -1,10 +1,10 @@
 # src/python/ui/chapter_editor.py
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QGroupBox, QSplitter, QHBoxLayout, QTextEdit,
     QDialog, QSizePolicy, QLabel
 )
-from PyQt6.QtCore import Qt
+from PySide6.QtCore import Qt
 
 from .base_editor import BaseEditor
 from ...services.app_coordinator import AppCoordinator

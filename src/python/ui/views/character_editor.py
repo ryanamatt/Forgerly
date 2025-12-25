@@ -1,10 +1,10 @@
 # src/python/ui/views/character_editor.py
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QGroupBox, 
     QLineEdit, QComboBox, QHBoxLayout, QSpinBox
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PySide6.QtCore import Qt, Signal
 from typing import Any
 
 from .base_editor import BaseEditor
@@ -21,9 +21,9 @@ class CharacterEditor(BaseEditor):
     with repositories directly.
     """
 
-    char_name_changed = pyqtSignal(int, str)
+    char_name_changed = Signal(int, str)
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int, str): Emitted when the character's 
+    :py:class:`~PyQt6.QtCore.Signal` (int, str): Emitted when the character's 
     name changes, carrying the Character ID and the new name.
     """
 

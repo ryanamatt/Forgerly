@@ -4,12 +4,12 @@ import os
 import json 
 import shutil 
 from pathlib import Path
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit,
     QPushButton, QLabel, QFileDialog, QSizePolicy, QInputDialog, QMessageBox
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QIcon
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QIcon
 
 from .services.settings_manager import SettingsManager
 
@@ -27,8 +27,8 @@ class StartMenuWindow(QMainWindow):
     or shows a list of recent projects.
     """
 
-    project_opened = pyqtSignal(str)
-    """:py:class:`~PyQt6.QtCore.pyqtSignal` Emitted when a project path is successfully selected.
+    project_opened = Signal(str)
+    """:py:class:`~PyQt6.QtCore.Signal` Emitted when a project path is successfully selected.
                           It carries the string path of the selected project folder.
     """
 

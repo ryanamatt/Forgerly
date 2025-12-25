@@ -1,10 +1,10 @@
 # src/python/ui/views/base_outline_manager.py
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QLineEdit, QFrame, 
     QTreeWidget, QTreeWidgetItem
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QPoint
+from PySide6.QtCore import Qt, Signal, QPoint
 
 from ..widgets.nested_tree_widget import NestedTreeWidget
 from ..widgets.reordering_tree_widget import ReorderingTreeWidget
@@ -15,21 +15,21 @@ class BaseOutlineManager(QWidget):
     Consolidates UI setup, search, and common tree interactions.
     """
 
-    item_selected = pyqtSignal(int)
+    item_selected = Signal(int)
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int): Emitted when an item is 
+    :py:class:`~PyQt6.QtCore.Signal` (int): Emitted when an item is 
     selected, carrying the item ID.
     """
 
-    new_item_created = pyqtSignal()
+    new_item_created = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emmited when a new item is created
+    :py:class:`~PyQt6.QtCore.Signal`: Emmited when a new item is created
     telling MainWindow to switch the view.
     """
 
-    pre_item_change = pyqtSignal()
+    pre_item_change = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (): Emitted before a new item is 
+    :py:class:`~PyQt6.QtCore.Signal` (): Emitted before a new item is 
     selected, allowing the main window to save the current item state.
     """
 

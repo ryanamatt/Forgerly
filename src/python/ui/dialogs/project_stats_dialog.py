@@ -1,6 +1,6 @@
 # src/python/ui/dialogs/project_stats_dialog.py
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QGroupBox, QLabel, 
     QDialogButtonBox, QHBoxLayout, QGridLayout
 )

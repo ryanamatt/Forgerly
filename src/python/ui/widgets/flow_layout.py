@@ -1,7 +1,7 @@
 # src/python/ui/widgets/flow_layout.py
 
-from PyQt6.QtWidgets import QLayout, QLayoutItem, QWidget
-from PyQt6.QtCore import Qt, QSize, QRect, QPoint
+from PySide6.QtWidgets import QLayout, QLayoutItem, QWidget
+from PySide6.QtCore import Qt, QSize, QRect, QPoint
 
 from ...utils.logger import get_logger #
 

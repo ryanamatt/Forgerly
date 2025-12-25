@@ -1,8 +1,8 @@
 # src/python/ui/menu/main_menu_bar.py
 
-from PyQt6.QtWidgets import QMenuBar, QMessageBox
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtGui import QAction, QActionGroup, QIcon
+from PySide6.QtWidgets import QMenuBar, QMessageBox
+from PySide6.QtCore import Signal
+from PySide6.QtGui import QAction, QActionGroup, QIcon
 
 from ...resources_rc import *
 from ...utils.constants import ViewType
@@ -19,58 +19,58 @@ class MainMenuBar(QMenuBar):
     or :py:class:`~app.services.app_coordinator.AppCoordinator`).
     """
 
-    save_requested = pyqtSignal()
+    save_requested = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when the 'Save' action is triggered 
+    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'Save' action is triggered 
     (e.g., File -> Save or Ctrl+S).
     """
 
-    export_requested = pyqtSignal()
+    export_requested = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when the 'Export Project' action is triggered.
+    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'Export Project' action is triggered.
     """
 
-    settings_requested = pyqtSignal()
+    settings_requested = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when the 'Settings' action is triggered.
+    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'Settings' action is triggered.
     """
     
-    new_chapter_requested = pyqtSignal()
+    new_chapter_requested = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when the 'New Chapter' action is triggered.
-    """
-
-    new_lore_requested = pyqtSignal()
-    """
-    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when the 'New Lore Item' action is triggered.
+    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'New Chapter' action is triggered.
     """
 
-    new_character_requested = pyqtSignal()
+    new_lore_requested = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when the 'New Character' action is triggered.
+    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'New Lore Item' action is triggered.
     """
 
-    view_switch_requested = pyqtSignal(int)
+    new_character_requested = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int): Emitted when a view switch action is triggered. 
+    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'New Character' action is triggered.
+    """
+
+    view_switch_requested = Signal(int)
+    """
+    :py:class:`~PyQt6.QtCore.Signal` (int): Emitted when a view switch action is triggered. 
     The integer payload corresponds to a member of :py:class:`~app.utils.constants.ViewType`.
     """
 
-    new_project_requested = pyqtSignal()
+    new_project_requested = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int): Emitted when the user selected New Project button
+    :py:class:`~PyQt6.QtCore.Signal` (int): Emitted when the user selected New Project button
         in the File Menu.
     """
 
-    open_project_requested = pyqtSignal()
+    open_project_requested = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal` (int): Emitted when the user selected Open Project button
+    :py:class:`~PyQt6.QtCore.Signal` (int): Emitted when the user selected Open Project button
         in the File Menu.
     """
 
-    project_stats_requested = pyqtSignal()
+    project_stats_requested = Signal()
     """
-    :py:class:`~PyQt6.QtCore.pyqtSignal`: Emitted when the 'Project Statistics' action is triggered.
+    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'Project Statistics' action is triggered.
     """
 
 
