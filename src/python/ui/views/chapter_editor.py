@@ -248,17 +248,19 @@ class ChapterEditor(BaseEditor):
             'tags': self.tag_manager.get_tags()
         }
     
-    def load_entity(self, data: dict) -> None:
+    def load_entity(self, chapter_id: int, content: str, tags: list[str]):
         """
         Loads all the information into the editor and enables the editor.
         
-        :param data: A dictionary with all Chapter data.
-        :type data: dict
-
-        :rtype: None
+        :param chapter_id: The id of the Chapter.
+        :type chapter_id: int
+        :param content: The Chapter Content
+        :type content: str
+        :param tags: The list of tags.
+        :type tags: list[str]
         """
-        self.text_editor.set_html_content(data['content'])
-        self.tag_manager.set_tags(data['tags'])
+        self.text_editor.set_html_content(content)
+        self.tag_manager.set_tags(tags)
 
         self.mark_saved()
         self.set_enabled(True)
