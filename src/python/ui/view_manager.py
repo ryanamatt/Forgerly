@@ -6,7 +6,6 @@ from PyQt6.QtCore import QObject, pyqtSignal
 from ..utils.constants import ViewType
 from ..utils.logger import get_logger
 
-# Type checking imports to avoid circular dependencies
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..services.app_coordinator import AppCoordinator
@@ -108,13 +107,13 @@ class ViewManager(QObject):
         lore_editor: LoreEditor = self.editor_stack.widget(1)    # LoreEditor
         char_editor: CharacterEditor = self.editor_stack.widget(2)    # ChapterEditor
         note_editor: NoteEditor = self.editor_stack.widget(3) # NoteEditor
-        rel_editor: RelationshipEditor = self.editor_stack.widget(4)
+        rel_editor: RelationshipEditor = self.editor_stack.widget(4) # RelationshipEditor
 
         chapter_outline: ChapterOutlineManager = self.outline_stack.widget(0) # ChapterOutlineManager
         lore_outline: LoreOutlineManager = self.outline_stack.widget(1)    # LoreOutlineManager
         char_outline: CharacterOutlineManager = self.outline_stack.widget(2)    # CharacterOutlineManager
         note_outline: NoteOutlineManager = self.outline_stack.widget(3) # NoteOutlineManager
-        rel_outline: RelationshipOutlineManager = self.outline_stack.widget(4)
+        rel_outline: RelationshipOutlineManager = self.outline_stack.widget(4) #RelationshipOutlineManager
 
         # New Item Created Connect to Switch View
         chapter_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.CHAPTER_EDITOR))

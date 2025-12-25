@@ -115,7 +115,7 @@ class NoteEditor(BaseEditor):
 
         :rtype: None
         """
-        id, content, tags = data['id'], data['content'], data['tags']
+        id, content, tags = data['ID'], data['content'], data['tags']
 
         self.text_editor.set_html_content(content)
         self.tag_manager.set_tags(tags)
