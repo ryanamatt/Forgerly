@@ -259,7 +259,6 @@ class MainWindow(QMainWindow):
             outline_stack=self.outline_stack, 
             editor_stack=self.editor_stack, 
             coordinator=self.coordinator, 
-            main_menu_bar=self.main_menu_bar
         )
 
         outline_width = self.current_settings.get('outline_width_pixels', 300)
@@ -292,9 +291,19 @@ class MainWindow(QMainWindow):
         self.view_manager.relay_lookup_requested.connect(self.coordinator.lookup_entity_content_by_name)
         self.coordinator.return_lookup.connect(self.view_manager.relay_return_lookup_requested)
 
+        # MainMenuBar Save Connection
         self.main_menu_bar.save_requested.connect(self._on_save_triggered)
 
-        # --- MainMenuBar Connections (Menu signal OUT -> MainWindow slot IN) ---
+        # MainMenuBar View Related Connections
+        self.main_menu_bar.view_switch_requested.connect(self.view_manager.switch_to_view)
+        self.view_manager.view_changed.connect(self.main_menu_bar.update_view_checkmarks)
+
+        # MainMenuBar New Item Connections
+        self.main_menu_bar.new_chapter_requested.connect(self.view_manager.new_chapter_requested)
+        self.main_menu_bar.new_lore_requested.connect(self.view_manager.new_lore_requested)
+        self.main_menu_bar.new_character_requested.connect(self.view_manager.new_character_requested)
+
+        # MainMenuBar Connections Export/Settings
         self.main_menu_bar.export_requested.connect(self._export)
         self.main_menu_bar.settings_requested.connect(self._open_settings_dialog)
 

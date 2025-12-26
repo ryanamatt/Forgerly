@@ -9,7 +9,6 @@ from ..utils.logger import get_logger
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..services.app_coordinator import AppCoordinator
-    from .menu.main_menu_bar import MainMenuBar
     from .views.base_editor import BaseEditor
     from .views.chapter_outline_manager import ChapterOutlineManager
     from .views.chapter_editor import ChapterEditor
@@ -50,6 +49,24 @@ class ViewManager(QObject):
     carrying the item_id, View
     """
 
+    new_chapter_requested = Signal()
+    """
+    :py:class:`~PySide6.QtCore.Signal` Emitted When a new Chapter is requested. Use when
+    MainMenuBar wants to created a new item.
+    """
+
+    new_lore_requested = Signal()
+    """
+    :py:class:`~PySide6.QtCore.Signal` Emitted When a new Lore Entry is requested. Use when
+    MainMenuBar wants to created a new item.
+    """
+
+    new_character_requested = Signal()
+    """
+    :py:class:`~PySide6.QtCore.Signal`  Emitted When a new Character is requested. Use when
+    MainMenuBar wants to created a new item.
+    """
+
     relay_lookup_requested = Signal(str)
     """
     :py:class:`~PySide6.QtCore.Signal` (str). Emitted When a lookup is requested carrying
@@ -68,7 +85,7 @@ class ViewManager(QObject):
 
 
     def __init__(self, outline_stack: QStackedWidget, editor_stack: QStackedWidget, 
-                 coordinator: 'AppCoordinator', main_menu_bar: 'MainMenuBar') -> None:
+                 coordinator: 'AppCoordinator') -> None:
         """
         Creates the ViewManager Object.
         
@@ -107,13 +124,6 @@ class ViewManager(QObject):
         
         :rtype: None
         """
-        self.main_menu_bar.save_requested.connect(
-            lambda: self.coordinator.save_current_item(
-                view=self.get_current_view(), editor=self.get_current_editor()
-            ))
-
-        self.main_menu_bar.view_switch_requested.connect(self.switch_to_view)
-        self.view_changed.connect(self.main_menu_bar.update_view_checkmarks)
 
         chapter_editor: ChapterEditor = self.editor_stack.widget(0) # ChapterEditor
         lore_editor: LoreEditor = self.editor_stack.widget(1)    # LoreEditor
@@ -126,6 +136,11 @@ class ViewManager(QObject):
         char_outline: CharacterOutlineManager = self.outline_stack.widget(2)    # CharacterOutlineManager
         note_outline: NoteOutlineManager = self.outline_stack.widget(3) # NoteOutlineManager
         rel_outline: RelationshipOutlineManager = self.outline_stack.widget(4) #RelationshipOutlineManager
+
+        # Connect the internal relay signals to the specific widgets
+        self.new_chapter_requested.connect(chapter_outline.prompt_and_add_chapter)
+        self.new_lore_requested.connect(lore_outline.prompt_and_add_lore)
+        self.new_character_requested.connect(char_outline.prompt_and_add_character)
 
         # New Item Created Connect to Switch View
         chapter_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.CHAPTER_EDITOR))
@@ -164,11 +179,6 @@ class ViewManager(QObject):
         note_outline.item_selected.connect(
             lambda item_id: self.load_requested.emit(item_id, ViewType.NOTE_EDITOR)
         )
-
-        # MainMenuBar New Item Connect to outline.prompt_and_add_*item*
-        self.main_menu_bar.new_chapter_requested.connect(chapter_outline.prompt_and_add_chapter)
-        self.main_menu_bar.new_lore_requested.connect(lore_outline.prompt_and_add_lore)
-        self.main_menu_bar.new_character_requested.connect(char_outline.prompt_and_add_character)
 
         # Editor Lookup Signals
         chapter_editor.lookup_requested.connect(self.relay_lookup_requested.emit)
