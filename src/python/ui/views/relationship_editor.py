@@ -9,7 +9,6 @@ from PySide6.QtGui import QPen, QAction, QIcon
 from typing import Any
 
 from ...resources_rc import *
-# from ...services.app_coordinator import AppCoordinator
 from ..widgets.graph_items import CharacterNode, RelationshipEdge
 from ..widgets.relationship_canvas import RelationshipCanvas
 from ..dialogs.relationship_dialog import RelationshipCreationDialog
