@@ -16,13 +16,7 @@ from ..utils.constants import ViewType, EntityType
 
 from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
-    from ..ui.view_manager import ViewManager
     from ..ui.views.base_editor import BaseEditor
-    from ..ui.views.chapter_editor import ChapterEditor
-    from ..ui.views.lore_editor import LoreEditor
-    from ..ui.views.character_editor import CharacterEditor
-    from ..ui.views.note_editor import NoteEditor
-    from ..ui.views.relationship_editor import RelationshipEditor
 
 class AppCoordinator(QObject):
     """
@@ -227,7 +221,7 @@ class AppCoordinator(QObject):
 
         if new_id:
             # 2. Reload graph data to show the new edge
-            self.reload_relationship_graph_data()
+            self.load_relationship_graph_data()
             return True
         else:
             QMessageBox.critical(
@@ -375,7 +369,7 @@ class AppCoordinator(QObject):
         :rtype: None
         """
         success = self.relationship_repo.delete_relationship(relationship_id)
-        self.reload_relationship_graph_data()
+        self.load_relationship_graph_data()
 
 
     def _process_graph_data(self, relationships: list[dict], node_positions: list[dict], relationship_types: list[dict]) -> dict:
@@ -440,20 +434,6 @@ class AppCoordinator(QObject):
             })
 
         return {'nodes': nodes, 'edges': edges}
-    
-    def reload_relationship_graph_data(self) -> None:
-        """
-        Fetches and emits the current graph data for the editor to display.
-        Called when a relationship type is created/edited/deleted, forcing a graph refresh.
-
-        :rtype: None
-        """
-        try:
-            self.relationship_editor.update_types_available(self.relationship_repo.get_all_relationship_types())
-            self.load_relationship_graph_data()
-        
-        except Exception as e:
-            QMessageBox.critical(None, "Data Error", f"Failed to reload graph data: {e}")
 
     # --- Export Logic Helper (For use by the new Exporter classes) ---
     

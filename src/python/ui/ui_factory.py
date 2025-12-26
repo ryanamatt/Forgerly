@@ -51,7 +51,7 @@ class UIFactory:
             'note_editor': NoteEditor(settings, coordinator),
 
             'relationship_outline': RelationshipOutlineManager(relationship_repository=coordinator.relationship_repo),
-            'relationship_editor': RelationshipEditor(coordinator=coordinator)
+            'relationship_editor': RelationshipEditor()
         }
 
         # Create and Populate Stacks

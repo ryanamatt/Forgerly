@@ -160,11 +160,17 @@ class ViewManager(QObject):
 
         # Load & Reload Graph Data
         self.coordinator.graph_data_loaded.connect(rel_editor.load_graph)
-        rel_outline.relationship_types_updated.connect(self.coordinator.reload_relationship_graph_data)
+        rel_outline.relationship_types_updated.connect(self.coordinator.load_relationship_graph_data)
         rel_editor.request_load_data.connect(self.coordinator.load_relationship_graph_data)
+        rel_editor.save_node_attributes.connect(self.coordinator.save_node_position)
+        rel_editor.request_load_rel_types.connect(
+            self.coordinator.load_relationship_types_for_editor
+        )
+        self.coordinator.relationship_types_available.connect(
+            rel_editor.set_available_relationship_types
+        )
 
         # Relationship Editor -> Coordinator
-        rel_editor.set_coordinator_signals(self.coordinator)
         rel_editor.relationship_created.connect(self.coordinator.save_new_relationship)
         rel_editor.relationship_deleted.connect(self.coordinator.handle_relationship_deletion)
 
@@ -230,6 +236,8 @@ class ViewManager(QObject):
             if hasattr(editor, 'request_load_data'):
                 editor: RelationshipEditor = editor
                 editor.request_load_data.emit()
+            if hasattr(editor, 'request_load_rel_types'):
+                editor.request_load_rel_types.emit()
             
         elif view == ViewType.LORE_EDITOR:
             # Refresh category dropdowns for the lore editor

@@ -9,7 +9,7 @@ from PySide6.QtGui import QPen, QAction, QIcon
 from typing import Any
 
 from ...resources_rc import *
-from ...services.app_coordinator import AppCoordinator
+# from ...services.app_coordinator import AppCoordinator
 from ..widgets.graph_items import CharacterNode, RelationshipEdge
 from ..widgets.relationship_canvas import RelationshipCanvas
 from ..dialogs.relationship_dialog import RelationshipCreationDialog
@@ -56,20 +56,16 @@ class RelationshipEditor(QWidget):
     :py:class:`~PyQt6.QtCore.Signal`: Emitted to request the list of available relationship types.
     """
 
-    def __init__(self, coordinator: AppCoordinator, parent=None) -> None:
+    def __init__(self, parent=None) -> None:
         """
         Initializes the :py:class:`.RelationshipEditor`.
 
-        :param coordinator: The application coordinator for data persistence and signals.
-        :type coordinator: :py:class:`~app.services.app_coordinator.AppCoordinator`
         :param parent: The parent Qt widget.
         :type parent: :py:class:`~PyQt6.QtWidgets.QWidget` or None
         
         :rtype: None
         """
         super().__init__(parent)
-
-        self.coordinator = coordinator
 
         self.scene = QGraphicsScene(self)
         self.view = RelationshipCanvas(self.scene, self)
@@ -114,15 +110,15 @@ class RelationshipEditor(QWidget):
         self.selected_node_a: CharacterNode | None = None
         self.selected_node_b: CharacterNode | None = None
 
-        # Connect the coordinator signal to receive relationship types
-        self.coordinator.relationship_types_available.connect(self.set_available_relationship_types)
+        # # Connect the coordinator signal to receive relationship types
+        # self.coordinator.relationship_types_available.connect(self.set_available_relationship_types)
         
-        # Request the relationship types on startup
-        self.coordinator.load_relationship_types_for_editor()
+        # # Request the relationship types on startup
+        # self.coordinator.load_relationship_types_for_editor()
 
-        # Connect node movement signal to the coordinator to save positions
-        for node in self.nodes.values():
-            node.signals.node_moved.connect(self.coordinator.save_node_position)
+        # # Connect node movement signal to the coordinator to save positions
+        # for node in self.nodes.values():
+        #     node.signals.node_moved.connect(self.coordinator.save_node_position)
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 
@@ -136,27 +132,6 @@ class RelationshipEditor(QWidget):
         :rtype: None
         """
         self.available_rel_types = rel_types
-
-    def set_coordinator_signals(self, coordinator: AppCoordinator) -> None:
-        """
-        Connects editor-specific signals to the :py:class:`~app.services.app_coordinator.AppCoordinator`.
-        
-        This method is called to establish the communication links required for 
-        loading and saving graph data and relationship types.
-        
-        :param coordinator: The application coordinator instance.
-        :type coordinator: :py:class:`~app.services.app_coordinator.AppCoordinator`
-        
-        :rtype: None
-        """
-        self.request_load_data.connect(coordinator.load_relationship_graph_data)
-        self.save_node_attributes.connect(coordinator.save_node_position)
-
-        self.request_load_rel_types.connect(coordinator.load_relationship_types_for_editor)
-        coordinator.relationship_types_available.connect(self.set_available_relationship_types)
-        
-        # Request the relationship types on editor start
-        self.request_load_rel_types.emit()
         
     def clear_selection(self) -> None:
         """
