@@ -46,8 +46,20 @@ class ViewManager(QObject):
 
     load_requested = Signal(int, int)    # (item_id, ViewType)
     """
-    :py:class:`~PyQt6.QtCore.Signal` (editor ,ViewType). Emitted When a load is requested
+    :py:class:`~PySide6.QtCore.Signal` (editor ,ViewType). Emitted When a load is requested
     carrying the item_id, View
+    """
+
+    relay_lookup_requested = Signal(str)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (str). Emitted When a lookup is requested carrying
+    the text to lookup.
+    """
+
+    relay_return_lookup_requested = Signal(str, str, str)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (str, str, str) Emitted when returning a lookup. 
+    Carries the (EntityType, Name of Entity, Description of Entity)
     """
 
     item_selected = Signal(int, int)
@@ -157,6 +169,10 @@ class ViewManager(QObject):
         self.main_menu_bar.new_chapter_requested.connect(chapter_outline.prompt_and_add_chapter)
         self.main_menu_bar.new_lore_requested.connect(lore_outline.prompt_and_add_lore)
         self.main_menu_bar.new_character_requested.connect(char_outline.prompt_and_add_character)
+
+        # Editor Lookup Signals
+        chapter_editor.lookup_requested.connect(self.relay_lookup_requested.emit)
+        self.relay_return_lookup_requested.connect(chapter_editor.display_lookup_result)
 
         # Load & Reload Graph Data
         self.coordinator.graph_data_loaded.connect(rel_editor.load_graph)

@@ -36,20 +36,27 @@ class AppCoordinator(QObject):
 
     data_loaded = Signal(dict)
     """
-    :py:class:`~PyQt6.QtCore.Signal` (dict) Emitted when a item's data is loaded
+    :py:class:`~PySide6.QtCore.Signal` (dict) Emitted when a item's data is loaded
     carrying a dictionary of all needed stuff for that item to be displayed in the
-    edutir.
+    editor.
     """
     
     relationship_types_available = Signal(list) # list[dict]
     """
-    :py:class:`~PyQt6.QtCore.Signal` (list): Emitted to provide the list of 
+    :py:class:`~PySide6.QtCore.Signal` (list): Emitted to provide the list of 
     all defined relationship types (names, colors, IDs) to the graph and outline manager.
     """
 
     lore_categories_changed = Signal(list) 
-    """:py:class:`~PyQt6.QtCore.Signal` Emitted when the list of available 
+    """
+    :py:class:`~PySide6.QtCore.Signal` Emitted when the list of available 
     categories is refreshed containing list[str] of all unique category names.
+    """
+
+    return_lookup = Signal(str, str, str)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (str, str, str) Emitted when returning a lookup
+    from the repositories. Carries the (EntityType, Name of Entity, Description of Entity)
     """
 
     def __init__(self, db_connector: DBConnector) -> None:
@@ -496,15 +503,19 @@ class AppCoordinator(QObject):
         if hasattr(self, 'character_repo'):
             data = self.character_repo.get_content_by_name(name=name)
             if data: 
-                return (EntityType.CHARACTER, data['Name'], data.get('Description', ''))
+                self.return_lookup.emit(EntityType.CHARACTER, data.get('Name', ''), data.get('Description', ''))
+                return
             
         # Search Through Lore Entries
         if hasattr(self, 'lore_repo'):
-            data = self.lore_repo.get_content_by_title(title=name)
+            lookup = self.lore_repo.get_content_by_title(title=name)
             if data: 
-                return (EntityType.CHARACTER, data['Title'], data.get('Content', ''))
+                self.return_lookup.emit(EntityType.CHARACTER, data.get('Title', ''), data.get('Content', ''))
+                return
             
-        return None # Found Nothing
+        self.return_lookup.emit(None, None, None)
+    
+    # --- Project Stats ---
     
     def get_project_stats(self, wpm: int) -> dict[str, str]:
         """
