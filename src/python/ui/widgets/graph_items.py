@@ -21,9 +21,8 @@ class CharacterNodeSignals(QObject):
     :py:class:`~PyQt6.QtCore.Signal` (int, float, float, str, str, int): 
     Emitted when a node is dragged and released.
     
-    Carries the Character ID, new X position, new Y position, Name, Color, and Shape ID.
-    The Name, Color, and Shape ID are included to allow the editor to persist 
-    node attributes along with position.
+    Carries the (Character ID, new X position, new Y position, Name, Color, 
+    Shape ID, Name, Color, and Shape ID)
     """
 
 class CharacterNode(QGraphicsEllipseItem):

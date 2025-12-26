@@ -4,11 +4,9 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QGroupBox, QSplitter, QHBoxLayout, QTextEdit,
     QDialog, QSizePolicy, QLabel
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 
 from .base_editor import BaseEditor
-from ...services.app_coordinator import AppCoordinator
-from ...ui.widgets.tag_widget import TagManagerWidget
 from ...ui.widgets.rich_text_editor import RichTextEditor
 from ...utils.nf_core_wrapper import calculate_word_count, calculate_character_count, calculate_read_time
 
@@ -28,19 +26,21 @@ class ChapterEditor(BaseEditor):
 
     :ivar rich_text_editor: The rich text editor component.
     :vartype rich_text_editor: RichTextEditor
-    :ivar tag_manager: The tag management component.
-    :vartype tag_manager: TagManagerWidget
+    """
+
+    lookup_requested = Signal(str)
+    """
+    :py:class:`~PyQt6.QtCore.Signal` (str). Emitted when a user requests
+    a lookup carrying the text they want to lookup.
     """
     
-    def __init__(self, current_settings, coordinator: AppCoordinator, parent=None) -> None:
+    def __init__(self, current_settings, parent=None) -> None:
         """
         Initializes the ChapterEditor with sub-components and layout.
 
         :param current_settings: A dictionary containing initial application settings, 
                                  including 'words_per_minute'.
         :type current_settings: dict
-        :param coordinator: The AppCoordinator.
-        :type coordinator: :py:class:`services.AppCoordinator`
         :param parent: The parent widget. Defaults to ``None``.
         :type parent: :py:class:`PyQt6.QtWidgets.QWidget`, optional
 
@@ -49,7 +49,6 @@ class ChapterEditor(BaseEditor):
         super().__init__(parent)
 
         self.current_settings = current_settings
-        self.coordinator = coordinator
         self.wpm = current_settings['words_per_minute']
 
         self.current_lookup_dialog = None
@@ -104,7 +103,7 @@ class ChapterEditor(BaseEditor):
         # --- Signal Connections ---
         self.text_editor.content_changed.connect(self._update_stats_display)
         self.text_editor.selection_changed.connect(self._update_stats_display)
-        self.text_editor.popup_lookup_requested.connect(self._handle_popup_lookup_request)
+        self.text_editor.popup_lookup_requested.connect(self.lookup_requested.emit)
 
         self.setEnabled(False)
 
@@ -177,25 +176,7 @@ class ChapterEditor(BaseEditor):
         self.text_editor.set_html_content(html_content)
         self._update_stats_display()
 
-    def _handle_popup_lookup_request(self, text_to_lookup: str) -> None:
-        """
-        Receives the lookup request from the editor, queries the AppCoordinator, 
-        and displays the result in a modal pop-up window.
-
-        :param text_to_lookup: The text to lookup.
-        :type text_to_lookup: str
-
-        :rtype: None
-        """
-        result = self.coordinator.lookup_entity_content_by_name(text_to_lookup)
-        if result:
-            entity_type, title, content = result
-            self._show_lookup_popup(entity_type, title, content)
-        else:
-            # TODO Make Simple Message Saying Nothing FOund
-            print(f"Lookup failed: No entity found matching '{text_to_lookup}'")
-
-    def _show_lookup_popup(self, entity_type: str, title: str, content: str) -> None:
+    def display_lookup_result(self, entity_type: str, title: str, content: str) -> None:
         """
         Creates and displays a small, modal dialog containing the content of the linked entity.
         

@@ -39,7 +39,7 @@ class UIFactory:
         # Instantiate Managers and Editors
         components = {
             'chapter_outline': ChapterOutlineManager(project_title=project_title, chapter_repository=coordinator.chapter_repo),
-            'chapter_editor': ChapterEditor(settings, coordinator),
+            'chapter_editor': ChapterEditor(settings),
             
             'lore_outline': LoreOutlineManager(project_title=project_title, lore_repository=coordinator.lore_repo, coordinator=coordinator),
             'lore_editor': LoreEditor(),
@@ -48,10 +48,10 @@ class UIFactory:
             'character_editor': CharacterEditor(),
             
             'note_outline': NoteOutlineManager(project_title=project_title, note_repository=coordinator.note_repo, coordinator=coordinator),
-            'note_editor': NoteEditor(settings, coordinator),
+            'note_editor': NoteEditor(settings),
 
             'relationship_outline': RelationshipOutlineManager(relationship_repository=coordinator.relationship_repo),
-            'relationship_editor': RelationshipEditor(coordinator=coordinator)
+            'relationship_editor': RelationshipEditor()
         }
 
         # Create and Populate Stacks

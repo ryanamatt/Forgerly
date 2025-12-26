@@ -41,19 +41,19 @@ class MainWindow(QMainWindow):
     1. **Initialization:** Setting up the database, settings, and central application coordinator.
     2. **Layout Management:** Arranging the outline panel, editor panel, and menu bar.
     3. **View Switching:** Managing which content editor (Chapter, Lore, Character, Relationship) 
-       is currently visible via a :py:class:`~PyQt6.QtWidgets.QStackedWidget`.
+       is currently visible via a :py:class:`~PySide6.QtWidgets.QStackedWidget`.
     4. **Event Handling:** Intercepting window close events to check for unsaved changes.
     5. **Settings/Theming:** Loading and saving window geometry and applying the current theme.
     """
 
     project_open_requested = Signal() 
     """
-    :py:class:`~PyQt6.QtCore.Signal` (bool): Emitted when the user selects 
+    :py:class:`~PySide6.QtCore.Signal` (bool): Emitted when the user selects 
     'Open Project' from the file menu. 
     """
     project_new_requested = Signal()
     """
-    :py:class:`~PyQt6.QtCore.Signal` (bool): Emitted when the user selects 
+    :py:class:`~PySide6.QtCore.Signal` (bool): Emitted when the user selects 
     'New Project' from the file menu. 
     """
 
@@ -170,7 +170,7 @@ class MainWindow(QMainWindow):
         If so, it prompts the user to save, discard, or cancel the exit.
         
         :param event: The QCloseEvent object.
-        :type event: :py:class:`~PyQt6.QtGui.QCloseEvent`
+        :type event: :py:class:`~PySide6.QtGui.QCloseEvent`
         
         :rtype: None
         """
@@ -220,7 +220,7 @@ class MainWindow(QMainWindow):
         new window dimensions to settings.
         
         :param event: The QResizeEvent object.
-        :type event: :py:class:`~PyQt6.QtGui.QResizeEvent`
+        :type event: :py:class:`~PySide6.QtGui.QResizeEvent`
         
         :rtype: None
         """
@@ -258,8 +258,6 @@ class MainWindow(QMainWindow):
         self.view_manager = ViewManager(
             outline_stack=self.outline_stack, 
             editor_stack=self.editor_stack, 
-            coordinator=self.coordinator, 
-            main_menu_bar=self.main_menu_bar
         )
 
         outline_width = self.current_settings.get('outline_width_pixels', 300)
@@ -282,15 +280,28 @@ class MainWindow(QMainWindow):
         """
         logger.info("Connecting all application UI and data components.")
 
+        # ViewManager Saving/Loading to AppCoordinator Saving/Loading
         self.view_manager.check_save.connect(self.coordinator.check_and_save_dirty)
-
         self.view_manager.load_requested.connect(self.coordinator.load_item)
-
         self.coordinator.data_loaded.connect(self._distribute_data_to_editor)
 
+        # ViewManager Lookup Request -> AppCoordinator
+        self.view_manager.relay_lookup_requested.connect(self.coordinator.lookup_entity_content_by_name)
+        self.coordinator.return_lookup.connect(self.view_manager.relay_return_lookup_requested)
+
+        # MainMenuBar Save Connection
         self.main_menu_bar.save_requested.connect(self._on_save_triggered)
 
-        # --- MainMenuBar Connections (Menu signal OUT -> MainWindow slot IN) ---
+        # MainMenuBar View Related Connections
+        self.main_menu_bar.view_switch_requested.connect(self.view_manager.switch_to_view)
+        self.view_manager.view_changed.connect(self.main_menu_bar.update_view_checkmarks)
+
+        # MainMenuBar New Item Connections
+        self.main_menu_bar.new_chapter_requested.connect(self.view_manager.new_chapter_requested)
+        self.main_menu_bar.new_lore_requested.connect(self.view_manager.new_lore_requested)
+        self.main_menu_bar.new_character_requested.connect(self.view_manager.new_character_requested)
+
+        # MainMenuBar Connections Export/Settings
         self.main_menu_bar.export_requested.connect(self._export)
         self.main_menu_bar.settings_requested.connect(self._open_settings_dialog)
 
@@ -300,6 +311,23 @@ class MainWindow(QMainWindow):
         
         # Connect Main Menu Project Stats Dialog Openm
         self.main_menu_bar.project_stats_requested.connect(self._open_project_stats_dialog)
+
+        # Lore Categories Refresh
+        self.coordinator.lore_categories_changed.connect(self.view_manager.lore_categories_changed)
+        self.view_manager.refresh_lore_categories.connect(self.coordinator.refresh_lore_categories)
+
+        # --- Relationship Graph Wiring (The "Glue") ---
+
+        # Requests from ViewManager to Coordinator
+        self.view_manager.graph_load_requested.connect(self.coordinator.load_relationship_graph_data)
+        self.view_manager.rel_types_requested.connect(self.coordinator.load_relationship_types_for_editor)
+        self.view_manager.node_attributes_save_requested.connect(self.coordinator.save_node_position)
+        self.view_manager.relationship_create_requested.connect(self.coordinator.save_new_relationship)
+        self.view_manager.relationship_delete_requested.connect(self.coordinator.handle_relationship_deletion)
+
+        # Data back from Coordinator to ViewManager
+        self.coordinator.graph_data_loaded.connect(self.view_manager.graph_data_received)
+        self.coordinator.relationship_types_available.connect(self.view_manager.rel_types_received)
 
         logger.info("Component signal connections complete.")
 

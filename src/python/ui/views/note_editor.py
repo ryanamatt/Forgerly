@@ -4,8 +4,6 @@ from PySide6.QtWidgets import QVBoxLayout, QGroupBox, QSplitter
 from PySide6.QtCore import Qt
 
 from .base_editor import BaseEditor
-from ...services.app_coordinator import AppCoordinator
-from ...ui.widgets.tag_widget import TagManagerWidget
 from ...ui.widgets.rich_text_editor import RichTextEditor
 
 class NoteEditor(BaseEditor):
@@ -24,14 +22,12 @@ class NoteEditor(BaseEditor):
     :vartype tag_manager: TagManagerWidget
     """
     
-    def __init__(self, current_settings, coordinator: AppCoordinator, parent=None) -> None:
+    def __init__(self, current_settings, parent=None) -> None:
         """
         Initializes the NoteEditor with sub-components and layout.
 
         :param current_settings: A dictionary containing initial application settings.
         :type current_settings: dict
-        :param coordinator: The AppCoordinator.
-        :type coordinator: :py:class:`services.AppCoordinator`
         :param parent: The parent widget. Defaults to ``None``.
         :type parent: :py:class:`PyQt6.QtWidgets.QWidget`, optional
 
@@ -39,7 +35,6 @@ class NoteEditor(BaseEditor):
         """
         super().__init__(parent)
         self.current_settings = current_settings
-        self.coordinator = coordinator
 
         self.current_lookup_dialog = None
 

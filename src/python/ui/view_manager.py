@@ -8,8 +8,6 @@ from ..utils.logger import get_logger
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from ..services.app_coordinator import AppCoordinator
-    from .menu.main_menu_bar import MainMenuBar
     from .views.base_editor import BaseEditor
     from .views.chapter_outline_manager import ChapterOutlineManager
     from .views.chapter_editor import ChapterEditor
@@ -29,34 +27,143 @@ class ViewManager(QObject):
     Orchestrates the switching of UI panels within MainWindow.
     Manages the synchronization between the Outline Stack and the Editor Stack.
 
-    Connects the OutlineManager, Editor signals to the coordinator.
+    Connects the OutlineManager, Editor signals.
     """
 
     view_changed = Signal(int)
     """
-    :py:class:`~PyQt6.QtCore.Signal` (ViewType). Emitted When the View changes
+    :py:class:`~PySide6.QtCore.Signal` (ViewType). Emitted When the View changes
     carrying the new ViewType.
     """
 
     save_requested = Signal(object, int) # (editor_instance, ViewType)
     """
-    :py:class:`~PyQt6.QtCore.Signal` (editor ,ViewType). Emitted When a save is requested
+    :py:class:`~PySide6.QtCore.Signal` (editor ,ViewType). Emitted When a save is requested
     carrying the Editor, View
     """
 
     load_requested = Signal(int, int)    # (item_id, ViewType)
     """
-    :py:class:`~PyQt6.QtCore.Signal` (editor ,ViewType). Emitted When a load is requested
+    :py:class:`~PySide6.QtCore.Signal` (editor ,ViewType). Emitted When a load is requested
     carrying the item_id, View
     """
 
+    new_chapter_requested = Signal()
+    """
+    :py:class:`~PySide6.QtCore.Signal` Emitted When a new Chapter is requested. Use when
+    MainMenuBar wants to created a new item.
+    """
+
+    new_lore_requested = Signal()
+    """
+    :py:class:`~PySide6.QtCore.Signal` Emitted When a new Lore Entry is requested. Use when
+    MainMenuBar wants to created a new item.
+    """
+
+    new_character_requested = Signal()
+    """
+    :py:class:`~PySide6.QtCore.Signal`  Emitted When a new Character is requested. Use when
+    MainMenuBar wants to created a new item.
+    """
+
     item_selected = Signal(int, int)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (int, int): Emitted
+    when a item is selected in the OutlineManager containing
+    the item_id and ViewType.
+    """
 
     check_save = Signal(int, object)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (int, object): Emitted 
+    when checking if needed to save before moving on. Contains
+    the current current view and current editor.
+    """
+
+    lore_categories_changed = Signal(list)
+    """
+    :py:class:`~PySide6.QtCore.Signal` Emitted when the list of available 
+    categories is refreshed containing list[str] of all unique category names.
+    """
+
+    refresh_lore_categories = Signal()
+    """
+    :py:class:`~PySide6.QtCore.Signal` Emitted when changing the view to 
+    Lore to refresh all existing Lore Categories.
+    """
+
+    relay_lookup_requested = Signal(str)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (str). Emitted When a lookup is requested carrying
+    the text to lookup.
+    """
+
+    relay_return_lookup_requested = Signal(str, str, str)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (str, str, str) Emitted when returning a lookup. 
+    Carries the (EntityType, Name of Entity, Description of Entity)
+    """
+
+    graph_load_requested = Signal()
+    """
+    :py:class:`~PySide6.QtCore.Signal`. Emitted when a graph reload is requested.
+    """
+
+    node_attributes_save_requested = Signal(int, float, float, str, str, int)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (int, float, float, str, str, int): 
+    Emitted to save a character node's position and attributes. Connects
+    to RelationshipEditor.node_attributes_save.
+
+    Carries the (Character ID, new X position, new Y position, Name, Color, 
+    Shape ID, Name, Color, and Shape ID)
+    """
+
+    rel_types_requested = Signal()
+    """
+    :py:class:`~PySide6.QtCore.Signal`: Emitted to request the list of available relationship types.
+    """
+
+    relationship_create_requested = Signal(int, int, int, str, int)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (int, int, int, str, int): 
+    Emitted when a new relationship is created, carrying 
+    (Source ID, Target ID, Type ID, Description, Intensity).
+    Emitted when RelationshipEditor.relationship_created is 
+    emitted.
+    """
+
+    relationship_delete_requested = Signal(int)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (int):
+    Emitted when a relationshipo is deleted, carrying
+    (Relationship_ID). Emitted when 
+    RelationshipEditor.relatiopnship_deleted is 
+    emitted.
+    """
+
+    graph_data_wanted = Signal()
+    """
+    :py:class:`~PySide6.QtCore.Signal` (dict): Emitted when changing
+    the view to RelationshipEditor and asks for the Graph Data to be
+    sent and recieved by graph_data_recieved.
+    """
+
+    graph_data_received = Signal(dict)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (dict): Emitted when the 
+    graph data is received containng the Nodes and Edges.
+    """
+
+    rel_types_received = Signal(list)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (list): Emitted wehn
+    the relationship types are recieved containing a list
+    of the names of the Relationship Types.
+    """
 
 
-    def __init__(self, outline_stack: QStackedWidget, editor_stack: QStackedWidget, 
-                 coordinator: 'AppCoordinator', main_menu_bar: 'MainMenuBar') -> None:
+    def __init__(self, outline_stack: QStackedWidget, editor_stack: QStackedWidget) -> None:
         """
         Creates the ViewManager Object.
         
@@ -64,16 +171,12 @@ class ViewManager(QObject):
         :type outline_stack: QStackedWidget
         :param editor_stack: The Stack of Editors
         :type editor_stack: QStackedWidget
-        :param coordinator: The AppCoordinator
-        :type coordinator: 'AppCoordinator'
 
         :rtype: None
         """
         super().__init__()
         self.outline_stack = outline_stack
         self.editor_stack = editor_stack
-        self.coordinator = coordinator
-        self.main_menu_bar = main_menu_bar
 
         # Default View is Chapter Editor when first launching
         self.current_view = ViewType.CHAPTER_EDITOR
@@ -95,13 +198,6 @@ class ViewManager(QObject):
         
         :rtype: None
         """
-        self.main_menu_bar.save_requested.connect(
-            lambda: self.coordinator.save_current_item(
-                view=self.get_current_view(), editor=self.get_current_editor()
-            ))
-
-        self.main_menu_bar.view_switch_requested.connect(self.switch_to_view)
-        self.view_changed.connect(self.main_menu_bar.update_view_checkmarks)
 
         chapter_editor: ChapterEditor = self.editor_stack.widget(0) # ChapterEditor
         lore_editor: LoreEditor = self.editor_stack.widget(1)    # LoreEditor
@@ -115,7 +211,12 @@ class ViewManager(QObject):
         note_outline: NoteOutlineManager = self.outline_stack.widget(3) # NoteOutlineManager
         rel_outline: RelationshipOutlineManager = self.outline_stack.widget(4) #RelationshipOutlineManager
 
-        # New Item Created Connect to Switch View
+        # Connect the internal relay signals to the specific widgets
+        self.new_chapter_requested.connect(chapter_outline.prompt_and_add_chapter)
+        self.new_lore_requested.connect(lore_outline.prompt_and_add_lore)
+        self.new_character_requested.connect(char_outline.prompt_and_add_character)
+
+        # New Item Created Connect to Switch View to change Editor
         chapter_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.CHAPTER_EDITOR))
         lore_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.LORE_EDITOR))
         char_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.CHARACTER_EDITOR))
@@ -153,23 +254,27 @@ class ViewManager(QObject):
             lambda item_id: self.load_requested.emit(item_id, ViewType.NOTE_EDITOR)
         )
 
-        # MainMenuBar New Item Connect to outline.prompt_and_add_*item*
-        self.main_menu_bar.new_chapter_requested.connect(chapter_outline.prompt_and_add_chapter)
-        self.main_menu_bar.new_lore_requested.connect(lore_outline.prompt_and_add_lore)
-        self.main_menu_bar.new_character_requested.connect(char_outline.prompt_and_add_character)
-
-        # Load & Reload Graph Data
-        self.coordinator.graph_data_loaded.connect(rel_editor.load_graph)
-        rel_outline.relationship_types_updated.connect(self.coordinator.reload_relationship_graph_data)
-        rel_editor.request_load_data.connect(self.coordinator.load_relationship_graph_data)
-
-        # Relationship Editor -> Coordinator
-        rel_editor.set_coordinator_signals(self.coordinator)
-        rel_editor.relationship_created.connect(self.coordinator.save_new_relationship)
-        rel_editor.relationship_deleted.connect(self.coordinator.handle_relationship_deletion)
-
         # Lore Categories
-        self.coordinator.lore_categories_changed.connect(lore_editor.set_available_categories)
+        self.lore_categories_changed.connect(lore_editor.set_available_categories)
+
+        # Editor Lookup Signals
+        chapter_editor.lookup_requested.connect(self.relay_lookup_requested.emit)
+        self.relay_return_lookup_requested.connect(chapter_editor.display_lookup_result)
+
+        # --- Relationship Graph Relays (No Coordinator calls) ---
+        
+        # Data Flow: Editor -> ViewManager (Relay)
+        rel_editor.save_node_attributes.connect(self.node_attributes_save_requested.emit)
+        rel_editor.request_load_rel_types.connect(self.rel_types_requested.emit)
+        rel_editor.relationship_created.connect(self.relationship_create_requested.emit)
+        rel_editor.relationship_deleted.connect(self.relationship_delete_requested.emit)
+        
+        # Outline updates also trigger a reload request
+        rel_outline.relationship_types_updated.connect(self.graph_load_requested.emit)
+
+        # Data Flow: ViewManager (Input) -> Editor
+        self.graph_data_received.connect(rel_editor.load_graph)
+        self.rel_types_received.connect(rel_editor.set_available_relationship_types)
 
     def get_current_editor(self) -> 'BaseEditor':
         """
@@ -210,7 +315,6 @@ class ViewManager(QObject):
         self.outline_stack.setCurrentIndex(index)
         self.editor_stack.setCurrentIndex(index)
 
-        # self.coordinator.set_current_view(view)
         self._perform_view_entry_logic(view)
 
         self.view_changed.emit(view)
@@ -226,14 +330,12 @@ class ViewManager(QObject):
         editor: BaseEditor = self.get_current_editor()
 
         if view == ViewType.RELATIONSHIP_GRAPH:
-            # Relationships usually load all data immediately
-            if hasattr(editor, 'request_load_data'):
-                editor: RelationshipEditor = editor
-                editor.request_load_data.emit()
+            # Load Graph Data
+            self.graph_load_requested.emit()
             
         elif view == ViewType.LORE_EDITOR:
             # Refresh category dropdowns for the lore editor
-            self.coordinator.refresh_lore_categories()
+            self.refresh_lore_categories.emit()
             
         else:
             # Default behavior: Editors are disabled until an item is clicked in the outline
@@ -249,4 +351,4 @@ class ViewManager(QObject):
         :type wpm: int
         """
         print(f"ViewManager.set_wpm() {wpm}")
-        self.editor_stack['chapter_editor'].set_wpm(wpm)
+        self.editor_stack.widget(0).set_wpm(wpm)
