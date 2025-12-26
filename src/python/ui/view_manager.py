@@ -33,13 +33,13 @@ class ViewManager(QObject):
 
     view_changed = Signal(int)
     """
-    :py:class:`~PyQt6.QtCore.Signal` (ViewType). Emitted When the View changes
+    :py:class:`~PySide6.QtCore.Signal` (ViewType). Emitted When the View changes
     carrying the new ViewType.
     """
 
     save_requested = Signal(object, int) # (editor_instance, ViewType)
     """
-    :py:class:`~PyQt6.QtCore.Signal` (editor ,ViewType). Emitted When a save is requested
+    :py:class:`~PySide6.QtCore.Signal` (editor ,ViewType). Emitted When a save is requested
     carrying the Editor, View
     """
 
@@ -65,6 +65,12 @@ class ViewManager(QObject):
     """
     :py:class:`~PySide6.QtCore.Signal`  Emitted When a new Character is requested. Use when
     MainMenuBar wants to created a new item.
+    """
+
+    lore_categories_changed = Signal(list)
+    """
+    :py:class:`~PySide6.QtCore.Signal` Emitted when the list of available 
+    categories is refreshed containing list[str] of all unique category names.
     """
 
     relay_lookup_requested = Signal(str)
@@ -102,7 +108,6 @@ class ViewManager(QObject):
         self.outline_stack = outline_stack
         self.editor_stack = editor_stack
         self.coordinator = coordinator
-        self.main_menu_bar = main_menu_bar
 
         # Default View is Chapter Editor when first launching
         self.current_view = ViewType.CHAPTER_EDITOR
@@ -142,7 +147,7 @@ class ViewManager(QObject):
         self.new_lore_requested.connect(lore_outline.prompt_and_add_lore)
         self.new_character_requested.connect(char_outline.prompt_and_add_character)
 
-        # New Item Created Connect to Switch View
+        # New Item Created Connect to Switch View to change Editor
         chapter_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.CHAPTER_EDITOR))
         lore_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.LORE_EDITOR))
         char_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.CHARACTER_EDITOR))
@@ -201,7 +206,7 @@ class ViewManager(QObject):
         rel_editor.relationship_deleted.connect(self.coordinator.handle_relationship_deletion)
 
         # Lore Categories
-        self.coordinator.lore_categories_changed.connect(lore_editor.set_available_categories)
+        self.lore_categories_changed.connect(lore_editor.set_available_categories)
 
     def get_current_editor(self) -> 'BaseEditor':
         """
