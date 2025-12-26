@@ -30,7 +30,7 @@ class AppCoordinator(QObject):
 
     graph_data_loaded = Signal(dict)
     """
-    :py:class:`~PyQt6.QtCore.Signal` (dict): Emitted to provide all necessary 
+    :py:class:`~PySide6.QtCore.Signal` (dict): Emitted to provide all necessary 
     data for the relationship graph. Carries a dictionary containing node and edge data.
     """
 
@@ -95,7 +95,7 @@ class AppCoordinator(QObject):
         :param editor: The current editor.
         :type editor: 'BaseEditor'
         :param parent: The parent. Default is None.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
+        :type parent: :py:class:`~PySide6.QtWidgets.QWidget`
 
         :returns: Returns True if saved, otherwise False
         :rtype: bool
@@ -510,7 +510,7 @@ class AppCoordinator(QObject):
         if hasattr(self, 'lore_repo'):
             lookup = self.lore_repo.get_content_by_title(title=name)
             if data: 
-                self.return_lookup.emit(EntityType.CHARACTER, data.get('Title', ''), data.get('Content', ''))
+                self.return_lookup.emit(EntityType.LORE, data.get('Title', ''), data.get('Content', ''))
                 return
             
         self.return_lookup.emit(None, None, None)

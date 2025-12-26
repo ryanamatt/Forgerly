@@ -41,19 +41,19 @@ class MainWindow(QMainWindow):
     1. **Initialization:** Setting up the database, settings, and central application coordinator.
     2. **Layout Management:** Arranging the outline panel, editor panel, and menu bar.
     3. **View Switching:** Managing which content editor (Chapter, Lore, Character, Relationship) 
-       is currently visible via a :py:class:`~PyQt6.QtWidgets.QStackedWidget`.
+       is currently visible via a :py:class:`~PySide6.QtWidgets.QStackedWidget`.
     4. **Event Handling:** Intercepting window close events to check for unsaved changes.
     5. **Settings/Theming:** Loading and saving window geometry and applying the current theme.
     """
 
     project_open_requested = Signal() 
     """
-    :py:class:`~PyQt6.QtCore.Signal` (bool): Emitted when the user selects 
+    :py:class:`~PySide6.QtCore.Signal` (bool): Emitted when the user selects 
     'Open Project' from the file menu. 
     """
     project_new_requested = Signal()
     """
-    :py:class:`~PyQt6.QtCore.Signal` (bool): Emitted when the user selects 
+    :py:class:`~PySide6.QtCore.Signal` (bool): Emitted when the user selects 
     'New Project' from the file menu. 
     """
 
@@ -170,7 +170,7 @@ class MainWindow(QMainWindow):
         If so, it prompts the user to save, discard, or cancel the exit.
         
         :param event: The QCloseEvent object.
-        :type event: :py:class:`~PyQt6.QtGui.QCloseEvent`
+        :type event: :py:class:`~PySide6.QtGui.QCloseEvent`
         
         :rtype: None
         """
@@ -220,7 +220,7 @@ class MainWindow(QMainWindow):
         new window dimensions to settings.
         
         :param event: The QResizeEvent object.
-        :type event: :py:class:`~PyQt6.QtGui.QResizeEvent`
+        :type event: :py:class:`~PySide6.QtGui.QResizeEvent`
         
         :rtype: None
         """
@@ -258,7 +258,6 @@ class MainWindow(QMainWindow):
         self.view_manager = ViewManager(
             outline_stack=self.outline_stack, 
             editor_stack=self.editor_stack, 
-            coordinator=self.coordinator, 
         )
 
         outline_width = self.current_settings.get('outline_width_pixels', 300)
@@ -315,6 +314,20 @@ class MainWindow(QMainWindow):
 
         # Lore Categories Refresh
         self.coordinator.lore_categories_changed.connect(self.view_manager.lore_categories_changed)
+        self.view_manager.refresh_lore_categories.connect(self.coordinator.refresh_lore_categories)
+
+        # --- Relationship Graph Wiring (The "Glue") ---
+
+        # Requests from ViewManager to Coordinator
+        self.view_manager.graph_load_requested.connect(self.coordinator.load_relationship_graph_data)
+        self.view_manager.rel_types_requested.connect(self.coordinator.load_relationship_types_for_editor)
+        self.view_manager.node_attributes_save_requested.connect(self.coordinator.save_node_position)
+        self.view_manager.relationship_create_requested.connect(self.coordinator.save_new_relationship)
+        self.view_manager.relationship_delete_requested.connect(self.coordinator.handle_relationship_deletion)
+
+        # Data back from Coordinator to ViewManager
+        self.coordinator.graph_data_loaded.connect(self.view_manager.graph_data_received)
+        self.coordinator.relationship_types_available.connect(self.view_manager.rel_types_received)
 
         logger.info("Component signal connections complete.")
 

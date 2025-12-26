@@ -8,7 +8,6 @@ from ..utils.logger import get_logger
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from ..services.app_coordinator import AppCoordinator
     from .views.base_editor import BaseEditor
     from .views.chapter_outline_manager import ChapterOutlineManager
     from .views.chapter_editor import ChapterEditor
@@ -28,7 +27,7 @@ class ViewManager(QObject):
     Orchestrates the switching of UI panels within MainWindow.
     Manages the synchronization between the Outline Stack and the Editor Stack.
 
-    Connects the OutlineManager, Editor signals to the coordinator.
+    Connects the OutlineManager, Editor signals.
     """
 
     view_changed = Signal(int)
@@ -67,10 +66,30 @@ class ViewManager(QObject):
     MainMenuBar wants to created a new item.
     """
 
+    item_selected = Signal(int, int)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (int, int): Emitted
+    when a item is selected in the OutlineManager containing
+    the item_id and ViewType.
+    """
+
+    check_save = Signal(int, object)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (int, object): Emitted 
+    when checking if needed to save before moving on. Contains
+    the current current view and current editor.
+    """
+
     lore_categories_changed = Signal(list)
     """
     :py:class:`~PySide6.QtCore.Signal` Emitted when the list of available 
     categories is refreshed containing list[str] of all unique category names.
+    """
+
+    refresh_lore_categories = Signal()
+    """
+    :py:class:`~PySide6.QtCore.Signal` Emitted when changing the view to 
+    Lore to refresh all existing Lore Categories.
     """
 
     relay_lookup_requested = Signal(str)
@@ -85,13 +104,66 @@ class ViewManager(QObject):
     Carries the (EntityType, Name of Entity, Description of Entity)
     """
 
-    item_selected = Signal(int, int)
+    graph_load_requested = Signal()
+    """
+    :py:class:`~PySide6.QtCore.Signal`. Emitted when a graph reload is requested.
+    """
 
-    check_save = Signal(int, object)
+    node_attributes_save_requested = Signal(int, float, float, str, str, int)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (int, float, float, str, str, int): 
+    Emitted to save a character node's position and attributes. Connects
+    to RelationshipEditor.node_attributes_save.
+
+    Carries the (Character ID, new X position, new Y position, Name, Color, 
+    Shape ID, Name, Color, and Shape ID)
+    """
+
+    rel_types_requested = Signal()
+    """
+    :py:class:`~PySide6.QtCore.Signal`: Emitted to request the list of available relationship types.
+    """
+
+    relationship_create_requested = Signal(int, int, int, str, int)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (int, int, int, str, int): 
+    Emitted when a new relationship is created, carrying 
+    (Source ID, Target ID, Type ID, Description, Intensity).
+    Emitted when RelationshipEditor.relationship_created is 
+    emitted.
+    """
+
+    relationship_delete_requested = Signal(int)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (int):
+    Emitted when a relationshipo is deleted, carrying
+    (Relationship_ID). Emitted when 
+    RelationshipEditor.relatiopnship_deleted is 
+    emitted.
+    """
+
+    graph_data_wanted = Signal()
+    """
+    :py:class:`~PySide6.QtCore.Signal` (dict): Emitted when changing
+    the view to RelationshipEditor and asks for the Graph Data to be
+    sent and recieved by graph_data_recieved.
+    """
+
+    graph_data_received = Signal(dict)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (dict): Emitted when the 
+    graph data is received containng the Nodes and Edges.
+    """
+
+    rel_types_received = Signal(list)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (list): Emitted wehn
+    the relationship types are recieved containing a list
+    of the names of the Relationship Types.
+    """
 
 
-    def __init__(self, outline_stack: QStackedWidget, editor_stack: QStackedWidget, 
-                 coordinator: 'AppCoordinator') -> None:
+    def __init__(self, outline_stack: QStackedWidget, editor_stack: QStackedWidget) -> None:
         """
         Creates the ViewManager Object.
         
@@ -99,15 +171,12 @@ class ViewManager(QObject):
         :type outline_stack: QStackedWidget
         :param editor_stack: The Stack of Editors
         :type editor_stack: QStackedWidget
-        :param coordinator: The AppCoordinator
-        :type coordinator: 'AppCoordinator'
 
         :rtype: None
         """
         super().__init__()
         self.outline_stack = outline_stack
         self.editor_stack = editor_stack
-        self.coordinator = coordinator
 
         # Default View is Chapter Editor when first launching
         self.current_view = ViewType.CHAPTER_EDITOR
@@ -185,28 +254,27 @@ class ViewManager(QObject):
             lambda item_id: self.load_requested.emit(item_id, ViewType.NOTE_EDITOR)
         )
 
+        # Lore Categories
+        self.lore_categories_changed.connect(lore_editor.set_available_categories)
+
         # Editor Lookup Signals
         chapter_editor.lookup_requested.connect(self.relay_lookup_requested.emit)
         self.relay_return_lookup_requested.connect(chapter_editor.display_lookup_result)
 
-        # Load & Reload Graph Data
-        self.coordinator.graph_data_loaded.connect(rel_editor.load_graph)
-        rel_outline.relationship_types_updated.connect(self.coordinator.load_relationship_graph_data)
-        rel_editor.request_load_data.connect(self.coordinator.load_relationship_graph_data)
-        rel_editor.save_node_attributes.connect(self.coordinator.save_node_position)
-        rel_editor.request_load_rel_types.connect(
-            self.coordinator.load_relationship_types_for_editor
-        )
-        self.coordinator.relationship_types_available.connect(
-            rel_editor.set_available_relationship_types
-        )
+        # --- Relationship Graph Relays (No Coordinator calls) ---
+        
+        # Data Flow: Editor -> ViewManager (Relay)
+        rel_editor.save_node_attributes.connect(self.node_attributes_save_requested.emit)
+        rel_editor.request_load_rel_types.connect(self.rel_types_requested.emit)
+        rel_editor.relationship_created.connect(self.relationship_create_requested.emit)
+        rel_editor.relationship_deleted.connect(self.relationship_delete_requested.emit)
+        
+        # Outline updates also trigger a reload request
+        rel_outline.relationship_types_updated.connect(self.graph_load_requested.emit)
 
-        # Relationship Editor -> Coordinator
-        rel_editor.relationship_created.connect(self.coordinator.save_new_relationship)
-        rel_editor.relationship_deleted.connect(self.coordinator.handle_relationship_deletion)
-
-        # Lore Categories
-        self.lore_categories_changed.connect(lore_editor.set_available_categories)
+        # Data Flow: ViewManager (Input) -> Editor
+        self.graph_data_received.connect(rel_editor.load_graph)
+        self.rel_types_received.connect(rel_editor.set_available_relationship_types)
 
     def get_current_editor(self) -> 'BaseEditor':
         """
@@ -247,7 +315,6 @@ class ViewManager(QObject):
         self.outline_stack.setCurrentIndex(index)
         self.editor_stack.setCurrentIndex(index)
 
-        # self.coordinator.set_current_view(view)
         self._perform_view_entry_logic(view)
 
         self.view_changed.emit(view)
@@ -263,16 +330,12 @@ class ViewManager(QObject):
         editor: BaseEditor = self.get_current_editor()
 
         if view == ViewType.RELATIONSHIP_GRAPH:
-            # Relationships usually load all data immediately
-            if hasattr(editor, 'request_load_data'):
-                editor: RelationshipEditor = editor
-                editor.request_load_data.emit()
-            if hasattr(editor, 'request_load_rel_types'):
-                editor.request_load_rel_types.emit()
+            # Load Graph Data
+            self.graph_load_requested.emit()
             
         elif view == ViewType.LORE_EDITOR:
             # Refresh category dropdowns for the lore editor
-            self.coordinator.refresh_lore_categories()
+            self.refresh_lore_categories.emit()
             
         else:
             # Default behavior: Editors are disabled until an item is clicked in the outline
@@ -288,4 +351,4 @@ class ViewManager(QObject):
         :type wpm: int
         """
         print(f"ViewManager.set_wpm() {wpm}")
-        self.editor_stack['chapter_editor'].set_wpm(wpm)
+        self.editor_stack.widget(0).set_wpm(wpm)
