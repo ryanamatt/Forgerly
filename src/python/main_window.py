@@ -285,10 +285,6 @@ class MainWindow(QMainWindow):
         self.view_manager.load_requested.connect(self.coordinator.load_item)
         self.coordinator.data_loaded.connect(self._distribute_data_to_editor)
 
-        # ViewManager Lookup Request -> AppCoordinator
-        self.view_manager.relay_lookup_requested.connect(self.coordinator.lookup_entity_content_by_name)
-        self.coordinator.return_lookup.connect(self.view_manager.relay_return_lookup_requested)
-
         # MainMenuBar Save Connection
         self.main_menu_bar.save_requested.connect(self._on_save_triggered)
 

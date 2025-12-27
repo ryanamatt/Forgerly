@@ -14,6 +14,8 @@ from ...resources_rc import *
 from .basic_text_editor import BasicTextEditor
 from ...utils.logger import get_logger
 from ...utils.exceptions import EditorContentError
+from ...utils.event_bus import bus
+from ...utils.events import Events
 
 logger = get_logger(__name__)
 
@@ -654,7 +656,12 @@ class RichTextEditor(BasicTextEditor):
                 selected_text = self.get_selected_text().strip()
 
                 if selected_text:
-                    self.popup_lookup_requested.emit(selected_text)
+                    # self.popup_lookup_requested.emit(selected_text)
+
+                    bus.publish(Events.LOOKUP_REQUESTED, data={
+                        'editor': self,
+                        'selected_text': selected_text
+                    })
 
                     event.accept()
                     logger.debug(f"Lookup shortcut (Ctrl+Shift+L) activated for text: '{selected_text[:30]}...'")

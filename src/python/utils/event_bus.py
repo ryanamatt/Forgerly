@@ -2,11 +2,26 @@
 
 from PySide6.QtCore import QObject, Signal
 from typing import Callable, Any
+from functools import wraps
 
 from .events import Events
 from .logger import get_logger
 
 logger = get_logger(__name__)
+
+def receiver(topic: str, once: bool = False):
+    def decorator(func):
+        if not hasattr(func, '_event_subscriptions'):
+            func._event_subscriptions = []
+        func._event_subscriptions.append((topic, once))
+        
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        # Ensure the wrapper carries the metadata too
+        wrapper._event_subscriptions = func._event_subscriptions
+        return wrapper
+    return decorator
 
 class EventBus(QObject):
     """
@@ -164,6 +179,49 @@ class EventBus(QObject):
             self._subscribers.pop(topic_str, None)
             self._once_subscribers.pop(topic_str, None)
             logger.debug(f"Cleared all subscriptions for '{topic_str}'")
+
+    def register_instance(self, obj: Any) -> None:
+        """
+        Scans an object for methods decorated with @receiver and subscribes them.
+
+        :param obj: The object for methods.
+        :type: obj: Any
+
+        :rtype: Any
+        """
+        for attr_name in dir(obj):
+            attr = getattr(obj, attr_name)
+            if hasattr(attr, '_event_subscriptions'):
+                for topic, once in attr._event_subscriptions:
+                    if once:
+                        self.subscribe_once(topic, attr)
+                    else:
+                        self.subscribe(topic, attr)
+
+    def unregister_instance(self, obj: Any) -> None:
+        """
+        Removes all subscriptions where the callback is a method belonging to 'obj'.
+        
+        :param obj: The object to remove all subscriptions for.
+        :type obj: Any
+
+        :rtype: None
+        """
+        for topic in self._subscribers:
+            new_callbacks = []
+            for cb in self._subscribers[topic]:
+                # Check if it's a standard bound method
+                callback_self = getattr(cb, '__self__', None)
+                
+                # If it's a decorated method, we might need to look deeper
+                if callback_self is None and hasattr(cb, '__closure__') and cb.__closure__:
+                    # This logic depends on your specific decorator structure
+                    pass 
+
+                if callback_self is not obj:
+                    new_callbacks.append(cb)
+        
+            self._subscribers[topic] = new_callbacks
     
     def _dispatch(self, topic: str, data: object) -> None:
         """

@@ -1,7 +1,11 @@
 # src/python/ui/views/base_editor.py
 
 from PySide6.QtWidgets import QWidget
+from PySide6.QtGui import QCloseEvent
+
 from ...ui.widgets.tag_widget import TagManagerWidget
+from ...utils.event_bus import bus
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..widgets.basic_text_editor import BasicTextEditor
@@ -25,6 +29,28 @@ class BaseEditor(QWidget):
         self.tag_manager = TagManagerWidget()
         # Common text editor reference (to be initialized by subclasses)
         self.text_editor: BasicTextEditor | None = None
+
+    def __del__(self) -> None:
+        """
+        Deleting a BaseEditor.
+        
+        :rtype: None
+        """
+        try:
+            bus.unregister_instance(self)
+        except:
+            pass
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """
+        Handling cleanup after closing the Widget.
+        
+        :param event: The closing event.
+        :type event: QCloseEvent
+
+        :rtype: None
+        """
+        super().closeEvent()
 
     def is_dirty(self) -> bool:
         """

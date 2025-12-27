@@ -7,6 +7,8 @@ from PySide6.QtCore import Signal
 
 from ...utils.logger import get_logger
 from ...utils.exceptions import EditorContentError
+from ...utils.event_bus import bus
+from ...utils.events import Events
 
 logger = get_logger(__name__)
 
@@ -73,6 +75,12 @@ class BasicTextEditor(QWidget):
         if not self._is_dirty:
             self._is_dirty = True
             self.content_changed.emit()
+
+            bus.publish(Events.SAVE_REQUESTED, data={
+                'editor': self,
+                'is_dirty': True
+            })
+
             logger.debug("BasicTextEditor content changed. Dirty flag set to True.")
         else:
             logger.debug("BasicTextEditor content changed, but already dirty (state remains True).")
@@ -94,6 +102,7 @@ class BasicTextEditor(QWidget):
         try:
             self._is_dirty = False
             self._last_saved_content = self.editor.toHtml()
+
             logger.debug(f"BasicTextEditor content marked as saved.")
 
         except Exception as e:
@@ -159,7 +168,8 @@ class BasicTextEditor(QWidget):
         logger.debug(f"Retrieving Selected Text content. Length: {len(selected_text)} characters.")
         return selected_text
 
-        # --- Loggers ---
+    # --- Loggers ---
+
     def _log_selection_change(self) -> None:
         """
         Helper to log selection changes before emitting the public signal.
@@ -172,4 +182,3 @@ class BasicTextEditor(QWidget):
         else:
             logger.debug("Cursor position changed (no active selection).")
         
-        self.selection_changed.emit()

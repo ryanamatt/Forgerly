@@ -13,6 +13,8 @@ from ..repository.relationship_repository import RelationshipRepository
 
 from ..utils.nf_core_wrapper import calculate_read_time
 from ..utils.constants import ViewType, EntityType
+from ..utils.events import Events
+from ..utils.event_bus import bus
 
 from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
@@ -82,6 +84,9 @@ class AppCoordinator(QObject):
 
         # State Tracking
         self.current_item_id: int = 0
+
+        # Subscriptions
+        bus.subscribe(Events.LOOKUP_REQUESTED, self.lookup_entity_content_by_name)
 
     # --- Save / Dirty Check Logic (Core Business Logic) ---
 
@@ -484,7 +489,7 @@ class AppCoordinator(QObject):
     # Entity Lookup Methods
     #------------------------------------
 
-    def lookup_entity_content_by_name(self, name: str) -> tuple[str, str, str] | None:
+    def lookup_entity_content_by_name(self, data: dict) -> tuple[str, str, str] | None:
         """
         Sequentially looks up an entity by name/title across all relevant repositories.
         
@@ -497,23 +502,34 @@ class AppCoordinator(QObject):
         :returns: A tuple (EntityType, Title, Content) or None if not found.
         :rtype: tuple[str, str, str]
         """
-        name = name.strip()
+
+        name = data['selected_text'].strip()
+        if not name: return
 
         # Start Searching For Characters
         if hasattr(self, 'character_repo'):
-            data = self.character_repo.get_content_by_name(name=name)
-            if data: 
-                self.return_lookup.emit(EntityType.CHARACTER, data.get('Name', ''), data.get('Description', ''))
+            char_data = self.character_repo.get_content_by_name(name=name)
+            if char_data and char_data.get('Description'): # Check if match exists
+                bus.publish(Events.LOOKUP_RESULT, data={
+                    'entity_type': 'Character',
+                    'title': char_data.get('Name', name),
+                    'content': char_data.get('Description', '')
+                })
                 return
             
         # Search Through Lore Entries
         if hasattr(self, 'lore_repo'):
-            lookup = self.lore_repo.get_content_by_title(title=name)
-            if data: 
-                self.return_lookup.emit(EntityType.LORE, data.get('Title', ''), data.get('Content', ''))
+            lore_data = self.lore_repo.get_content_by_title(title=name)
+            if lore_data and lore_data.get('Content'):
+                bus.publish(Events.LOOKUP_RESULT, data={
+                    'entity_type': 'Lore',
+                    'title': lore_data.get('Title', name),
+                    'content': lore_data.get('Content', '')
+                })
                 return
             
-        self.return_lookup.emit(None, None, None)
+        return
+            
     
     # --- Project Stats ---
     

@@ -162,6 +162,30 @@ class ViewManager(QObject):
     of the names of the Relationship Types.
     """
 
+    request_reorder_chapter = Signal(list)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (list[tuple[int, int]]): Emitted to request the 
+    reorder of chapters containing a list of all chapters to reorder.
+    """
+
+    request_rename_chapter = Signal(int, str)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (int, str): Emitted when renaming an item
+    in the tree widget containing the (ID, New Name).
+    """
+
+    request_create_chapter = Signal(str, int)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (str, int): Emitted when creating a new
+    item on the outline manager containing the (Title, Sort_Order).
+    """
+
+    request_delete_chapter = Signal(int)
+    """
+    :py:class:`~PySide6.QtCore.Signal` (int): Emiited when deleting a new
+    item on the outline manager containing (ID).
+    """
+
 
     def __init__(self, outline_stack: QStackedWidget, editor_stack: QStackedWidget) -> None:
         """
@@ -256,10 +280,6 @@ class ViewManager(QObject):
 
         # Lore Categories
         self.lore_categories_changed.connect(lore_editor.set_available_categories)
-
-        # Editor Lookup Signals
-        chapter_editor.lookup_requested.connect(self.relay_lookup_requested.emit)
-        self.relay_return_lookup_requested.connect(chapter_editor.display_lookup_result)
 
         # --- Relationship Graph Relays (No Coordinator calls) ---
         
