@@ -42,7 +42,8 @@ class LoreOutlineManager(BaseOutlineManager):
             header_text="Lore Entries",
             id_role=self.LORE_ID_ROLE,
             search_placeholder="Search Lore Entries...",
-            is_nested_tree=True
+            is_nested_tree=True,
+            type=EntityType.LORE
         )
 
         bus.register_instance(self)
@@ -59,9 +60,9 @@ class LoreOutlineManager(BaseOutlineManager):
         :param lore_data: Description
         :type lore_data: dict
         """
-        type = lore_data.get('type')
+        entity_type = lore_data.get('entity_type')
         lore_entries = lore_data.get('lore_entries')
-        if type != EntityType.LORE or not lore_entries:
+        if entity_type != EntityType.LORE or not lore_entries:
             return
                     
         self.tree_widget.clear()
@@ -105,10 +106,10 @@ class LoreOutlineManager(BaseOutlineManager):
         clean_query = query.strip()
         if clean_query:
             bus.publish(Events.OUTLINE_SEARCH_REQUESTED, data={
-                'type': EntityType.LORE, 'query': clean_query
+                'entity_type': EntityType.LORE, 'query': clean_query
             })
         else:
-            bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'type': EntityType.LORE})
+            bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': EntityType.LORE})
 
     @receiver(Events.OUTLINE_SEARCH_RETURN)
     def _handle_search_return(self, data: dict) -> None:
@@ -121,8 +122,8 @@ class LoreOutlineManager(BaseOutlineManager):
         :rtype: None
         """
         search_results = data.get('lore_entries')
-        type = data.get('type')
-        if type != EntityType.LORE: return
+        entity_type = data.get('entity_type')
+        if entity_type != EntityType.LORE: return
 
         if search_results:
             self.load_outline(data)
@@ -156,11 +157,11 @@ class LoreOutlineManager(BaseOutlineManager):
         # Handle empty title
         if not new_title:
             QMessageBox.warning(self, "Invalid Title", "Lore Entry title cannot be empty. Reverting.")
-            bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'type': EntityType.LORE}) 
+            bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': EntityType.LORE}) 
             return # Exit after handling invalid title
         
         bus.publish(Events.OUTLINE_NAME_CHANGE, data={
-            'type': EntityType.LORE, 'ID': lore_id, 'new_title': new_title
+            'entity_type': EntityType.LORE, 'ID': lore_id, 'new_title': new_title
         })
 
     def _handle_lore_parent_update(self, lore_id: int, new_parent_id: Any) -> None:
@@ -173,7 +174,7 @@ class LoreOutlineManager(BaseOutlineManager):
         :type new_parent_id: int or None
         """
         bus.publish(Events.OUTLINE_PARENT_UPDATE, data={
-            'type': EntityType.LORE, 'ID': lore_id, 'new_parent_id': new_parent_id
+            'entity_type': EntityType.LORE, 'ID': lore_id, 'new_parent_id': new_parent_id
         })
 
     def _show_context_menu(self, pos: QPoint) -> None:
@@ -232,7 +233,7 @@ class LoreOutlineManager(BaseOutlineManager):
             return
         
         bus.publish(Events.NEW_ITEM_REQUESTED, data={
-            'type': EntityType.LORE, 'title': title
+            'entity_type': EntityType.LORE, 'title': title
             })
 
     @receiver(Events.NEW_ITEM_CREATED)
@@ -246,14 +247,14 @@ class LoreOutlineManager(BaseOutlineManager):
 
         :rtype: None
         """
-        if data.get('type') != EntityType.LORE:
+        if data.get('entity_type') != EntityType.LORE:
             return
         
         id = data.get('ID')
         if not id:
             return
         
-        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'type': EntityType.LORE})
+        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': EntityType.LORE})
         
         new_item = self.find_lore_item_by_id(id)
         if new_item:
@@ -287,7 +288,7 @@ class LoreOutlineManager(BaseOutlineManager):
 
         if reply == QMessageBox.StandardButton.Yes:
             bus.publish(Events.ITEM_DELETE_REQUESTED, data={
-                'type': EntityType.LORE, 'ID': lore_id
+                'entity_type': EntityType.LORE, 'ID': lore_id
                 })
                 
     def check_save_and_delete(self, item: QTreeWidgetItem) -> None:

@@ -60,9 +60,9 @@ class ChapterOutlineManager(BaseOutlineManager):
         
         :rtype: None
         """
-        type = data.get('type')
+        entity_type = data.get('entity_type')
         chapter_data = data.get('chapters')
-        if type != EntityType.CHAPTER or not chapter_data: 
+        if entity_type != EntityType.CHAPTER or not chapter_data: 
             return
 
         self.tree_widget.clear()
@@ -121,11 +121,11 @@ class ChapterOutlineManager(BaseOutlineManager):
             if not new_title:
                 # If the title was cleared, revert the name (requires re-loading or smarter logic)
                 QMessageBox.warning(self, "Invalid Title", "Chapter title cannot be empty. Reverting.")
-                bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'type': EntityType.CHAPTER})
+                bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': EntityType.CHAPTER})
             return
         
         bus.publish(Events.OUTLINE_NAME_CHANGE, data={
-            'type': EntityType.CHAPTER, 'ID': chapter_id, 'new_title': new_title
+            'entity_type': EntityType.CHAPTER, 'ID': chapter_id, 'new_title': new_title
         })
 
     def _show_context_menu(self, pos: QPoint) -> None:
@@ -185,7 +185,7 @@ class ChapterOutlineManager(BaseOutlineManager):
             current_sort_order = self.tree_widget.topLevelItemCount() + 1
             
             bus.publish(Events.NEW_ITEM_REQUESTED, data={
-                'type': EntityType.CHAPTER, 'title': title, 'sort_order': current_sort_order
+                'entity_type': EntityType.CHAPTER, 'title': title, 'sort_order': current_sort_order
             })
 
     @receiver(Events.NEW_ITEM_CREATED)
@@ -199,14 +199,14 @@ class ChapterOutlineManager(BaseOutlineManager):
 
         :rtype: None
         """
-        if data.get('type') != EntityType.CHAPTER:
+        if data.get('entity_type') != EntityType.CHAPTER:
             return
         
         id = data.get('ID')
         if not id:
             return
         
-        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'type': EntityType.CHAPTER})
+        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': EntityType.CHAPTER})
         
         new_item = self.find_chapter_item_by_id(id)
         if new_item:
@@ -241,7 +241,7 @@ class ChapterOutlineManager(BaseOutlineManager):
         
         if reply == QMessageBox.StandardButton.Yes:
             bus.publish(Events.ITEM_DELETE_REQUESTED, data={
-                'type': EntityType.CHAPTER, 'ID': chapter_id
+                'entity_type': EntityType.CHAPTER, 'ID': chapter_id
             })
 
     def check_save_and_delete(self, item: QTreeWidgetItem) -> None:

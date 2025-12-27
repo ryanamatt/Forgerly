@@ -9,8 +9,12 @@ from typing import Any
 
 from .base_outline_manager import BaseOutlineManager
 from ...resources_rc import *
-from ...repository.note_repository import NoteRepository
+from ...utils.constants import EntityType
+from ...utils.events import Events
+from ...utils.event_bus import bus, receiver
 
+
+from ...repository.note_repository import NoteRepository
 from ...services.app_coordinator import AppCoordinator
 
 class NoteOutlineManager(BaseOutlineManager):
@@ -24,7 +28,7 @@ class NoteOutlineManager(BaseOutlineManager):
     NOTE_ID_ROLE = Qt.ItemDataRole.UserRole + 1
     """The int role used to store the database ID of a Note on an item."""
 
-    def __init__(self, project_title: str = "Narrative Forge Project", note_repository: NoteRepository | None = None, coordinator: AppCoordinator | None = None) -> None:
+    def __init__(self, project_title: str = "Narrative Forge Project") -> None:
         """
         Initializes the :py:class:`.NoteOutlineManager`.
         
@@ -35,53 +39,45 @@ class NoteOutlineManager(BaseOutlineManager):
 
         :rtype: None
         """
-        
-
-        self.note_repo = note_repository
-        self.coordinator = coordinator
 
         super().__init__(
             project_title=project_title,
             header_text=f"{project_title} Notes",
             id_role=self.NOTE_ID_ROLE,
             search_placeholder="Search Notes...",
-            is_nested_tree=True
+            is_nested_tree=True,
+            type=EntityType.NOTE
         )
+
+        bus.register_instance(self)
 
         # Connect nested-specific signals not covered by base
         self.tree_widget.item_hierarchy_updated.connect(self._handle_note_parent_update)
         self.tree_widget.item_parent_id_updated.connect(self._handle_note_parent_update)
 
-        # Load the initial structure
-        self.load_outline()
-
-    def load_outline(self, notes: list[dict] | None = None) -> None:
+    @receiver(Events.OUTLINE_DATA_LOADED)
+    def load_outline(self, data: dict) -> None:
         """
         Loads the Notes into the outline manager.
         If notes is provided (e.g., from a search), it loads those.
         Otherwise, it loads all notes from the repository.
 
-        :param notes: A list of Notes  to load,
+        :param data: A list of Notes  to load,
             default is None and will load all Notes. 
-        :type notes: list[dict], optional
+        :type data: dict
 
         :rtype: None
         """
-        if not self.note_repo:
+        if data.get('entity_type') != EntityType.NOTE:
             return
-        
-        # Fetch all notes if notes is none
-        if notes is None:
-            notes = self.note_repo.get_all_notes()
+        notes_data = data.get('notes')
 
         self.tree_widget.clear()
-
-        if not notes: return
 
         item_map: dict[int, QTreeWidgetItem] = {}
 
         # Create all items and populate the map
-        for note in notes:
+        for note in notes_data:
             item = QTreeWidgetItem([note['Title']])
             item.setData(0, self.id_role, note['ID'])
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsDragEnabled | Qt.ItemFlag.ItemIsDropEnabled)
@@ -89,7 +85,7 @@ class NoteOutlineManager(BaseOutlineManager):
             item_map[note['ID']] = item
 
         # Build Hierarchy
-        for note in notes:
+        for note in notes_data:
             note_id = note['ID']
             parent_id = note['Parent_Note_ID']
             child_item = item_map.get(note_id)
@@ -103,31 +99,47 @@ class NoteOutlineManager(BaseOutlineManager):
                 
         self.tree_widget.expandAll()
 
-    def _handle_search_input(self, query: str) -> None:
+    def _send_search_request(self, query: str) -> None:
         """
-        Handles text changes in the search bar. 
-        Performs SQL Like search or reverts to the full outline.
-
-        :param query: The search query to search for.
-        :type query: str
+        Filters the visible items in the outline based on the text entered in 
+        the search bar.
+        
+        The search is case-insensitive.
+        
+        :param text: The current text in the search input field.
+        :type text: :py:class:`str`
 
         :rtype: None
         """
         clean_query = query.strip()
+        if clean_query:
+            bus.publish(Events.OUTLINE_SEARCH_REQUESTED, data={
+                'entity_type': EntityType.NOTE, 'query': clean_query
+            })
+        else:
+            bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': EntityType.NOTE})
 
-        if clean_query and self.note_repo:
-            search_results = self.note_repo.search_notes(clean_query)
-            if search_results:
-                self.load_outline(search_results)
-            else:
-                self.tree_widget.clear()
-                no_result_item = QTreeWidgetItem(self.tree_widget, ["No search results found."])
-                no_result_item.setData(0, self.id_role, -1)
-                self.tree_widget.expandAll()
+    @receiver(Events.OUTLINE_SEARCH_RETURN)
+    def _handle_search_return(self, data: dict) -> None:
+        """
+        Docstring for _handle_search_return
         
-        # Search is cleared, revert to full outline
-        elif not clean_query:
-            self.load_outline()
+        :param data: Description
+        :type data: dict
+
+        :rtype: None
+        """
+        search_results = data.get('notes')
+        entity_type = data.get('entity_type')
+        if entity_type != EntityType.NOTE: return
+
+        if search_results:
+            self.load_outline(data)
+        else:
+            self.tree_widget.clear()
+            no_result_item = QTreeWidgetItem(self.tree_widget, ["No search results found."])
+            no_result_item.setData(0, self.id_role, -1)
+            self.tree_widget.expandAll()
 
     def _handle_item_renamed(self, item: QTreeWidgetItem, column: int) -> None:
         """
@@ -144,35 +156,18 @@ class NoteOutlineManager(BaseOutlineManager):
         """
         note_id = item.data(0, self.id_role)
         new_title = item.text(0).strip()
-        
-        # Handle missing repository or root item
-        if not self.note_repo:
-            QMessageBox.critical(self, "Internal Error", "NoteRepository is missing.")
+
+        # Prevent actions if this is the root item or if the title is empty
+        if note_id is None or not new_title:
+            if not new_title:
+                # If the title was cleared, revert the name (requires re-loading or smarter logic)
+                QMessageBox.warning(self, "Invalid Title", "Note title cannot be empty. Reverting.")
+                self.load_outline() 
             return
 
-        # 1. Prevent action if this is the root item (ID is None)
-        if note_id is None:
-            item.setText(0, "World Notes") # Revert name
-            return
-        
-        # 2. Handle empty title
-        if not new_title:
-            QMessageBox.warning(self, "Invalid Title", "Note title cannot be empty. Reverting.")
-            self.load_outline() 
-            return # Exit after handling invalid title
-        
-        # 3. Check if title actually changed
-        current_db_title = self.note_repo.get_note_title(note_id)
-        if current_db_title and current_db_title == new_title:
-            return
-        
-        # 4. Perform the database update
-        # Assuming your update method expects `id` and named parameters for updates
-        success = self.note_repo.update_note_title(note_id, new_title)
-
-        if not success:
-            QMessageBox.critical(self, f"Database Error", "Failed to update Note title in the database. ID: {note_id}")
-            self.load_outline()
+        bus.publish(Events.OUTLINE_NAME_CHANGE, data={
+            'entity_type': EntityType.NOTE, 'ID': note_id, 'new_title': new_title 
+        })
 
     def _handle_note_parent_update(self, note_id: int, new_parent_id: Any) -> None:
         """
@@ -183,10 +178,9 @@ class NoteOutlineManager(BaseOutlineManager):
         :param new_parent_id: The ID of the parent note.
         :type new_parent_id: int or None
         """
-        if not self.coordinator.update_note_parent_id(note_id, new_parent_id):
-            QMessageBox.critical(self, "Hierarchy Error", 
-                                 "Database update failed. Reverting note outline.")
-            self.load_outline()
+        bus.publish(Events.OUTLINE_PARENT_UPDATE, data={
+            'entity_type': EntityType.NOTE, 'ID': note_id, 'new_parent_id': new_parent_id
+        })
 
     def _show_context_menu(self, pos: QPoint) -> None:
         """
@@ -227,35 +221,52 @@ class NoteOutlineManager(BaseOutlineManager):
         
         :rtype: None
         """
-    
-        if not self.note_repo:
-            QMessageBox.critical(self, "Internal Error", "NoteRepository is missing.")
-            return
-        
-        # Check save status before creating a new note (which implicitly changes selection)
-        self.pre_item_change.emit()
-
+        bus.publish(Events.PRE_ITEM_CHANGE)
+            
         title, ok = QInputDialog.getText(
-            self,
-            "New Note",
-            "Enter the title for the new note",
+            self, 
+            "New Note", 
+            "Enter the Title for the new Note:",
             text="New Note"
         )
 
-        if ok and title:
-            current_sort_order = self.tree_widget.topLevelItemCount() + 1
-            
-            new_id = self.note_repo.create_note(title=title, sort_order=current_sort_order + 1)
-            
-            if new_id:
-                self.new_item_created.emit()
-                self.load_outline()
-                new_item = self.find_note_item_by_id(new_id)
-                if new_item:
-                    self.tree_widget.setCurrentItem(new_item)
-                    self._on_item_clicked(new_item, 0)
-        else:
-            QMessageBox.warning(self, "Database Error", "Failed to save the new Note to the database.")
+        if not ok:
+            return
+        
+        if not title:
+            QMessageBox.warning(self, "Invalid Title", "Title cannot be empty.")
+            return
+        
+        current_sort_order = self.tree_widget.topLevelItemCount() + 1
+        
+        bus.publish(Events.NEW_ITEM_REQUESTED, data={
+            'entity_type': EntityType.NOTE, 'title': title, 'sort_order': current_sort_order
+        })
+
+    @receiver(Events.NEW_ITEM_CREATED)
+    def _select_new_character(self, data: dict):
+        """
+        Selects the newly created note.
+        
+        :param data: A dictionary of the needed data containing {type: EntityType.NOTE,
+        ID: int}
+        :type data: dict
+
+        :rtype: None
+        """
+        if data.get('entity_type') != EntityType.NOTE:
+            return
+        
+        id = data.get('ID')
+        if not id:
+            return
+        
+        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': EntityType.NOTE})
+        
+        new_item = self.find_note_item_by_id(id)
+        if new_item:
+            self.tree_widget.setCurrentItem(new_item)
+            self._on_item_clicked(new_item, 0)
 
     def _delete_note(self, item: QTreeWidgetItem) -> None:
         """
@@ -273,10 +284,6 @@ class NoteOutlineManager(BaseOutlineManager):
         if note_id is None:
             return
         
-        if not self.note_repo:
-            QMessageBox.critical(self, "Internal Error", "NoteRepository is missing.")
-            return
-        
         # Confirmation Dialog
         reply = QMessageBox.question(
             self, 
@@ -287,8 +294,9 @@ class NoteOutlineManager(BaseOutlineManager):
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            if self.note_repo.delete_note(note_id=note_id):
-                self.load_outline()
+            bus.publish(Events.ITEM_DELETE_REQUESTED, {
+                'entity_type': EntityType.NOTE, 'ID': note_id
+            })
 
     def check_save_and_delete(self, item: QTreeWidgetItem) -> None:
         """
@@ -300,7 +308,7 @@ class NoteOutlineManager(BaseOutlineManager):
 
         :rtype: None
         """
-        self.pre_item_change.emit()
+        bus.publish(Events.PRE_ITEM_CHANGE)
         self._delete_note(item)
 
     def find_note_item_by_id(self, note_id: int) -> QTreeWidgetItem | None:

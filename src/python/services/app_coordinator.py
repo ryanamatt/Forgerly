@@ -142,19 +142,25 @@ class AppCoordinator(QObject):
 
         :rtype: None
         """
-        type = data.get('type')
+        entity_type = data.get('entity_type')
         id = data.get('ID')
         title = data.get('new_title')
 
-        if not type or not id or not title:
+        if not entity_type or not id or not title:
             return
         
-        match type:
+        match entity_type:
             case EntityType.CHAPTER:
                 self.chapter_repo.update_chapter_title(id, title)
 
             case EntityType.LORE:
                 self.lore_repo.update_lore_entry_title(id, title)
+
+            case EntityType.CHARACTER:
+                self.character_repo.update_character_name(id, title)
+
+            case EntityType.NOTE:
+                self.note_repo.update_note_title(id, title)
 
         bus.publish(Events.OUTLINE_LOAD_REQUESTED, data=data)
 
@@ -242,7 +248,7 @@ class AppCoordinator(QObject):
         """
         content_success, tag_success = False, False
 
-        type = data.pop('type')
+        entity_type = data.pop('entity_type')
         id = data.pop('id')
         tags = data.pop('tags')
 
@@ -264,7 +270,7 @@ class AppCoordinator(QObject):
                 tag_success = self.tag_repo.set_tags_for_note(id, tags)
 
         if content_success and tag_success:
-            bus.publish(Events.MARK_SAVED, data={'type': type})
+            bus.publish(Events.MARK_SAVED, data={'entity_type': entity_type})
             return True
         
         return False
@@ -351,20 +357,28 @@ class AppCoordinator(QObject):
 
         :rtype: None
         """
-        type = data.get('type')
+        entity_type = data.get('entity_type')
 
         return_data = {}
 
-        match type:
+        match entity_type:
             case EntityType.CHAPTER:
                 chapters = self.chapter_repo.get_all_chapters()
-                return_data = {'type': type, 'chapters': chapters}
+                return_data = {'entity_type': entity_type, 'chapters': chapters}
 
             case EntityType.LORE:
                 lore_entries = self.lore_repo.get_all_lore_entries()
-                return_data = {'type': type, 'lore_entries': lore_entries}
+                return_data = {'entity_type': entity_type, 'lore_entries': lore_entries}
 
-        bus.publish(Events.OUTLINE_DATA_LOADED, data=return_data)
+            case EntityType.CHARACTER:
+                characters = self.character_repo.get_all_characters()
+                return_data = {'entity_type': entity_type, 'characters': characters}
+
+            case EntityType.NOTE:
+                notes = self.note_repo.get_all_notes()
+                return_data = {'entity_type': entity_type, 'notes': notes}
+
+        bus.publish(Events.OUTLINE_DATA_LOADED, return_data)
 
     def load_item(self, item_id: int, view: ViewType) -> None:
         """
@@ -420,13 +434,13 @@ class AppCoordinator(QObject):
         :param data: Description
         :type data: dict
         """
-        type = data.get('type')
+        entity_type = data.get('entity_type')
         item_id = data.get('ID')
         self.current_item_id = item_id
 
-        return_data = {'type': type}
+        return_data = {'entity_type': entity_type}
 
-        if type == EntityType.CHAPTER:
+        if entity_type == EntityType.CHAPTER:
             content = self.chapter_repo.get_chapter_content(chapter_id=item_id)
             if content is None: content = ""
             tags_data = self.tag_repo.get_tags_for_chapter(chapter_id=item_id)
@@ -435,7 +449,7 @@ class AppCoordinator(QObject):
             return_data['content'] = content
             return_data['tags'] = tag_names
 
-        elif type == EntityType.LORE:
+        elif entity_type == EntityType.LORE:
             lore = self.lore_repo.get_lore_entry_details(lore_id=item_id)
             tags_data = self.tag_repo.get_tags_for_lore_entry(item_id)
             tag_names = [name for _, name in tags_data] if tags_data else []
@@ -443,10 +457,10 @@ class AppCoordinator(QObject):
             return_data |= lore
             return_data['tags'] = tag_names
 
-        elif type == EntityType.CHARACTER:
-            return_data = self.character_repo.get_character_details(char_id=item_id)
+        elif entity_type == EntityType.CHARACTER:
+            return_data |= self.character_repo.get_character_details(char_id=item_id)
 
-        elif type == EntityType.NOTE:
+        elif entity_type == EntityType.NOTE:
             content = self.note_repo.get_note_content(note_id=item_id)
             tags_data = self.tag_repo.get_tags_for_note(item_id)
             tag_names = [name for _, name in tags_data] if tags_data else []
@@ -469,18 +483,24 @@ class AppCoordinator(QObject):
 
         :rtype: None
         """
-        type = data.get('type')
-        if not type:
+        entity_type = data.get('entity_type')
+        if not entity_type:
             return
         
-        match type:
+        match entity_type:
             case EntityType.CHAPTER:
                 id = self.chapter_repo.create_chapter(data.get('title'), data.get('sort_order'))
 
             case EntityType.LORE:
                 id = self.lore_repo.create_lore_entry(data.get('title'))
 
-        bus.publish(Events.NEW_ITEM_CREATED, data={'type': type, 'ID': id})
+            case EntityType.CHARACTER:
+                id = self.character_repo.create_character(data.get('title'))
+
+            case EntityType.NOTE:
+                id = self.note_repo.create_note(data.get('title'), data.get('sort_order'))
+
+        bus.publish(Events.NEW_ITEM_CREATED, data={'entity_type': entity_type, 'ID': id})
 
     # --- Deleting Items ---
 
@@ -495,19 +515,25 @@ class AppCoordinator(QObject):
 
         :rtype: None
         """
-        type = data.get('type')
+        entity_type = data.get('entity_type')
         id = data.get('ID')
 
         check = self.check_and_save_dirty_bus(data=data)
         if check:
-            match type:
+            match entity_type:
                 case EntityType.CHAPTER:
                     self.chapter_repo.delete_chapter(id)
 
                 case EntityType.LORE:
                     self.lore_repo.delete_lore_entry(id)
 
-        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'type': type})
+                case EntityType.CHARACTER:
+                    self.character_repo.delete_character(id)
+
+                case EntityType.NOTE:
+                    self.note_repo.delete_note(id)
+
+        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': entity_type})
 
     # --- Searching Items ---
 
@@ -519,16 +545,27 @@ class AppCoordinator(QObject):
         :param data: Description
         :type data: dict
         """
-        type = data.get('type', '')
+        entity_type = data.get('entity_type', '')
         query = data.get('query')
-        results = {}
 
-        match type:
+        results = {}
+        results_name = ''
+
+        match entity_type:
             case EntityType.LORE:
                 results = self.lore_repo.search_lore_entries(query)
+                results_name = 'lore_entries'
+
+            case EntityType.CHARACTER:
+                results = self.character_repo.search_characters(query)
+                results_name = 'characters'
+
+            case EntityType.NOTE:
+                results = self.note_repo.search_notes(query)
+                results_name = 'notes'
 
         bus.publish(Events.OUTLINE_SEARCH_RETURN, data={
-            'type': type, 'lore_entries': results
+            'entity_type': entity_type, results_name: results
         })
 
     # --- Updating Parent ID / Reordering ---
@@ -544,20 +581,20 @@ class AppCoordinator(QObject):
 
         :rtype: None
         """
-        type = data.get('type')
+        entity_type = data.get('entity_type')
         id = data.get('ID')
         new_parent_id = data.get('new_parent_id')
-        if not type or not id or not new_parent_id:
+        if not entity_type or not id:
             return
-        
-        if new_parent_id <= 0: 
-            new_parent_id = None
 
-        match type:
+        match entity_type:
             case EntityType.LORE:
                 self.lore_repo.update_lore_entry_parent_id(lore_id=id, new_parent_id=new_parent_id)
 
-        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'type': type})
+            case EntityType.NOTE:
+                self.note_repo.update_note_parent_id(note_id=id, new_parent_id=new_parent_id)
+
+        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': entity_type})
 
     def update_lore_parent_id(self, lore_id: int, new_parent_id: int | None) -> bool:
         """
@@ -575,6 +612,7 @@ class AppCoordinator(QObject):
             pass
         return result
     
+    @receiver(Events.LORE_CATEGORIES_REFRESH)
     def refresh_lore_categories(self) -> None:
         """
         Fetches unique categories and notifies the Lore Editor.
@@ -583,6 +621,7 @@ class AppCoordinator(QObject):
         """
         categories = self.lore_repo.get_unique_categories()
         self.lore_categories_changed.emit(categories)
+        bus.publish(Events.LORE_CATEGORIES_CHANGED, data={'categories': categories})
 
     def update_note_parent_id(self, note_id: int, new_parent_id: int | None) -> bool:
         """
@@ -805,7 +844,7 @@ class AppCoordinator(QObject):
             char_data = self.character_repo.get_content_by_name(name=name)
             if char_data and char_data.get('Description'): # Check if match exists
                 bus.publish(Events.LOOKUP_RESULT, data={
-                    'type': 'Character',
+                    'entity_type': EntityType.CHARACTER,
                     'title': char_data.get('Name', name),
                     'content': char_data.get('Description', '')
                 })
@@ -816,7 +855,7 @@ class AppCoordinator(QObject):
             lore_data = self.lore_repo.get_content_by_title(title=name)
             if lore_data and lore_data.get('Content'):
                 bus.publish(Events.LOOKUP_RESULT, data={
-                    'type': 'Lore',
+                    'entity_type': EntityType.LORE,
                     'title': lore_data.get('Title', name),
                     'content': lore_data.get('Content', '')
                 })

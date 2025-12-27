@@ -145,7 +145,7 @@ class BaseOutlineManager(QWidget):
             self.pre_item_change.emit()
             bus.publish(Events.PRE_ITEM_CHANGE)
             bus.publish(Events.ITEM_SELECTED, data={
-                'type': self.type, 'ID': item_id
+                'entity_type': self.type, 'ID': item_id
             })
             self.item_selected.emit(item_id)
 

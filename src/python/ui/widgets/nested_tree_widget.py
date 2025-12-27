@@ -51,41 +51,107 @@ class NestedTreeWidget(QTreeWidget):
 
         :rtype: None
         """
-        # 1. Capture the drop position details BEFORE super().dropEvent()
+        # 1. Capture the drop position details BEFORE the visual move
         pos = event.position().toPoint()
         target_item = self.itemAt(pos)
         indicator = self.dropIndicatorPosition()
+        
+        # Identify which item is being dragged
+        dragged_item = self.currentItem()
+        if not dragged_item:
+            return
+
+        # Store the dragged item's ID before the move
+        dragged_item_id = dragged_item.data(0, self.id_role)
+        if dragged_item_id is None or dragged_item_id <= 0:
+            return
+
+        # Determine the target parent BEFORE the move based on drop indicator
+        target_parent_id = None
+        if target_item:
+            if indicator == QAbstractItemView.DropIndicatorPosition.OnItem:
+                # Dropping ON an item -> that item becomes the parent
+                target_parent_id = target_item.data(0, self.id_role)
+                logger.debug(f"Drop ON item {target_parent_id} (nesting)")
+            else:
+                # Dropping ABOVE or BELOW an item -> sibling relationship
+                parent = target_item.parent()
+                if parent:
+                    target_parent_id = parent.data(0, self.id_role)
+                    logger.debug(f"Drop BESIDE item, parent is {target_parent_id}")
+                else:
+                    target_parent_id = None
+                    logger.debug(f"Drop BESIDE root item, parent is None")
+        else:
+            # Dropped on empty space -> root level
+            target_parent_id = None
+            logger.debug("Drop on empty space, parent is None")
+
+        # Normalize parent ID (0 or invalid IDs become None)
+        if target_parent_id == 0:
+            target_parent_id = None
 
         # 2. Perform the visual move
         super().dropEvent(event)
 
-        dropped_item = self.currentItem()
-        if not dropped_item:
-            return
-
-        # 3. Determine the correct Parent based on where it was dropped
-        # If dropped ON an item, that item is the parent.
-        # If dropped ABOVE/BELOW, the parent is the target_item's parent.
-        actual_parent = None
-        if target_item:
-            if indicator == QAbstractItemView.DropIndicatorPosition.OnItem:
-                actual_parent = target_item
-            else:
-                actual_parent = target_item.parent()
-
-        # 4. Extract the ID from the determined parent
-        if actual_parent:
-            new_parent_id = actual_parent.data(0, self.id_role)
-            if new_parent_id == 0 or new_parent_id is None:
-                new_parent_id = None
-        else:
-            new_parent_id = None
+        # 3. Update the dropped item's parent in the database
+        logger.info(f"Updating item {dragged_item_id} to parent {target_parent_id}")
+        self.item_parent_id_updated.emit(dragged_item_id, target_parent_id)
         
-        # 5. Update siblings for sort order
-        iteration_root = actual_parent or self.invisibleRootItem()
-        for i in range(iteration_root.childCount()):
-            child = iteration_root.child(i)
-            child_id = child.data(0, self.id_role)
+        # 4. Update sort order for all siblings at the new level
+        # Determine which parent to iterate over for sort order updates
+        if target_parent_id is None:
+            iteration_root = self.invisibleRootItem()
+        else:
+            # Find the parent item by ID
+            iteration_root = self._find_item_by_id(target_parent_id)
+            if iteration_root is None:
+                # Fallback to invisible root if parent not found
+                iteration_root = self.invisibleRootItem()
+        
+        # Safely iterate through children to update sort order
+        try:
+            child_count = iteration_root.childCount()
+            logger.debug(f"Updating sort order for {child_count} children under parent {target_parent_id}")
             
-            # This will now correctly report the parent ID instead of None
-            self.item_hierarchy_updated.emit(child_id, new_parent_id)
+            for i in range(child_count):
+                try:
+                    child = iteration_root.child(i)
+                    if child is None:
+                        continue
+                        
+                    child_id = child.data(0, self.id_role)
+                    if child_id is not None and child_id > 0:
+                        # Emit hierarchy update for sort order
+                        self.item_hierarchy_updated.emit(child_id, target_parent_id)
+                        
+                except (RuntimeError, AttributeError) as e:
+                    logger.warning(f"Error accessing child at index {i}: {e}")
+                    continue
+                    
+        except (RuntimeError, AttributeError) as e:
+            logger.error(f"Error iterating children: {e}")
+            # Parent update already succeeded, so this is not critical
+
+    def _find_item_by_id(self, item_id: int) -> QTreeWidgetItem | None:
+        """
+        Helper method to find a tree item by its ID.
+        
+        :param item_id: The ID to search for.
+        :type item_id: int
+        
+        :returns: The matching QTreeWidgetItem or None.
+        :rtype: QTreeWidgetItem | None
+        """
+        from PySide6.QtWidgets import QTreeWidgetItemIterator
+        
+        iterator = QTreeWidgetItemIterator(self)
+        while iterator.value():
+            item = iterator.value()
+            try:
+                if item.data(0, self.id_role) == item_id:
+                    return item
+            except RuntimeError:
+                pass
+            iterator += 1
+        return None

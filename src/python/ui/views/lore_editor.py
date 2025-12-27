@@ -9,9 +9,9 @@ from typing import Any
 
 from .base_editor import BaseEditor
 from ...ui.widgets.basic_text_editor import BasicTextEditor
-from ...utils.constants import ViewType
+from ...utils.constants import ViewType, EntityType
 from ...utils.events import Events
-from ...utils.event_bus import bus
+from ...utils.event_bus import bus, receiver
 
 class LoreEditor(BaseEditor):
     """
@@ -139,7 +139,8 @@ class LoreEditor(BaseEditor):
         self.mark_saved()
         self.set_enabled(True)
 
-    def set_available_categories(self, categories: list[str]) -> None:
+    @receiver(Events.LORE_CATEGORIES_CHANGED)
+    def set_available_categories(self, data: dict) -> None:
         """
         Updates the category combo box with existing categories from the DB.
 
@@ -148,6 +149,9 @@ class LoreEditor(BaseEditor):
 
         :rtype: None
         """
+        categories = data.get('categories')
+        if not categories: return
+
         current_text = self.category_combo.currentText()
         self.category_combo.blockSignals(True)
         self.category_combo.clear()
@@ -246,6 +250,7 @@ class LoreEditor(BaseEditor):
             'tags': self.tag_manager.get_tags()
         }
     
+    @receiver(Events.DATA_LOADED)
     def load_entity(self, data: dict) -> None:
         """
         Loads all the information into the editor
@@ -255,6 +260,9 @@ class LoreEditor(BaseEditor):
 
         :rtype: None
         """
+        if data.get('entity_type') != EntityType.LORE:
+            return
+
         id, title, content = data['ID'], data['Title'], data['Content']
         category, tags = data['Category'], data['tags']
 

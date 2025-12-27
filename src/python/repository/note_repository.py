@@ -298,7 +298,6 @@ class NoteRepository:
         :returns: Returns a list of the Notes search results.
         :rtype: list[dict]
         """
-
         clean_query = user_query.strip()
         if not clean_query:
             return None
@@ -307,9 +306,9 @@ class NoteRepository:
         like_pattern = f'%{clean_query}%'
 
         query = """
-        SELECT DISTINCT N.ID, N.Title
+        SELECT DISTINCT N.ID, N.Title, N.Parent_Note_ID
         FROM Notes AS N
-        LEFT JOIN Note_Tags AS NT ON B.ID = NT.Lore_ID
+        LEFT JOIN Note_Tags AS NT ON N.ID = NT.Note_ID
         LEFT JOIN Tags AS T ON NT.Tag_ID = T.ID
         WHERE
             N.Title LIKE ? OR
