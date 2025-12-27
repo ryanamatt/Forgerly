@@ -9,6 +9,10 @@ from PySide6.QtGui import QIcon
 from .base_outline_manager import BaseOutlineManager
 from ...resources_rc import *
 from ...repository.chapter_repository import ChapterRepository
+from ...utils.constants import ViewType
+from ...utils.constants import EntityType
+from ...utils.events import Events
+from ...utils.event_bus import bus, receiver
 
 class ChapterOutlineManager(BaseOutlineManager):
     """
@@ -31,6 +35,7 @@ class ChapterOutlineManager(BaseOutlineManager):
         :param chapter_repository: The repository object for chapter CRUD operations.
         :type chapter_repository: :py:class:`.ChapterRepository` or :py:obj:`None`, optional
         """
+
         self.project_title = project_title
         self.chapter_repo = chapter_repository 
 
@@ -42,12 +47,12 @@ class ChapterOutlineManager(BaseOutlineManager):
             is_nested_tree=False
         )
 
+        bus.register_instance(self)
+
         self.tree_widget.order_changed.connect(self._update_sort_orders)
 
-        # Load the initial structure
-        self.load_outline()
-
-    def load_outline(self) -> None:
+    @receiver(Events.OUTLINE_DATA_LOADED)
+    def load_outline(self, data: dict) -> None:
         """
         Loads the outline structure by fetching all chapters from the database 
         and populating the :py:class:`~PyQt6.QtWidgets.QTreeWidget`.
@@ -56,13 +61,14 @@ class ChapterOutlineManager(BaseOutlineManager):
         
         :rtype: None
         """
-        if not self.chapter_repo:
+        type = data.get('type')
+        chapter_data = data.get('chapters')
+        if type != EntityType.CHAPTER or not chapter_data: 
             return
 
         self.tree_widget.clear()
         self.tree_widget.blockSignals(True)
 
-        chapter_data = self.chapter_repo.get_all_chapters()
         chapter_icon = QIcon(":icons/chapter.svg")
 
         for chapter in chapter_data:
@@ -82,9 +88,6 @@ class ChapterOutlineManager(BaseOutlineManager):
         
         :rtype: None
         """
-        if not self.chapter_repo:
-            return
-
         chapter_updates: list[tuple[int, int]] = []
         
         for i in range(self.tree_widget.topLevelItemCount()):
@@ -94,11 +97,9 @@ class ChapterOutlineManager(BaseOutlineManager):
                 # 1-based index for Sort_Order
                 chapter_updates.append((chapter_id, i + 1))
 
-        if chapter_updates:
-            success = self.chapter_repo.reorder_chapters(chapter_updates)
-            if not success:
-                QMessageBox.critical(self, "Reordering Error", "Database update failed.")
-                self.load_outline()
+        bus.publish(Events.OUTLINE_REORDER, data={
+            'editor': self, 'view': ViewType.CHAPTER_EDITOR, 'updates': chapter_updates
+        })
 
     def _handle_item_renamed(self, item: QTreeWidgetItem, column: int) -> None:
         """
@@ -116,30 +117,17 @@ class ChapterOutlineManager(BaseOutlineManager):
         chapter_id = item.data(0, self.id_role)
         new_title = item.text(0).strip()
         
-        if not self.chapter_repo:
-            QMessageBox.critical(self, "Internal Error", "ChapterRepository is missing.")
-            return
-
         # Prevent actions if this is the root item or if the title is empty
         if chapter_id is None or not new_title:
             if not new_title:
                 # If the title was cleared, revert the name (requires re-loading or smarter logic)
                 QMessageBox.warning(self, "Invalid Title", "Chapter title cannot be empty. Reverting.")
-                self.load_outline() 
+                bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'type': EntityType.CHAPTER})
             return
-
-        # Check if the title actually changed
-        current_db_title = self.chapter_repo.get_chapter_title(chapter_id) 
-        if current_db_title and current_db_title == new_title:
-            return
-
-        # Update the database
-        success = self.chapter_repo.update_chapter_title(chapter_id, new_title)
         
-        if not success:
-            QMessageBox.critical(self, "Database Error", "Failed to update chapter title in the database.")
-            # Revert the item name visually if the DB update failed
-            self.load_outline()
+        bus.publish(Events.OUTLINE_NAME_CHANGE, data={
+            'type': EntityType.CHAPTER, 'ID': chapter_id, 'new_title': new_title
+        })
 
     def _show_context_menu(self, pos: QPoint) -> None:
         """
@@ -184,13 +172,7 @@ class ChapterOutlineManager(BaseOutlineManager):
         
         :rtype: None
         """
-        
-        if not self.chapter_repo:
-            QMessageBox.critical(self, "Internal Error", "ChapterRepository is missing.")
-            return
-
-        # Check save status before creating a new chapter (which implicitly changes selection)
-        self.pre_item_change.emit() 
+        bus.publish(Events.PRE_ITEM_CHANGE)
         
         title, ok = QInputDialog.getText(
             self, 
@@ -203,22 +185,34 @@ class ChapterOutlineManager(BaseOutlineManager):
             # Determine the sort order for the new chapter (place it last at the root level)
             current_sort_order = self.tree_widget.topLevelItemCount() + 1
             
-            new_id = self.chapter_repo.create_chapter(
-                title=title, 
-                sort_order=current_sort_order + 1,
-            )
+            bus.publish(Events.NEW_CHAPTER_REQUESTED, data={
+                'type': EntityType.CHAPTER, 'title': title, 'sort_order': current_sort_order
+            })
 
-            if new_id:
-                self.new_item_created.emit()
-                # Reload the outline to display the new chapter
-                self.load_outline()
-                # Automatically select the new chapter
-                new_item = self.find_chapter_item_by_id(new_id)
-                if new_item:
-                     self.tree_widget.setCurrentItem(new_item)
-                     self._on_item_clicked(new_item, 0) 
-            else:
-                QMessageBox.warning(self, "Database Error", "Failed to save the new chapter to the database.")
+    @receiver(Events.NEW_ITEM_CREATED)
+    def _select_new_chapter(self, data: dict) -> None:
+        """
+        Selects the newly created chapter.
+        
+        :param data: A dictionary of the needed data containing {type: EntityType.Chapter,
+        ID: int}
+        :type data: dict
+        """
+        if data.get('type') != EntityType.CHAPTER:
+            return
+        
+        id = data.get('ID')
+        if not id:
+            return
+        
+        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'type': EntityType.CHAPTER})
+        
+        new_item = self.find_chapter_item_by_id(id)
+        if new_item:
+            self.tree_widget.setCurrentItem(new_item)
+            self._on_item_clicked(new_item, 0)
+        else:
+            QMessageBox.warning(self, "Database Error", "Failed to save the new chapter to the database.")
 
     def _delete_chapter(self, item: QTreeWidgetItem) -> None:
         """
@@ -250,10 +244,9 @@ class ChapterOutlineManager(BaseOutlineManager):
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            if self.chapter_repo.delete_chapter(chapter_id):
-                self.load_outline()
-            else:
-                QMessageBox.critical(self, "Deletion Error", "A database error occurred while trying to delete the chapter.")
+            bus.publish(Events.ITEM_DELETE_REQUESTED, data={
+                'type': EntityType.CHAPTER, 'ID': chapter_id
+            })
 
     def check_save_and_delete(self, item: QTreeWidgetItem) -> None:
         """
@@ -265,7 +258,7 @@ class ChapterOutlineManager(BaseOutlineManager):
 
         :rtype: None
         """
-        self.pre_item_change.emit()
+        bus.publish(Events.PRE_ITEM_CHANGE)
         self._delete_chapter(item)
 
     def find_chapter_item_by_id(self, chapter_id: int) -> QTreeWidgetItem | None:

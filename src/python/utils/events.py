@@ -21,9 +21,13 @@ class Events(str, Enum):
     LOAD_REQUESTED = "load.requested"
     CHECK_SAVE = "save.check"
     DATA_LOADED = "data.loaded"
+    MARK_SAVED = "save.mark_saved"
 
     # OutlineManager Name Changes
     OUTLINE_NAME_CHANGE = "outline.name_change"
+    OUTLINE_LOAD_REQUESTED = "outline.load_requested"
+    OUTLINE_DATA_LOADED = "outline.data_loaded"
+    OUTLINE_REORDER = "outline.reorder"
     
     # Item Creation Events
     NEW_CHAPTER_REQUESTED = "chapter.new_requested"
@@ -31,6 +35,9 @@ class Events(str, Enum):
     NEW_CHARACTER_REQUESTED = "character.new_requested"
     NEW_NOTE_REQUESTED = "note.new_requested"
     NEW_ITEM_CREATED = "item.new_created"
+
+    # Item Deletion
+    ITEM_DELETE_REQUESTED = "item.delete_requested"
     
     # Item Selection Events
     ITEM_SELECTED = "item.selected"

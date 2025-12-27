@@ -22,10 +22,10 @@ class BasicTextEditor(QWidget):
     public access functions to get the text contained in the editor.
     """
     # Signal to notify listeners (like ChapterEditor/LoreEditor) of content changes
-    content_changed = Signal()
-    """
-    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the content of the editor changes.
-    """
+    # content_changed = Signal()
+    # """
+    # :py:class:`~PyQt6.QtCore.Signal`: Emitted when the content of the editor changes.
+    # """
 
     selection_changed = Signal()
     """
@@ -76,7 +76,7 @@ class BasicTextEditor(QWidget):
             self._is_dirty = True
 
             # KEEP EMITTING SIGNAL TILL EVERYTHING IS IN EVENT BUS
-            self.content_changed.emit()
+            # self.content_changed.emit()
 
             bus.publish(Events.CONTENT_CHANGED, data={
                 'editor': self,

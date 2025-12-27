@@ -24,10 +24,6 @@ class LoreEditor(BaseEditor):
     with repositories directly.
     """
 
-    # State tracking for unsaved changes
-    _initial_title = ""
-    _initial_category = ""
-
     current_lore_id: int | None = None
     """The database ID of the Lore Entry currently loaded in the editor, or :py:obj:`None`."""
     
@@ -204,9 +200,6 @@ class LoreEditor(BaseEditor):
         # # self.text_editor and self.tag_manager
         super().mark_saved()
 
-        self._initial_title = self.title_input.text().strip()
-        self._initial_category = self.category_combo.currentText().strip()
-
         self._dirty = False
         
         
@@ -271,9 +264,6 @@ class LoreEditor(BaseEditor):
         self.text_editor.set_html_content(content)
         self.category_combo.setCurrentText(category)
         self.tag_manager.set_tags(tags)
-
-        self._initial_title = title
-        self._initial_category = category
 
         self.mark_saved()
         self.set_enabled(True)
