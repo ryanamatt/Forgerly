@@ -356,6 +356,8 @@ class CharacterEditor(BaseEditor):
         status, age, dob = data['Status'], data['Age'], data['Date_of_Birth']
         occupation, physical = data['Occupation_School'], data['Physical_Description']
 
+        self.current_char_id = id
+
         # Update UI Components
         self.name_input.setText(name)
         self.description_editor.set_html_content(description)

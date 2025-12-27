@@ -111,7 +111,7 @@ class AppCoordinator(QObject):
         if self.current_item_id == 0 or not view:
             return True # No item loeaded
         
-        if not editor or not editor.is_dirty():
+        if not editor.is_dirty():
             return True # Editor is clean
         
         save_reply = QMessageBox.question(

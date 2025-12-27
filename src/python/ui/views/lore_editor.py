@@ -193,7 +193,7 @@ class LoreEditor(BaseEditor):
         # self.text_editor and self.tag_manager
         if super().is_dirty():
             return True
-
+        
         title_changed = self.title_input.text().strip() != self._initial_title
         category_changed = self.category_combo.currentText().strip() != self._initial_category
         
@@ -269,6 +269,8 @@ class LoreEditor(BaseEditor):
         """
         id, title, content = data['ID'], data['Title'], data['Content']
         category, tags = data['Category'], data['tags']
+
+        self.current_lore_id = id
 
         self.title_input.setText(title)
         self.text_editor.set_html_content(content)

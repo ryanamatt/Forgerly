@@ -61,7 +61,7 @@ class BaseEditor(QWidget):
         :rtype: bool
         """
         text_dirty =  self.text_editor.is_dirty() or self.tag_manager.is_dirty()
-        return text_dirty or self.tag_manager.is_dirty()
+        return text_dirty
     
     def mark_saved(self) -> None:
         """

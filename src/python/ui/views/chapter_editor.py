@@ -98,24 +98,27 @@ class ChapterEditor(BaseEditor):
         # Add the splitter to the main layout
         main_layout.addWidget(editor_splitter)
 
-        # --- Signal Connections ---
-        self.text_editor.content_changed.connect(self._update_stats_display)
-        self.text_editor.selection_changed.connect(self._update_stats_display)
-
         self.setEnabled(False)
 
-    def _update_stats_display(self) -> None:
+    @receiver(Events.CONTENT_CHANGED)
+    @receiver(Events.SELECTION_CHANGED)
+    def _update_stats_display(self, data: dict) -> None:
         """
         Calculates and updates the real-time statistics labels based on 
         the selected text or the full content if no text is selected.
 
-        This method is connected to the :py:attr:`~.RichTextEditor.content_changed`
-        and :py:attr:`~.RichTextEditor.selection_changed` signals.
+        :param data: The data emiited by the Event in the EventBus.
+        :type data: dict
 
         :rtype: None
         """
-        # 1. Check for selected text first
-        selected_text = self.text_editor.get_selected_text()
+        editor = data.get('editor')
+        if editor != self.text_editor:
+            return # Ensure we are getting our own Text Editor
+
+
+        # Check for selected text first
+        selected_text = data.get('selected_text')
         
         if selected_text:
             # Stats for SELECTED text
@@ -126,12 +129,12 @@ class ChapterEditor(BaseEditor):
             source_text = self.text_editor.get_plain_text()
             label_prefix = "Total"
 
-        # 2. Calculate statistics
+        # Calculate statistics
         word_count = calculate_word_count(source_text)
         char_count_with_spaces = calculate_character_count(source_text, include_spaces=True)
         read_time_str = calculate_read_time(word_count, self.wpm)
 
-        # 3. Update UI Labels with dynamic prefix
+        # Update UI Labels with dynamic prefix
         self.word_count_label.setText(f"{label_prefix} Words: {word_count:,}")
         self.char_count_label.setText(f"{label_prefix} Chars: {char_count_with_spaces:,}")
         self.read_time_label.setText(f"Read Time: {read_time_str} (WPM: {self.wpm})")

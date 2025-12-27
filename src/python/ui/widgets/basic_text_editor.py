@@ -60,9 +60,7 @@ class BasicTextEditor(QWidget):
 
         # Connect signals for dirty flag and content change notification
         self.editor.textChanged.connect(self._set_dirty)
-        self.editor.textChanged.connect(self.content_changed.emit)
-        self.editor.selectionChanged.connect(self.selection_changed.emit)
-        self.editor.selectionChanged.connect(self._log_selection_change)
+        self.editor.selectionChanged.connect(self._on_selection_changed)
 
     # --- Dirty Flag Management ---
 
@@ -74,9 +72,11 @@ class BasicTextEditor(QWidget):
         """
         if not self._is_dirty:
             self._is_dirty = True
+
+            # KEEP EMITTING SIGNAL TILL EVERYTHING IS IN EVENT BUS
             self.content_changed.emit()
 
-            bus.publish(Events.SAVE_REQUESTED, data={
+            bus.publish(Events.CONTENT_CHANGED, data={
                 'editor': self,
                 'is_dirty': True
             })
@@ -168,17 +168,21 @@ class BasicTextEditor(QWidget):
         logger.debug(f"Retrieving Selected Text content. Length: {len(selected_text)} characters.")
         return selected_text
 
-    # --- Loggers ---
-
-    def _log_selection_change(self) -> None:
+    def _on_selection_changed(self) -> None:
         """
-        Helper to log selection changes before emitting the public signal.
+        Handles selection changes by logging and publishing to the event bus.
         
         :rttype: None
         """
-        # Check if the cursor is active/selected before emitting/logging
         if self.editor.textCursor().hasSelection():
             logger.debug("Text selection changed (active selection).")
         else:
             logger.debug("Cursor position changed (no active selection).")
+
+        self.selection_changed.emit()
+
+        bus.publish(Events.SELECTION_CHANGED, data={
+            'editor': self,
+            'selected_text': self.get_selected_text(),
+        })
         
