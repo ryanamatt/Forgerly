@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt, Signal, QPoint
 
 from ..widgets.nested_tree_widget import NestedTreeWidget
 from ..widgets.reordering_tree_widget import ReorderingTreeWidget
+from ...utils.constants import EntityType
 from ...utils.events import Events
 from ...utils.event_bus import bus, receiver
 
@@ -37,7 +38,7 @@ class BaseOutlineManager(QWidget):
 
     def __init__(self, project_title: str, header_text: str, id_role: int,
                  search_placeholder: str = "Search...", is_nested_tree: bool = False,
-                 parent = None) -> None:
+                 type: EntityType = None, parent = None) -> None:
         """
         Initializes the BaseOutlineManager
         
@@ -61,6 +62,7 @@ class BaseOutlineManager(QWidget):
 
         bus.register_instance(self)
 
+        self.type = type
         self.project_title = project_title
         self.id_role = id_role
 
@@ -80,7 +82,7 @@ class BaseOutlineManager(QWidget):
         # Search Bar
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText(search_placeholder)
-        self.search_input.textChanged.connect(self._handle_search_input)
+        self.search_input.textChanged.connect(self._send_search_request)
 
         # Tree Widget
         if is_nested_tree:
@@ -141,6 +143,10 @@ class BaseOutlineManager(QWidget):
         item_id = item.data(0, self.id_role)
         if isinstance(item_id, int) and item_id > 0:
             self.pre_item_change.emit()
+            bus.publish(Events.PRE_ITEM_CHANGE)
+            bus.publish(Events.ITEM_SELECTED, data={
+                'type': self.type, 'ID': item_id
+            })
             self.item_selected.emit(item_id)
 
     # -------------------------------------------------------
@@ -160,10 +166,9 @@ class BaseOutlineManager(QWidget):
         """
         raise NotImplementedError("Subclasses must implement load_outline")
 
-    def _handle_search_input(self, query: str) -> None:
+    def _send_search_request(self, query: str) -> None:
         """
-        Handles the user's search and subsequent
-        loading of searched term.
+        Handles the user's search.
         
         :param query: The search query.
         :type query: str

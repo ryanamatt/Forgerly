@@ -25,8 +25,7 @@ class ChapterOutlineManager(BaseOutlineManager):
     CHAPTER_ID_ROLE = Qt.ItemDataRole.UserRole + 1
     """The int role used to store the database ID of a Chapter on an item."""
 
-    def __init__(self, project_title: str = "Narrative Forge Project",
-                  chapter_repository: ChapterRepository | None = None) -> None:
+    def __init__(self, project_title: str = "Narrative Forge Project") -> None:
         """
         Initializes the ChapterOutlineManager.
         
@@ -37,14 +36,14 @@ class ChapterOutlineManager(BaseOutlineManager):
         """
 
         self.project_title = project_title
-        self.chapter_repo = chapter_repository 
 
         super().__init__(
             project_title=project_title,
             header_text="Chapters",
             id_role=self.CHAPTER_ID_ROLE,
             search_placeholder="Search Chapters...",
-            is_nested_tree=False
+            is_nested_tree=False,
+            type=EntityType.CHAPTER
         )
 
         bus.register_instance(self)
@@ -185,7 +184,7 @@ class ChapterOutlineManager(BaseOutlineManager):
             # Determine the sort order for the new chapter (place it last at the root level)
             current_sort_order = self.tree_widget.topLevelItemCount() + 1
             
-            bus.publish(Events.NEW_CHAPTER_REQUESTED, data={
+            bus.publish(Events.NEW_ITEM_REQUESTED, data={
                 'type': EntityType.CHAPTER, 'title': title, 'sort_order': current_sort_order
             })
 
@@ -197,6 +196,8 @@ class ChapterOutlineManager(BaseOutlineManager):
         :param data: A dictionary of the needed data containing {type: EntityType.Chapter,
         ID: int}
         :type data: dict
+
+        :rtype: None
         """
         if data.get('type') != EntityType.CHAPTER:
             return
@@ -211,8 +212,7 @@ class ChapterOutlineManager(BaseOutlineManager):
         if new_item:
             self.tree_widget.setCurrentItem(new_item)
             self._on_item_clicked(new_item, 0)
-        else:
-            QMessageBox.warning(self, "Database Error", "Failed to save the new chapter to the database.")
+
 
     def _delete_chapter(self, item: QTreeWidgetItem) -> None:
         """
@@ -228,10 +228,6 @@ class ChapterOutlineManager(BaseOutlineManager):
         title = item.text(0)
         
         if chapter_id is None:
-            return
-            
-        if not self.chapter_repo:
-            QMessageBox.critical(self, "Internal Error", "ChapterRepository is missing.")
             return
             
         # Confirmation Dialog

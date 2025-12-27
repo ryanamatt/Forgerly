@@ -4,11 +4,12 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QGroupBox, QSplitter, QHBoxLayout, QTextEdit,
     QDialog, QSizePolicy, QLabel
 )
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt
 
 from .base_editor import BaseEditor
 from ...ui.widgets.rich_text_editor import RichTextEditor
 from ...utils.nf_core_wrapper import calculate_word_count, calculate_character_count, calculate_read_time
+from ...utils.constants import EntityType
 from ...utils.events import Events
 from ...utils.event_bus import bus, receiver
 
@@ -181,16 +182,11 @@ class ChapterEditor(BaseEditor):
         """
         Creates and displays a small, modal dialog containing the content of the linked entity.
         
-        :param entity_type: The type of entity to that was found while looking up.
-        :type entity_type: str
-        :param title: The title of the entity that was found.
-        :type title: str
-        :param content: The content/description of the entity that was found.
-        :type content: str
+        :param data: The data needed contains {type: EntityType, title: str, content: str}
 
         :rtype: None
         """
-        entity_type = data.get('entity_type')
+        entity_type = data.get('type')
         title = data.get('title')
         content = data.get('content')
 
@@ -234,6 +230,7 @@ class ChapterEditor(BaseEditor):
             'tags': self.tag_manager.get_tags()
         }
     
+    @receiver(Events.DATA_LOADED)
     def load_entity(self, data: dict) -> None:
         """
         Loads all the information into the editor and enables the editor.
@@ -243,6 +240,9 @@ class ChapterEditor(BaseEditor):
 
         :rtype: None
         """
+        if data.get('type') != EntityType.CHAPTER:
+            return
+
         self.text_editor.set_html_content(data['content'])
         self.tag_manager.set_tags(data['tags'])
 

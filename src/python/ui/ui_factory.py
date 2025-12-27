@@ -38,10 +38,10 @@ class UIFactory:
         """
         # Instantiate Managers and Editors
         components = {
-            'chapter_outline': ChapterOutlineManager(project_title=project_title, chapter_repository=coordinator.chapter_repo),
+            'chapter_outline': ChapterOutlineManager(project_title=project_title),
             'chapter_editor': ChapterEditor(settings),
             
-            'lore_outline': LoreOutlineManager(project_title=project_title, lore_repository=coordinator.lore_repo, coordinator=coordinator),
+            'lore_outline': LoreOutlineManager(project_title=project_title),
             'lore_editor': LoreEditor(),
             
             'character_outline': CharacterOutlineManager(project_title=project_title, character_repository=coordinator.character_repo),

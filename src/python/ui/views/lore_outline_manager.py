@@ -9,9 +9,11 @@ from typing import Any
 
 from .base_outline_manager import BaseOutlineManager
 from ...resources_rc import *
-from ...repository.lore_repository import LoreRepository
+from ...utils.constants import EntityType
+from ...utils.events import Events
+from ...utils.event_bus import bus, receiver
 
-from ...services.app_coordinator import AppCoordinator
+from ...repository.lore_repository import LoreRepository
 
 class LoreOutlineManager(BaseOutlineManager):
     """
@@ -24,8 +26,7 @@ class LoreOutlineManager(BaseOutlineManager):
     LORE_ID_ROLE = Qt.ItemDataRole.UserRole + 1
     """The int role used to store the database ID of a Lore Entry on an item."""
 
-    def __init__(self, project_title: str = "Narrative Forge Project", lore_repository: LoreRepository | None = None, 
-                 coordinator: AppCoordinator | None = None) -> None:
+    def __init__(self, project_title: str = "Narrative Forge Project") -> None:
         """
         Initializes the :py:class:`.LoreOutlineManager`.
         
@@ -33,14 +34,9 @@ class LoreOutlineManager(BaseOutlineManager):
         :type project_title: str
         :param lore_repository: The repository object for Lore Entry CRUD operations.
         :type lore_repository: :py:class:`.LoreRepository` or None, optional
-        :param coordinator: The coordinator object that coordinates to the main window.
-        :type coordinator: :py:class:`.AppCoordinator` or None, optional
 
         :rtype: None
         """
-        self.lore_repo = lore_repository
-        self.coordinator = coordinator
-
         super().__init__(
             project_title=project_title,
             header_text="Lore Entries",
@@ -49,36 +45,26 @@ class LoreOutlineManager(BaseOutlineManager):
             is_nested_tree=True
         )
 
+        bus.register_instance(self)
+
         # Connect nested-specific signals not covered by base
         self.tree_widget.item_hierarchy_updated.connect(self._handle_lore_parent_update)
         self.tree_widget.item_parent_id_updated.connect(self._handle_lore_parent_update)
 
-        # Load the initial structure
-        self.load_outline()
-
-    def load_outline(self, lore_entries: list[dict] | None = None) -> None:
+    @receiver(Events.OUTLINE_DATA_LOADED)
+    def load_outline(self, lore_data: dict) -> None:
         """
-        Loads the Lore Entries into the outline manager.
-        If lore_entries is provided (e.g., from a search), it loads those.
-        Otherwise, it loads all entries from the repository.
-
-        :param lore_entries: A list of Lore Entries to load,
-            default is None and will load all Lore Entries. 
-        :type lore_entries: list[dict], optional
-
-        :rtype: None
-        """
-        if not self.lore_repo:
-            return
-
-        # Fetch all entries if none are provided (default mode)
-        if lore_entries is None:
-            lore_entries = self.lore_repo.get_all_lore_entries()
-            
-        self.tree_widget.clear()
+        Docstring for load_outline_bus
         
-        # Add all fetched lore entries as children
-        if not lore_entries: return
+        :param lore_data: Description
+        :type lore_data: dict
+        """
+        type = lore_data.get('type')
+        lore_entries = lore_data.get('lore_entries')
+        if type != EntityType.LORE or not lore_entries:
+            return
+                    
+        self.tree_widget.clear()
 
         item_map: dict[int, QTreeWidgetItem] = {}
 
@@ -106,10 +92,10 @@ class LoreOutlineManager(BaseOutlineManager):
                 
         self.tree_widget.expandAll()
 
-    def _handle_search_input(self, query: str) -> None:
+    def _send_search_request(self, query: str) -> None:
         """
         Handles text changes in the search bar. 
-        Performs SQL Like search or reverts to the full outline.
+        Sends out an Event Signal to 
 
         :param query: The search query to search for.
         :type query: str
@@ -117,20 +103,34 @@ class LoreOutlineManager(BaseOutlineManager):
         :rtype: None
         """
         clean_query = query.strip()
+        if clean_query:
+            bus.publish(Events.OUTLINE_SEARCH_REQUESTED, data={
+                'type': EntityType.LORE, 'query': clean_query
+            })
+        else:
+            bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'type': EntityType.LORE})
 
-        if clean_query and self.lore_repo:
-            search_results = self.lore_repo.search_lore_entries(clean_query)
-            if search_results:
-                self.load_outline(search_results)
-            else:
-                self.tree_widget.clear()
-                no_result_item = QTreeWidgetItem(self.tree_widget, ["No search results found."])
-                no_result_item.setData(0, self.id_role, -1)
-                self.tree_widget.expandAll()
+    @receiver(Events.OUTLINE_SEARCH_RETURN)
+    def _handle_search_return(self, data: dict) -> None:
+        """
+        Docstring for _handle_search_return
         
-        # Search is cleared, revert to full outline
-        elif not clean_query:
-            self.load_outline()
+        :param data: Description
+        :type data: dict
+
+        :rtype: None
+        """
+        search_results = data.get('lore_entries')
+        type = data.get('type')
+        if type != EntityType.LORE: return
+
+        if search_results:
+            self.load_outline(data)
+        else:
+            self.tree_widget.clear()
+            no_result_item = QTreeWidgetItem(self.tree_widget, ["No search results found."])
+            no_result_item.setData(0, self.id_role, -1)
+            self.tree_widget.expandAll()
 
     def _handle_item_renamed(self, item: QTreeWidgetItem, column: int) -> None:
         """
@@ -147,49 +147,34 @@ class LoreOutlineManager(BaseOutlineManager):
         """
         lore_id = item.data(0, self.id_role)
         new_title = item.text(0).strip()
-        
-        # Handle missing repository or root item
-        if not self.lore_repo:
-            QMessageBox.critical(self, "Internal Error", "LoreRepository is missing.")
-            return
 
-        # 1. Prevent action if this is the root item (ID is None)
+        # Prevent action if this is the root item (ID is None)
         if lore_id is None:
             item.setText(0, "World Lore Base") # Revert name
             return
         
-        # 2. Handle empty title
+        # Handle empty title
         if not new_title:
             QMessageBox.warning(self, "Invalid Title", "Lore Entry title cannot be empty. Reverting.")
-            self.load_outline() 
+            bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'type': EntityType.LORE}) 
             return # Exit after handling invalid title
         
-        # 3. Check if title actually changed
-        current_db_title = self.lore_repo.get_lore_entry_title(lore_id)
-        if current_db_title and current_db_title == new_title:
-            return
-        
-        # 4. Perform the database update
-        # Assuming your update method expects `id` and named parameters for updates
-        success = self.lore_repo.update_lore_entry_title(lore_id, new_title)
-
-        if not success:
-            QMessageBox.critical(self, "Database Error", "Failed to update Lore Entry title in the database.")
-            self.load_outline()
+        bus.publish(Events.OUTLINE_NAME_CHANGE, data={
+            'type': EntityType.LORE, 'ID': lore_id, 'new_title': new_title
+        })
 
     def _handle_lore_parent_update(self, lore_id: int, new_parent_id: Any) -> None:
         """
-        Calls the AppCoordinator to update the database hierarchy.
+        Handles when the lore parent is updated.
         
         :param lore_id: The ID of the lore entry to set as sub-entry.
         :type lore_id: int
         :param new_parent_id: The ID of the parent lore entry.
         :type new_parent_id: int or None
         """
-        if not self.coordinator.update_lore_parent_id(lore_id, new_parent_id):
-            QMessageBox.critical(self, "Hierarchy Error", 
-                                 "Database update failed. Reverting lore outline.")
-            self.load_outline()
+        bus.publish(Events.OUTLINE_PARENT_UPDATE, data={
+            'type': EntityType.LORE, 'ID': lore_id, 'new_parent_id': new_parent_id
+        })
 
     def _show_context_menu(self, pos: QPoint) -> None:
         """
@@ -230,13 +215,7 @@ class LoreOutlineManager(BaseOutlineManager):
         
         :rtype: None
         """
-    
-        if not self.lore_repo:
-            QMessageBox.critical(self, "Internal Error", "LoreRepository is missing.")
-            return
-        
-        # Check save status before creating a new Lore Entry (which implicitly changes selection)
-        self.pre_item_change.emit()
+        bus.publish(Events.PRE_ITEM_CHANGE)
 
         title, ok = QInputDialog.getText(
             self,
@@ -251,16 +230,35 @@ class LoreOutlineManager(BaseOutlineManager):
         if not title:
             QMessageBox.warning(self, "Invalid Title", "Title cannot be empty.")
             return
-
-        new_id = self.lore_repo.create_lore_entry(title=title)
         
-        if new_id:
-            self.new_item_created.emit()
-            self.load_outline()
-            new_item = self.find_lore_item_by_id(new_id)
-            if new_item:
-                self.tree_widget.setCurrentItem(new_item)
-                self._on_item_clicked(new_item, 0)
+        bus.publish(Events.NEW_ITEM_REQUESTED, data={
+            'type': EntityType.LORE, 'title': title
+            })
+
+    @receiver(Events.NEW_ITEM_CREATED)
+    def _select_new_lore_entry(self, data: dict) -> None:
+        """
+        Selects the newly created Lore Entry.
+        
+        :param data: A dictionary of the needed data containing {type: EntityType.Lore,
+        ID: int}
+        :type data: dict
+
+        :rtype: None
+        """
+        if data.get('type') != EntityType.LORE:
+            return
+        
+        id = data.get('ID')
+        if not id:
+            return
+        
+        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'type': EntityType.LORE})
+        
+        new_item = self.find_lore_item_by_id(id)
+        if new_item:
+            self.tree_widget.setCurrentItem(new_item)
+            self._on_item_clicked(new_item, 0)
 
     def _delete_lore(self, item: QTreeWidgetItem) -> None:
         """
@@ -278,10 +276,6 @@ class LoreOutlineManager(BaseOutlineManager):
         if lore_id is None:
             return
         
-        if not self.lore_repo:
-            QMessageBox.critical(self, "Internal Error", "LoreRepository is missing.")
-            return
-        
         # Confirmation Dialog
         reply = QMessageBox.question(
             self, 
@@ -292,10 +286,9 @@ class LoreOutlineManager(BaseOutlineManager):
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            if self.lore_repo.delete_lore_entry(lore_id=lore_id):
-                self.load_outline()
-        else:
-                QMessageBox.critical(self, "Deletion Error", "A database error occurred while trying to delete the lore entry.")
+            bus.publish(Events.ITEM_DELETE_REQUESTED, data={
+                'type': EntityType.LORE, 'ID': lore_id
+                })
                 
     def check_save_and_delete(self, item: QTreeWidgetItem) -> None:
         """
@@ -307,7 +300,7 @@ class LoreOutlineManager(BaseOutlineManager):
 
         :rtype: None
         """
-        self.pre_item_change.emit()
+        bus.publish(Events.PRE_ITEM_CHANGE)
         self._delete_lore(item)
 
     def find_lore_item_by_id(self, lore_id: int) -> QTreeWidgetItem | None:

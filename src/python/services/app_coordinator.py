@@ -88,9 +88,6 @@ class AppCoordinator(QObject):
         # State Tracking
         self.current_item_id: int = 0
 
-        # Subscriptions
-        bus.subscribe(Events.LOOKUP_REQUESTED, self.lookup_entity_content_by_name)
-
     # --- Save / Dirty Check Logic (Core Business Logic) ---
 
     def check_and_save_dirty(self, view: ViewType, editor: 'BaseEditor', parent=None) -> bool:
@@ -140,7 +137,7 @@ class AppCoordinator(QObject):
         Recieves the OUTLINE_NAME_CHANGE event and saves
         the new name/title of the item.
         
-        :param data: The data containing {type: EntityType, id: 'ID' (int), title: 'new_title' (str)}
+        :param data: The data containing {type: EntityType, id: int, new_title: str}
         :type data: dict
 
         :rtype: None
@@ -155,6 +152,9 @@ class AppCoordinator(QObject):
         match type:
             case EntityType.CHAPTER:
                 self.chapter_repo.update_chapter_title(id, title)
+
+            case EntityType.LORE:
+                self.lore_repo.update_lore_entry_title(id, title)
 
         bus.publish(Events.OUTLINE_LOAD_REQUESTED, data=data)
 
@@ -201,7 +201,7 @@ class AppCoordinator(QObject):
             return True
         
         return False
-    
+
     def check_and_save_dirty_bus(self, data: dict) -> None:
         """
         New Check and Save Dirty function for the event bus.
@@ -360,6 +360,10 @@ class AppCoordinator(QObject):
                 chapters = self.chapter_repo.get_all_chapters()
                 return_data = {'type': type, 'chapters': chapters}
 
+            case EntityType.LORE:
+                lore_entries = self.lore_repo.get_all_lore_entries()
+                return_data = {'type': type, 'lore_entries': lore_entries}
+
         bus.publish(Events.OUTLINE_DATA_LOADED, data=return_data)
 
     def load_item(self, item_id: int, view: ViewType) -> None:
@@ -407,9 +411,54 @@ class AppCoordinator(QObject):
 
         self.data_loaded.emit(data)
 
+    @receiver(Events.ITEM_SELECTED)
+    def load_item_bus(self, data: dict) -> None:
+        """
+        Docstring for load_item_bus
+        
+        :param self: Description
+        :param data: Description
+        :type data: dict
+        """
+        type = data.get('type')
+        item_id = data.get('ID')
+        self.current_item_id = item_id
+
+        return_data = {'type': type}
+
+        if type == EntityType.CHAPTER:
+            content = self.chapter_repo.get_chapter_content(chapter_id=item_id)
+            if content is None: content = ""
+            tags_data = self.tag_repo.get_tags_for_chapter(chapter_id=item_id)
+            tag_names = [name for _, name in tags_data] if tags_data else []
+            return_data['ID'] = item_id
+            return_data['content'] = content
+            return_data['tags'] = tag_names
+
+        elif type == EntityType.LORE:
+            lore = self.lore_repo.get_lore_entry_details(lore_id=item_id)
+            tags_data = self.tag_repo.get_tags_for_lore_entry(item_id)
+            tag_names = [name for _, name in tags_data] if tags_data else []
+            return_data['ID'] = item_id
+            return_data |= lore
+            return_data['tags'] = tag_names
+
+        elif type == EntityType.CHARACTER:
+            return_data = self.character_repo.get_character_details(char_id=item_id)
+
+        elif type == EntityType.NOTE:
+            content = self.note_repo.get_note_content(note_id=item_id)
+            tags_data = self.tag_repo.get_tags_for_note(item_id)
+            tag_names = [name for _, name in tags_data] if tags_data else []
+            return_data['ID'] = item_id
+            return_data['content'] = content
+            return_data['tags'] = tag_names
+
+        bus.publish(Events.DATA_LOADED, data=return_data)
+
     # --- Creating New Items ---
 
-    @receiver(Events.NEW_CHAPTER_REQUESTED)
+    @receiver(Events.NEW_ITEM_REQUESTED)
     def _new_item_created(self, data: dict) -> None:
         """
         Called when a new item is created.
@@ -427,6 +476,9 @@ class AppCoordinator(QObject):
         match type:
             case EntityType.CHAPTER:
                 id = self.chapter_repo.create_chapter(data.get('title'), data.get('sort_order'))
+
+            case EntityType.LORE:
+                id = self.lore_repo.create_lore_entry(data.get('title'))
 
         bus.publish(Events.NEW_ITEM_CREATED, data={'type': type, 'ID': id})
 
@@ -452,10 +504,60 @@ class AppCoordinator(QObject):
                 case EntityType.CHAPTER:
                     self.chapter_repo.delete_chapter(id)
 
+                case EntityType.LORE:
+                    self.lore_repo.delete_lore_entry(id)
+
         bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'type': type})
 
+    # --- Searching Items ---
+
+    @receiver(Events.OUTLINE_SEARCH_REQUESTED)
+    def _search_outline(self, data: dict) -> None:
+        """
+        Docstring for _search_outline
+        
+        :param data: Description
+        :type data: dict
+        """
+        type = data.get('type', '')
+        query = data.get('query')
+        results = {}
+
+        match type:
+            case EntityType.LORE:
+                results = self.lore_repo.search_lore_entries(query)
+
+        bus.publish(Events.OUTLINE_SEARCH_RETURN, data={
+            'type': type, 'lore_entries': results
+        })
 
     # --- Updating Parent ID / Reordering ---
+
+    @receiver(Events.OUTLINE_PARENT_UPDATE)
+    def update_outline_parent_id(self, data: dict) -> None:
+        """
+        Docstring for update_outline_parent_id
+        
+        :param self: Description
+        :param data: Description
+        :type data: dict
+
+        :rtype: None
+        """
+        type = data.get('type')
+        id = data.get('ID')
+        new_parent_id = data.get('new_parent_id')
+        if not type or not id or not new_parent_id:
+            return
+        
+        if new_parent_id <= 0: 
+            new_parent_id = None
+
+        match type:
+            case EntityType.LORE:
+                self.lore_repo.update_lore_entry_parent_id(lore_id=id, new_parent_id=new_parent_id)
+
+        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'type': type})
 
     def update_lore_parent_id(self, lore_id: int, new_parent_id: int | None) -> bool:
         """
@@ -680,6 +782,7 @@ class AppCoordinator(QObject):
     # Entity Lookup Methods
     #------------------------------------
 
+    @receiver(Events.LOOKUP_REQUESTED)
     def lookup_entity_content_by_name(self, data: dict) -> tuple[str, str, str] | None:
         """
         Sequentially looks up an entity by name/title across all relevant repositories.
@@ -702,7 +805,7 @@ class AppCoordinator(QObject):
             char_data = self.character_repo.get_content_by_name(name=name)
             if char_data and char_data.get('Description'): # Check if match exists
                 bus.publish(Events.LOOKUP_RESULT, data={
-                    'entity_type': 'Character',
+                    'type': 'Character',
                     'title': char_data.get('Name', name),
                     'content': char_data.get('Description', '')
                 })
@@ -713,7 +816,7 @@ class AppCoordinator(QObject):
             lore_data = self.lore_repo.get_content_by_title(title=name)
             if lore_data and lore_data.get('Content'):
                 bus.publish(Events.LOOKUP_RESULT, data={
-                    'entity_type': 'Lore',
+                    'type': 'Lore',
                     'title': lore_data.get('Title', name),
                     'content': lore_data.get('Content', '')
                 })
