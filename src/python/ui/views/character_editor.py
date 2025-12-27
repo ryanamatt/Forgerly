@@ -9,9 +9,9 @@ from typing import Any
 
 from .base_editor import BaseEditor
 from ...ui.widgets.basic_text_editor import BasicTextEditor
-from ...utils.constants import ViewType
+from ...utils.constants import ViewType, EntityType
 from ...utils.events import Events
-from ...utils.event_bus import bus
+from ...utils.event_bus import bus, receiver
 
 class CharacterEditor(BaseEditor):
     """
@@ -326,6 +326,7 @@ class CharacterEditor(BaseEditor):
             "tags": self.get_tags()
         }
     
+    @receiver(Events.DATA_LOADED)
     def load_entity(self, data: dict) -> None:
         """
         Loads all the information into the editor
@@ -335,6 +336,9 @@ class CharacterEditor(BaseEditor):
 
         :rtype: None
         """
+        if data.get('entity_type') != EntityType.CHARACTER:
+            return
+
         id, name, description = data['ID'], data['Name'], data['Description']
         status, age, dob = data['Status'], data['Age'], data['Date_of_Birth']
         occupation, physical = data['Occupation_School'], data['Physical_Description']

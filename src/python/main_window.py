@@ -150,7 +150,7 @@ class MainWindow(QMainWindow):
 
         # Initially set the view to Chapters
         self.view_manager.switch_to_view(ViewType.CHAPTER_EDITOR)
-        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'type': EntityType.CHAPTER})
+        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': EntityType.CHAPTER})
 
         # Enable geometry saving after initial setup is complete
         self._is_ready_to_save_geometry = True

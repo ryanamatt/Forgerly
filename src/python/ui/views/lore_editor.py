@@ -9,9 +9,9 @@ from typing import Any
 
 from .base_editor import BaseEditor
 from ...ui.widgets.basic_text_editor import BasicTextEditor
-from ...utils.constants import ViewType
+from ...utils.constants import ViewType, EntityType
 from ...utils.events import Events
-from ...utils.event_bus import bus
+from ...utils.event_bus import bus, receiver
 
 class LoreEditor(BaseEditor):
     """
@@ -246,6 +246,7 @@ class LoreEditor(BaseEditor):
             'tags': self.tag_manager.get_tags()
         }
     
+    @receiver(Events.DATA_LOADED)
     def load_entity(self, data: dict) -> None:
         """
         Loads all the information into the editor
@@ -255,6 +256,9 @@ class LoreEditor(BaseEditor):
 
         :rtype: None
         """
+        if data.get('entity_type') != EntityType.LORE:
+            return
+
         id, title, content = data['ID'], data['Title'], data['Content']
         category, tags = data['Category'], data['tags']
 

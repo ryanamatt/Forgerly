@@ -243,7 +243,7 @@ class ViewManager(QObject):
         self.new_character_requested.connect(char_outline.prompt_and_add_character)
 
         # New Item Created Connect to Switch View to change Editor
-        char_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.CHARACTER_EDITOR))
+        # char_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.CHARACTER_EDITOR))
         note_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.NOTE_EDITOR))
 
         # Pre Item Change Connect to AppCoordinator.check_save_before_change
@@ -255,10 +255,10 @@ class ViewManager(QObject):
         #     lambda: self.check_save.emit(
         #         self.get_current_view(), self.get_current_editor()
         #     ))
-        char_outline.pre_item_change.connect(
-            lambda: self.check_save.emit(
-                self.get_current_view(), self.get_current_editor()
-            ))
+        # char_outline.pre_item_change.connect(
+        #     lambda: self.check_save.emit(
+        #         self.get_current_view(), self.get_current_editor()
+        #     ))
         note_outline.pre_item_change.connect(
             lambda: self.check_save.emit(
                 self.get_current_view(), self.get_current_editor()
@@ -268,12 +268,12 @@ class ViewManager(QObject):
         # chapter_outline.item_selected.connect(
         #     lambda item_id: self.load_requested.emit(item_id, ViewType.CHAPTER_EDITOR)
         # )
-        lore_outline.item_selected.connect(
-            lambda item_id: self.load_requested.emit(item_id, ViewType.LORE_EDITOR)
-        )
-        char_outline.item_selected.connect(
-            lambda item_id: self.load_requested.emit(item_id, ViewType.CHARACTER_EDITOR)
-        )
+        # lore_outline.item_selected.connect(
+        #     lambda item_id: self.load_requested.emit(item_id, ViewType.LORE_EDITOR)
+        # )
+        # char_outline.item_selected.connect(
+        #     lambda item_id: self.load_requested.emit(item_id, ViewType.CHARACTER_EDITOR)
+        # )
         note_outline.item_selected.connect(
             lambda item_id: self.load_requested.emit(item_id, ViewType.NOTE_EDITOR)
         )
@@ -353,20 +353,32 @@ class ViewManager(QObject):
         if view == ViewType.RELATIONSHIP_GRAPH:
             # Load Graph Data
             self.graph_load_requested.emit()
+            entity_type = EntityType.RELATIONSHIP
+
+        elif view == ViewType.CHAPTER_EDITOR:
+            entity_type = EntityType.CHAPTER
             
         elif view == ViewType.LORE_EDITOR:
             # Refresh category dropdowns for the lore editor
             self.refresh_lore_categories.emit()
             bus.publish(Events.LORE_CATEGORIES_REFRESH)
-            bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={
-                'type': EntityType.LORE
-            })
+            entity_type = EntityType.LORE
+
+        elif view == ViewType.CHARACTER_EDITOR:
+            entity_type = EntityType.CHARACTER
+
+        elif view == ViewType.NOTE_EDITOR:
+            entity_type = EntityType.NOTE
             
         else:
             # Default behavior: Editors are disabled until an item is clicked in the outline
             if editor:
                 editor.set_enabled(False)
                 logger.debug(f"ViewManager: Disabled {view} editor awaiting selection.")
+
+        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={
+                'entity_type': entity_type
+            })
 
     def set_wpm(self, wpm: int) -> None:
         """

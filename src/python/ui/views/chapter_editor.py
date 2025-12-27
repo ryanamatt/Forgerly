@@ -240,7 +240,7 @@ class ChapterEditor(BaseEditor):
 
         :rtype: None
         """
-        if data.get('type') != EntityType.CHAPTER:
+        if data.get('entity_type') != EntityType.CHAPTER:
             return
 
         self.text_editor.set_html_content(data['content'])

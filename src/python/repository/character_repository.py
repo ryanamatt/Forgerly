@@ -215,7 +215,25 @@ class CharacterRepository:
         except DatabaseError as e:
             logger.error(f"Failed to update character ID: {char_id} with name '{name}'.", exc_info=True)
             raise e
-
+        
+    def update_character_name(self, char_id: int, new_name: str) -> None:
+        """
+        Updates a characteres name
+        
+        :param char_id: The characters ID.
+        :type char_id: int
+        :param new_name: The new name of the characters
+        :type new_name: str
+        """
+        query = "UPDATE CHARACTERS SET Name ? WHERE ID = ?;"
+        try:
+            success = self.db._execute_commit(query, (new_name, char_id))
+            if success:
+                logger.info(f"Updated character ID: {char_id}. New Name: '{new_name}'.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to update character ID: {char_id} with name '{new_name}'.", exc_info=True)
+            raise e
     def delete_character(self, char_id) -> bool:
         """
         Deletes a character
