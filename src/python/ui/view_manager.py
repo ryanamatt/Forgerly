@@ -3,7 +3,9 @@
 from PySide6.QtWidgets import QStackedWidget
 from PySide6.QtCore import QObject, Signal
 
-from ..utils.constants import ViewType
+from ..utils.constants import ViewType, EntityType
+from ..utils.events import Events
+from ..utils.event_bus import bus, receiver
 from ..utils.logger import get_logger
 
 from typing import TYPE_CHECKING
@@ -235,26 +237,24 @@ class ViewManager(QObject):
         note_outline: NoteOutlineManager = self.outline_stack.widget(3) # NoteOutlineManager
         rel_outline: RelationshipOutlineManager = self.outline_stack.widget(4) #RelationshipOutlineManager
 
-        # Connect the internal relay signals to the specific widgets
+        # Connect the internal relay signals to the specific widgets - MainMenuBar
         self.new_chapter_requested.connect(chapter_outline.prompt_and_add_chapter)
         self.new_lore_requested.connect(lore_outline.prompt_and_add_lore)
         self.new_character_requested.connect(char_outline.prompt_and_add_character)
 
         # New Item Created Connect to Switch View to change Editor
-        chapter_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.CHAPTER_EDITOR))
-        lore_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.LORE_EDITOR))
         char_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.CHARACTER_EDITOR))
         note_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.NOTE_EDITOR))
 
         # Pre Item Change Connect to AppCoordinator.check_save_before_change
-        chapter_outline.pre_item_change.connect(
-            lambda: self.check_save.emit(
-                self.get_current_view(), self.get_current_editor()
-            ))
-        lore_outline.pre_item_change.connect(
-            lambda: self.check_save.emit(
-                self.get_current_view(), self.get_current_editor()
-            ))
+        # chapter_outline.pre_item_change.connect(
+        #     lambda: self.check_save.emit(
+        #         self.get_current_view(), self.get_current_editor()
+        #     ))
+        # lore_outline.pre_item_change.connect(
+        #     lambda: self.check_save.emit(
+        #         self.get_current_view(), self.get_current_editor()
+        #     ))
         char_outline.pre_item_change.connect(
             lambda: self.check_save.emit(
                 self.get_current_view(), self.get_current_editor()
@@ -265,9 +265,9 @@ class ViewManager(QObject):
             ))
 
         # Outline Item Select -> AppCoordinator.load_item(item_id, ViewType)
-        chapter_outline.item_selected.connect(
-            lambda item_id: self.load_requested.emit(item_id, ViewType.CHAPTER_EDITOR)
-        )
+        # chapter_outline.item_selected.connect(
+        #     lambda item_id: self.load_requested.emit(item_id, ViewType.CHAPTER_EDITOR)
+        # )
         lore_outline.item_selected.connect(
             lambda item_id: self.load_requested.emit(item_id, ViewType.LORE_EDITOR)
         )
@@ -338,6 +338,7 @@ class ViewManager(QObject):
         self._perform_view_entry_logic(view)
 
         self.view_changed.emit(view)
+        bus.publish(Events.VIEW_CHANGED, data={'view': self.current_view})
 
 
     def _perform_view_entry_logic(self, view: ViewType) -> None:
@@ -356,6 +357,10 @@ class ViewManager(QObject):
         elif view == ViewType.LORE_EDITOR:
             # Refresh category dropdowns for the lore editor
             self.refresh_lore_categories.emit()
+            bus.publish(Events.LORE_CATEGORIES_REFRESH)
+            bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={
+                'type': EntityType.LORE
+            })
             
         else:
             # Default behavior: Editors are disabled until an item is clicked in the outline

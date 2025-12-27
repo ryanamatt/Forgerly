@@ -355,7 +355,7 @@ class MainWindow(QMainWindow):
         self.coordinator.save_current_item(view=view, editor=editor)
 
     @receiver(Events.PRE_ITEM_CHANGE)
-    def _on_item_change(self) -> None:
+    def _on_item_change(self, data: dict) -> None:
         """
         Called when PRE_ITEM_CHANGE is emittted to change and save.
         """

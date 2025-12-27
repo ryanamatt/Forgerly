@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QGroupBox, QSplitter, 
     QLineEdit, QComboBox, QHBoxLayout
 )
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt
 from typing import Any
 
 from .base_editor import BaseEditor
