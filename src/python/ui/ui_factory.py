@@ -44,7 +44,7 @@ class UIFactory:
             'lore_outline': LoreOutlineManager(project_title=project_title),
             'lore_editor': LoreEditor(),
             
-            'character_outline': CharacterOutlineManager(project_title=project_title, character_repository=coordinator.character_repo),
+            'character_outline': CharacterOutlineManager(project_title=project_title),
             'character_editor': CharacterEditor(),
             
             'note_outline': NoteOutlineManager(project_title=project_title, note_repository=coordinator.note_repo, coordinator=coordinator),

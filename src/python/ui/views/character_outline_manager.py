@@ -25,21 +25,15 @@ class CharacterOutlineManager(BaseOutlineManager):
     CHARACTER_ID_ROLE = Qt.ItemDataRole.UserRole + 1
     """The :py:obj:`int` role used to store the database ID of a Character on an item."""
 
-    def __init__(self, project_title: str = "Narrative Forge Project", 
-                 character_repository: CharacterRepository | None = None) -> None:
+    def __init__(self, project_title: str = "Narrative Forge Project") -> None:
         """
         Initializes the :py:class:`.CharacterOutlineManager`.
         
         :param project_title: The Title of the Current Project.
         :type project_title: str
-        :param character_repository: The repository object for character CRUD operations.
-        :type character_repository: :py:class:`.CharacterRepository` or None, optional
 
         :rtype: None
         """
-        self.project_title = project_title
-        self.char_repo = character_repository
-
         super().__init__(
             project_title=project_title,
             header_text="Characters",
@@ -198,8 +192,7 @@ class CharacterOutlineManager(BaseOutlineManager):
         
         :rtype: None
         """
-        # Check save status before creating a new chapter (which implicitly changes selection)
-        self.pre_item_change.emit() 
+        bus.publish(Events.PRE_ITEM_CHANGE)
         
         name, ok = QInputDialog.getText(
             self, 

@@ -497,6 +497,9 @@ class AppCoordinator(QObject):
             case EntityType.CHARACTER:
                 id = self.character_repo.create_character(data.get('title'))
 
+            case EntityType.NOTE:
+                id = self.note_repo.create_note(data.get('title'), data.get('sort_order'))
+
         bus.publish(Events.NEW_ITEM_CREATED, data={'entity_type': entity_type, 'ID': id})
 
     # --- Deleting Items ---
@@ -557,6 +560,10 @@ class AppCoordinator(QObject):
                 results = self.character_repo.search_characters(query)
                 results_name = 'characters'
 
+            case EntityType.NOTE:
+                results = self.note_repo.search_notes(query)
+                results_name = 'notes'
+
         bus.publish(Events.OUTLINE_SEARCH_RETURN, data={
             'entity_type': entity_type, results_name: results
         })
@@ -577,15 +584,17 @@ class AppCoordinator(QObject):
         entity_type = data.get('entity_type')
         id = data.get('ID')
         new_parent_id = data.get('new_parent_id')
-        if not entity_type or not id or not new_parent_id:
+        if not entity_type or not id:
+            print(entity_type, id, new_parent_id)
             return
-        
-        if new_parent_id <= 0: 
-            new_parent_id = None
 
         match entity_type:
             case EntityType.LORE:
                 self.lore_repo.update_lore_entry_parent_id(lore_id=id, new_parent_id=new_parent_id)
+
+            case EntityType.NOTE:
+                print(id, new_parent_id)
+                self.note_repo.update_note_parent_id(note_id=id, new_parent_id=new_parent_id)
 
         bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': entity_type})
 

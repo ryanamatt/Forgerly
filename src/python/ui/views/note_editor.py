@@ -5,6 +5,9 @@ from PySide6.QtCore import Qt
 
 from .base_editor import BaseEditor
 from ...ui.widgets.rich_text_editor import RichTextEditor
+from ...utils.constants import EntityType
+from ...utils.events import Events
+from ...utils.event_bus import bus, receiver
 
 class NoteEditor(BaseEditor):
     """
@@ -98,6 +101,7 @@ class NoteEditor(BaseEditor):
             'tags': self.tag_manager.get_tags()
         }
     
+    @receiver(Events.DATA_LOADED)
     def load_entity(self, data: dict) -> None:
         """
         Loads all the information into the editor
@@ -107,7 +111,10 @@ class NoteEditor(BaseEditor):
 
         :rtype: None
         """
-        id, content, tags = data['ID'], data['content'], data['tags']
+        if data.get('entity_type') != EntityType.NOTE:
+            return
+
+        content, tags = data['content'], data['tags']
 
         self.text_editor.set_html_content(content)
         self.tag_manager.set_tags(tags)
