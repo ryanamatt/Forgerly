@@ -242,45 +242,6 @@ class ViewManager(QObject):
         self.new_lore_requested.connect(lore_outline.prompt_and_add_lore)
         self.new_character_requested.connect(char_outline.prompt_and_add_character)
 
-        # New Item Created Connect to Switch View to change Editor
-        # char_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.CHARACTER_EDITOR))
-        note_outline.new_item_created.connect(lambda: self.switch_to_view(ViewType.NOTE_EDITOR))
-
-        # Pre Item Change Connect to AppCoordinator.check_save_before_change
-        # chapter_outline.pre_item_change.connect(
-        #     lambda: self.check_save.emit(
-        #         self.get_current_view(), self.get_current_editor()
-        #     ))
-        # lore_outline.pre_item_change.connect(
-        #     lambda: self.check_save.emit(
-        #         self.get_current_view(), self.get_current_editor()
-        #     ))
-        # char_outline.pre_item_change.connect(
-        #     lambda: self.check_save.emit(
-        #         self.get_current_view(), self.get_current_editor()
-        #     ))
-        note_outline.pre_item_change.connect(
-            lambda: self.check_save.emit(
-                self.get_current_view(), self.get_current_editor()
-            ))
-
-        # Outline Item Select -> AppCoordinator.load_item(item_id, ViewType)
-        # chapter_outline.item_selected.connect(
-        #     lambda item_id: self.load_requested.emit(item_id, ViewType.CHAPTER_EDITOR)
-        # )
-        # lore_outline.item_selected.connect(
-        #     lambda item_id: self.load_requested.emit(item_id, ViewType.LORE_EDITOR)
-        # )
-        # char_outline.item_selected.connect(
-        #     lambda item_id: self.load_requested.emit(item_id, ViewType.CHARACTER_EDITOR)
-        # )
-        note_outline.item_selected.connect(
-            lambda item_id: self.load_requested.emit(item_id, ViewType.NOTE_EDITOR)
-        )
-
-        # Lore Categories
-        self.lore_categories_changed.connect(lore_editor.set_available_categories)
-
         # --- Relationship Graph Relays (No Coordinator calls) ---
         
         # Data Flow: Editor -> ViewManager (Relay)
@@ -387,5 +348,4 @@ class ViewManager(QObject):
         :param wpm: The new WPM
         :type wpm: int
         """
-        print(f"ViewManager.set_wpm() {wpm}")
         self.editor_stack.widget(0).set_wpm(wpm)

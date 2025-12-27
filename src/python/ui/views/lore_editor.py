@@ -139,7 +139,8 @@ class LoreEditor(BaseEditor):
         self.mark_saved()
         self.set_enabled(True)
 
-    def set_available_categories(self, categories: list[str]) -> None:
+    @receiver(Events.LORE_CATEGORIES_CHANGED)
+    def set_available_categories(self, data: dict) -> None:
         """
         Updates the category combo box with existing categories from the DB.
 
@@ -148,6 +149,9 @@ class LoreEditor(BaseEditor):
 
         :rtype: None
         """
+        categories = data.get('categories')
+        if not categories: return
+
         current_text = self.category_combo.currentText()
         self.category_combo.blockSignals(True)
         self.category_combo.clear()

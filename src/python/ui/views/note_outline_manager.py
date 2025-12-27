@@ -28,7 +28,7 @@ class NoteOutlineManager(BaseOutlineManager):
     NOTE_ID_ROLE = Qt.ItemDataRole.UserRole + 1
     """The int role used to store the database ID of a Note on an item."""
 
-    def __init__(self, project_title: str = "Narrative Forge Project", note_repository: NoteRepository | None = None, coordinator: AppCoordinator | None = None) -> None:
+    def __init__(self, project_title: str = "Narrative Forge Project") -> None:
         """
         Initializes the :py:class:`.NoteOutlineManager`.
         
@@ -39,9 +39,6 @@ class NoteOutlineManager(BaseOutlineManager):
 
         :rtype: None
         """
-
-        self.note_repo = note_repository
-        self.coordinator = coordinator
 
         super().__init__(
             project_title=project_title,
@@ -181,7 +178,6 @@ class NoteOutlineManager(BaseOutlineManager):
         :param new_parent_id: The ID of the parent note.
         :type new_parent_id: int or None
         """
-        print(note_id, new_parent_id)
         bus.publish(Events.OUTLINE_PARENT_UPDATE, data={
             'entity_type': EntityType.NOTE, 'ID': note_id, 'new_parent_id': new_parent_id
         })

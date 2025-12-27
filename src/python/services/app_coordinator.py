@@ -585,7 +585,6 @@ class AppCoordinator(QObject):
         id = data.get('ID')
         new_parent_id = data.get('new_parent_id')
         if not entity_type or not id:
-            print(entity_type, id, new_parent_id)
             return
 
         match entity_type:
@@ -593,7 +592,6 @@ class AppCoordinator(QObject):
                 self.lore_repo.update_lore_entry_parent_id(lore_id=id, new_parent_id=new_parent_id)
 
             case EntityType.NOTE:
-                print(id, new_parent_id)
                 self.note_repo.update_note_parent_id(note_id=id, new_parent_id=new_parent_id)
 
         bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': entity_type})
@@ -614,6 +612,7 @@ class AppCoordinator(QObject):
             pass
         return result
     
+    @receiver(Events.LORE_CATEGORIES_REFRESH)
     def refresh_lore_categories(self) -> None:
         """
         Fetches unique categories and notifies the Lore Editor.
@@ -622,6 +621,7 @@ class AppCoordinator(QObject):
         """
         categories = self.lore_repo.get_unique_categories()
         self.lore_categories_changed.emit(categories)
+        bus.publish(Events.LORE_CATEGORIES_CHANGED, data={'categories': categories})
 
     def update_note_parent_id(self, note_id: int, new_parent_id: int | None) -> bool:
         """
