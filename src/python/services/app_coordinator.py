@@ -13,10 +13,13 @@ from ..repository.relationship_repository import RelationshipRepository
 
 from ..utils.nf_core_wrapper import calculate_read_time
 from ..utils.constants import ViewType, EntityType
+from ..utils.events import Events
+from ..utils.event_bus import bus, receiver
 
 from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from ..ui.views.base_editor import BaseEditor
+    from ..ui.views.base_outline_manager import BaseOutlineManager
 
 class AppCoordinator(QObject):
     """
@@ -70,6 +73,8 @@ class AppCoordinator(QObject):
         """
         super().__init__()
 
+        bus.register_instance(self)
+
         self.db = db_connector
 
         # Create Repositorys
@@ -82,6 +87,9 @@ class AppCoordinator(QObject):
 
         # State Tracking
         self.current_item_id: int = 0
+
+        # Subscriptions
+        bus.subscribe(Events.LOOKUP_REQUESTED, self.lookup_entity_content_by_name)
 
     # --- Save / Dirty Check Logic (Core Business Logic) ---
 
@@ -106,7 +114,7 @@ class AppCoordinator(QObject):
         if self.current_item_id == 0 or not view:
             return True # No item loeaded
         
-        if not editor or not editor.is_dirty():
+        if not editor.is_dirty():
             return True # Editor is clean
         
         save_reply = QMessageBox.question(
@@ -125,7 +133,31 @@ class AppCoordinator(QObject):
         
         # If discard proceed
         return True
-    
+
+    @receiver(Events.OUTLINE_NAME_CHANGE)
+    def save_name_change(self, data: dict) -> None:
+        """
+        Recieves the OUTLINE_NAME_CHANGE event and saves
+        the new name/title of the item.
+        
+        :param data: The data containing {type: EntityType, id: 'ID' (int), title: 'new_title' (str)}
+        :type data: dict
+
+        :rtype: None
+        """
+        type = data.get('type')
+        id = data.get('ID')
+        title = data.get('new_title')
+
+        if not type or not id or not title:
+            return
+        
+        match type:
+            case EntityType.CHAPTER:
+                self.chapter_repo.update_chapter_title(id, title)
+
+        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data=data)
+
     def save_current_item(self, view: ViewType, editor: 'BaseEditor') -> bool:
         """
         General Method to save either chapter, character or a lore entry.
@@ -166,6 +198,73 @@ class AppCoordinator(QObject):
             
         if content_success and tag_success:
             editor.mark_saved()
+            return True
+        
+        return False
+    
+    def check_and_save_dirty_bus(self, data: dict) -> None:
+        """
+        New Check and Save Dirty function for the event bus.
+        
+        :param data: Description
+        :type data: dict
+        """
+        id = data.get('ID')
+        parent = data.get('parent')
+
+        if id == 0 or not parent:
+            return True # No item loaded
+        
+        save_reply = QMessageBox.question(
+            parent, # Use parent for dialog centering
+            "Unsaved Changes",
+            f"The current item has unsaved changes. Do you want to save before continuing?",
+            QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Save
+        )
+
+        if save_reply == QMessageBox.StandardButton.Cancel:
+            return False
+        
+        if save_reply == QMessageBox.StandardButton.Save:
+            return self.save_current_item_bus(data=data)
+        
+        # If discard proceed
+        return True
+
+    
+    def save_current_item_bus(self, data: dict) -> None:
+        """
+        New Function for save the current item using the event bus.
+        
+        :param data: Description
+        :type data: dict
+        """
+        content_success, tag_success = False, False
+
+        type = data.pop('type')
+        id = data.pop('id')
+        tags = data.pop('tags')
+
+        match type:
+            case EntityType.CHAPTER:
+                content_success = self.chapter_repo.update_chapter_content(id, **data)
+                tag_success = self.tag_repo.set_tags_for_chapter(id, tags)
+
+            case EntityType.CHARACTER:
+                content_success = self.character_repo.update_character(id, **data)
+                tag_success = True # No Tags for Character
+
+            case EntityType.CHARACTER:
+                content_success = self.lore_repo.update_lore_entry(id, **data)
+                tag_success = self.tag_repo.set_tags_for_lore_entry(self.current_item_id, tags)
+
+            case EntityType.NOTE:
+                content_success = self.note_repo.update_note_content(id, **data)
+                tag_success = self.tag_repo.set_tags_for_note(id, tags)
+
+        if content_success and tag_success:
+            bus.publish(Events.MARK_SAVED, data={'type': type})
             return True
         
         return False
@@ -240,7 +339,30 @@ class AppCoordinator(QObject):
         
     # --- Load Content Logic (Called by Outline Managers) ---
 
-    def load_item(self, item_id: int, view: ViewType):
+    @receiver(Events.OUTLINE_LOAD_REQUESTED)
+    def load_outline(self, data: dict) -> None:
+        """
+        Calls the correct repository and publishes an event with
+        all the necessary data to load.
+        
+        :param data: The dictionary of data needed to load the outline.
+            Contains {'view': ViewType}
+        :type data: dict
+
+        :rtype: None
+        """
+        type = data.get('type')
+
+        return_data = {}
+
+        match type:
+            case EntityType.CHAPTER:
+                chapters = self.chapter_repo.get_all_chapters()
+                return_data = {'type': type, 'chapters': chapters}
+
+        bus.publish(Events.OUTLINE_DATA_LOADED, data=return_data)
+
+    def load_item(self, item_id: int, view: ViewType) -> None:
         """
         Loads an items item from the database into the correct editor.
         
@@ -248,6 +370,8 @@ class AppCoordinator(QObject):
         :type item_id: int
         :param view: The current view.
         :type view: ViewType
+
+        :rtype: None
         """
         self.current_item_id = item_id
 
@@ -283,7 +407,55 @@ class AppCoordinator(QObject):
 
         self.data_loaded.emit(data)
 
-    # --- Updating Parent Lore ID ---
+    # --- Creating New Items ---
+
+    @receiver(Events.NEW_CHAPTER_REQUESTED)
+    def _new_item_created(self, data: dict) -> None:
+        """
+        Called when a new item is created.
+        
+        :param data: The data needed to create the new item. Containing
+            {type: EntityType, *Needed Item Creation Data*}
+        :type data: dict
+
+        :rtype: None
+        """
+        type = data.get('type')
+        if not type:
+            return
+        
+        match type:
+            case EntityType.CHAPTER:
+                id = self.chapter_repo.create_chapter(data.get('title'), data.get('sort_order'))
+
+        bus.publish(Events.NEW_ITEM_CREATED, data={'type': type, 'ID': id})
+
+    # --- Deleting Items ---
+
+    @receiver(Events.ITEM_DELETE_REQUESTED)
+    def _delete_item(self, data: dict) -> None:
+        """
+        Recieves the ITEM_DELETE_REQUESTED Event and deletes said
+        item.
+        
+        :param data: The data needed containing {type: EntityType, ID: item id (int)}
+        :type data: dict
+
+        :rtype: None
+        """
+        type = data.get('type')
+        id = data.get('ID')
+
+        check = self.check_and_save_dirty_bus(data=data)
+        if check:
+            match type:
+                case EntityType.CHAPTER:
+                    self.chapter_repo.delete_chapter(id)
+
+        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'type': type})
+
+
+    # --- Updating Parent ID / Reordering ---
 
     def update_lore_parent_id(self, lore_id: int, new_parent_id: int | None) -> bool:
         """
@@ -325,6 +497,30 @@ class AppCoordinator(QObject):
         if result:
             pass
         return result
+    
+    @receiver(Events.OUTLINE_REORDER)
+    def reordering_item(self, data: dict) -> None:
+        """
+        Recieves the OUTLINE_REORDER Event and updates the reordering.
+        
+        :param data: The data neeeded to reorder. Carries {editor: 'BaseEditor',
+            view: ViewType, updates: list[tuple[int, int]]}
+        :type data: dict
+
+        :rtype: None
+        """
+        view, updates = data.get('view'), data.get('updates')
+        if not view and not updates:
+            return
+        
+        match view:
+            case ViewType.CHAPTER_EDITOR:
+                success = self.chapter_repo.reorder_chapters(updates)
+
+        if not success:
+            QMessageBox.critical(data.get('editor'), "Reordering Error", "Database update failed.")
+            self.load_outline(data=data)
+
     
     # --- Relationship Graph Methods ---
 
@@ -381,7 +577,7 @@ class AppCoordinator(QObject):
 
     def _process_graph_data(self, relationships: list[dict], node_positions: list[dict], relationship_types: list[dict]) -> dict:
         """
-        Docstring for _process_graph_data
+        Proceess all the graph data.
         
         :param relationships: A list of relationships with the relationship attributes a dict.
         :type relationships: list[dict]
@@ -484,7 +680,7 @@ class AppCoordinator(QObject):
     # Entity Lookup Methods
     #------------------------------------
 
-    def lookup_entity_content_by_name(self, name: str) -> tuple[str, str, str] | None:
+    def lookup_entity_content_by_name(self, data: dict) -> tuple[str, str, str] | None:
         """
         Sequentially looks up an entity by name/title across all relevant repositories.
         
@@ -497,23 +693,34 @@ class AppCoordinator(QObject):
         :returns: A tuple (EntityType, Title, Content) or None if not found.
         :rtype: tuple[str, str, str]
         """
-        name = name.strip()
+
+        name = data['selected_text'].strip()
+        if not name: return
 
         # Start Searching For Characters
         if hasattr(self, 'character_repo'):
-            data = self.character_repo.get_content_by_name(name=name)
-            if data: 
-                self.return_lookup.emit(EntityType.CHARACTER, data.get('Name', ''), data.get('Description', ''))
+            char_data = self.character_repo.get_content_by_name(name=name)
+            if char_data and char_data.get('Description'): # Check if match exists
+                bus.publish(Events.LOOKUP_RESULT, data={
+                    'entity_type': 'Character',
+                    'title': char_data.get('Name', name),
+                    'content': char_data.get('Description', '')
+                })
                 return
             
         # Search Through Lore Entries
         if hasattr(self, 'lore_repo'):
-            lookup = self.lore_repo.get_content_by_title(title=name)
-            if data: 
-                self.return_lookup.emit(EntityType.LORE, data.get('Title', ''), data.get('Content', ''))
+            lore_data = self.lore_repo.get_content_by_title(title=name)
+            if lore_data and lore_data.get('Content'):
+                bus.publish(Events.LOOKUP_RESULT, data={
+                    'entity_type': 'Lore',
+                    'title': lore_data.get('Title', name),
+                    'content': lore_data.get('Content', '')
+                })
                 return
             
-        self.return_lookup.emit(None, None, None)
+        return
+            
     
     # --- Project Stats ---
     

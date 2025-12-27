@@ -9,6 +9,9 @@ from typing import Any
 
 from .base_editor import BaseEditor
 from ...ui.widgets.basic_text_editor import BasicTextEditor
+from ...utils.constants import ViewType
+from ...utils.events import Events
+from ...utils.event_bus import bus
 
 class CharacterEditor(BaseEditor):
     """
@@ -19,12 +22,6 @@ class CharacterEditor(BaseEditor):
     (like the :py:class:`.MainWindow`). It handles data loading, state 
     management (dirty checks), and local validation, but does not interact 
     with repositories directly.
-    """
-
-    char_name_changed = Signal(int, str)
-    """
-    :py:class:`~PyQt6.QtCore.Signal` (int, str): Emitted when the character's 
-    name changes, carrying the Character ID and the new name.
     """
 
     # State tracking for unsaved changes
@@ -48,6 +45,10 @@ class CharacterEditor(BaseEditor):
         :rtype: None
         """
         super().__init__(parent)
+
+        bus.register_instance(self)
+
+        self._dirty = False
 
         # --- 1. Sub-components ---
         self.description_editor = BasicTextEditor()
@@ -120,14 +121,11 @@ class CharacterEditor(BaseEditor):
         main_layout.addWidget(editors_container) # Add the side-by-side editors
         
         # --- Connections ---
-        self.description_editor.content_changed.connect(self._set_dirty)
         self.name_input.textChanged.connect(self._set_dirty)
         self.status_combo.currentTextChanged.connect(self._set_dirty)
         self.age_spin.valueChanged.connect(self._set_dirty)
         self.dob_input.textChanged.connect(self._set_dirty)
         self.occupation_input.textChanged.connect(self._set_dirty)
-        self.text_editor.content_changed.connect(self._set_dirty)
-        self.tag_manager.tags_changed.connect(self._set_dirty)
         
         self.name_input.editingFinished.connect(self._emit_name_change)
         
@@ -181,14 +179,6 @@ class CharacterEditor(BaseEditor):
         self.occupation_input.setText(occupation)
         self.text_editor.set_html_content(physical)
         
-        # Update initial states for dirty checking
-        self._initial_name = name
-        self._initial_status = status
-        self._initial_age = age
-        self._initial_dob = dob
-        self._initial_occupation = occupation
-        self._initial_physical = physical
-        
         self.mark_saved()
         self.setEnabled(True)
 
@@ -223,18 +213,23 @@ class CharacterEditor(BaseEditor):
         """
         if self.current_char_id is None:
             return False
+        
+        return self._dirty or super().is_dirty() or self.description_editor.is_dirty()
+    
+    def _set_dirty(self) -> None:
+        """
+        Handler for UI input. 
+        
+        This method is connected to signals from various input widgets (like 
+        :py:class:`~PyQt6.QtWidgets.QLineEdit` and :py:class:`~PyQt6.QtWidgets.QComboBox`) 
+        to track when user interaction occurs.
+        
+        :rtype: None
+        """
+        if not self.current_char_id:
+            return False
 
-        # self.text_editor and self.tag_manager
-        if super().is_dirty():
-            return True 
-
-        return (self.name_input.text().strip() != self._initial_name or 
-            self.status_combo.currentText().strip() != self._initial_status or
-            self.age_spin.value() != self._initial_age or
-            self.dob_input.text().strip() != self._initial_dob or
-            self.occupation_input.text().strip() != self._initial_occupation or
-            self.description_editor.is_dirty()
-        )
+        self._dirty = True 
 
     def mark_saved(self) -> None:
         """
@@ -246,12 +241,9 @@ class CharacterEditor(BaseEditor):
 
         super().mark_saved()
 
-        self._initial_name = self.name_input.text().strip()
-        self._initial_status = self.status_combo.currentText().strip()
-        self._initial_age = self.age_spin.value()
-        self._initial_dob = self.dob_input.text().strip()
-        self._initial_occupation = self.occupation_input.text().strip()
         self.description_editor.mark_saved()
+
+        self._dirty = False
         
     def set_enabled(self, enabled: bool) -> None:
         """
@@ -300,20 +292,6 @@ class CharacterEditor(BaseEditor):
         :rtype: str
         """
         return self.description_editor.get_html_content()
-        
-    def _set_dirty(self) -> None:
-        """
-        Handler for UI input. 
-        
-        This method is connected to signals from various input widgets (like 
-        :py:class:`~PyQt6.QtWidgets.QLineEdit` and :py:class:`~PyQt6.QtWidgets.QComboBox`) 
-        to track when user interaction occurs.
-        
-        :rtype: None
-        """
-        self.text_editor._set_dirty()
-        self.description_editor._set_dirty()
-        self.tag_manager._set_dirty() 
 
     def _emit_name_change(self) -> None:
         """
@@ -323,7 +301,12 @@ class CharacterEditor(BaseEditor):
         :rtype: None
         """
         if self.current_char_id is not None:
-             self.char_name_changed.emit(self.current_char_id, self.get_name())
+            bus.publish(Events.OUTLINE_NAME_CHANGE, data={
+                'editor': self,
+                'ID': self.current_char_id,
+                'title': self.name_input.text().strip(),
+                'view': ViewType.CHARACTER_EDITOR
+            })
 
     def get_save_data(self) -> dict:
         """
@@ -356,6 +339,8 @@ class CharacterEditor(BaseEditor):
         status, age, dob = data['Status'], data['Age'], data['Date_of_Birth']
         occupation, physical = data['Occupation_School'], data['Physical_Description']
 
+        self.current_char_id = id
+
         # Update UI Components
         self.name_input.setText(name)
         self.description_editor.set_html_content(description)
@@ -364,14 +349,6 @@ class CharacterEditor(BaseEditor):
         self.dob_input.setText(dob)
         self.occupation_input.setText(occupation)
         self.text_editor.set_html_content(physical)
-
-        # Store initlka state for dirty checking
-        self._initial_name = name
-        self._initial_status = status
-        self._initial_age = age
-        self._initial_dob = dob
-        self._initial_occupation = occupation
-        self._initial_physical = physical
 
         self.mark_saved()
         self.set_enabled(True)

@@ -26,8 +26,10 @@ from .services.lore_exporter import LoreExporter
 
 from .utils._version import __version__
 from .utils.theme_utils import apply_theme
-from .utils.constants import ViewType, ExportType
+from .utils.constants import ViewType, ExportType, EntityType
 from .utils.exceptions import ConfigurationError, EditorContentError
+from .utils.events import Events
+from .utils.event_bus import bus, receiver
 from .utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -74,6 +76,8 @@ class MainWindow(QMainWindow):
         """
         super().__init__(parent)
         logger.debug("MainWindow initialization started.")
+
+        bus.register_instance(self)
 
         self.project_settings = project_settings
         self.project_path = self.project_settings['project_path']
@@ -146,6 +150,7 @@ class MainWindow(QMainWindow):
 
         # Initially set the view to Chapters
         self.view_manager.switch_to_view(ViewType.CHAPTER_EDITOR)
+        bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'type': EntityType.CHAPTER})
 
         # Enable geometry saving after initial setup is complete
         self._is_ready_to_save_geometry = True
@@ -285,10 +290,6 @@ class MainWindow(QMainWindow):
         self.view_manager.load_requested.connect(self.coordinator.load_item)
         self.coordinator.data_loaded.connect(self._distribute_data_to_editor)
 
-        # ViewManager Lookup Request -> AppCoordinator
-        self.view_manager.relay_lookup_requested.connect(self.coordinator.lookup_entity_content_by_name)
-        self.coordinator.return_lookup.connect(self.view_manager.relay_return_lookup_requested)
-
         # MainMenuBar Save Connection
         self.main_menu_bar.save_requested.connect(self._on_save_triggered)
 
@@ -352,6 +353,15 @@ class MainWindow(QMainWindow):
         editor = self.view_manager.get_current_editor()
         view = self.view_manager.get_current_view()
         self.coordinator.save_current_item(view=view, editor=editor)
+
+    @receiver(Events.PRE_ITEM_CHANGE)
+    def _on_item_change(self) -> None:
+        """
+        Called when PRE_ITEM_CHANGE is emittted to change and save.
+        """
+        editor = self.view_manager.get_current_editor()
+        view = self.view_manager.get_current_view()
+        self.coordinator.check_and_save_dirty(view=view, editor=editor)
 
     # --- For Creating/Opening other Projects ---
 

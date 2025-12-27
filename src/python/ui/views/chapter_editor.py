@@ -9,6 +9,8 @@ from PySide6.QtCore import Qt, Signal
 from .base_editor import BaseEditor
 from ...ui.widgets.rich_text_editor import RichTextEditor
 from ...utils.nf_core_wrapper import calculate_word_count, calculate_character_count, calculate_read_time
+from ...utils.events import Events
+from ...utils.event_bus import bus, receiver
 
 class ChapterEditor(BaseEditor):
     """
@@ -27,12 +29,6 @@ class ChapterEditor(BaseEditor):
     :ivar rich_text_editor: The rich text editor component.
     :vartype rich_text_editor: RichTextEditor
     """
-
-    lookup_requested = Signal(str)
-    """
-    :py:class:`~PyQt6.QtCore.Signal` (str). Emitted when a user requests
-    a lookup carrying the text they want to lookup.
-    """
     
     def __init__(self, current_settings, parent=None) -> None:
         """
@@ -47,6 +43,8 @@ class ChapterEditor(BaseEditor):
         :rtype: None
         """
         super().__init__(parent)
+
+        bus.register_instance(self)
 
         self.current_settings = current_settings
         self.wpm = current_settings['words_per_minute']
@@ -100,25 +98,26 @@ class ChapterEditor(BaseEditor):
         # Add the splitter to the main layout
         main_layout.addWidget(editor_splitter)
 
-        # --- Signal Connections ---
-        self.text_editor.content_changed.connect(self._update_stats_display)
-        self.text_editor.selection_changed.connect(self._update_stats_display)
-        self.text_editor.popup_lookup_requested.connect(self.lookup_requested.emit)
-
         self.setEnabled(False)
 
-    def _update_stats_display(self) -> None:
+    @receiver(Events.CONTENT_CHANGED)
+    @receiver(Events.SELECTION_CHANGED)
+    def _update_stats_display(self, data: dict) -> None:
         """
         Calculates and updates the real-time statistics labels based on 
         the selected text or the full content if no text is selected.
 
-        This method is connected to the :py:attr:`~.RichTextEditor.content_changed`
-        and :py:attr:`~.RichTextEditor.selection_changed` signals.
+        :param data: The data emiited by the Event in the EventBus.
+        :type data: dict
 
         :rtype: None
         """
-        # 1. Check for selected text first
-        selected_text = self.text_editor.get_selected_text()
+        editor = data.get('editor')
+        if editor != self.text_editor:
+            return # Ensure we are getting our own Text Editor
+
+        # Check for selected text first
+        selected_text = data.get('selected_text')
         
         if selected_text:
             # Stats for SELECTED text
@@ -129,16 +128,17 @@ class ChapterEditor(BaseEditor):
             source_text = self.text_editor.get_plain_text()
             label_prefix = "Total"
 
-        # 2. Calculate statistics
+        # Calculate statistics
         word_count = calculate_word_count(source_text)
         char_count_with_spaces = calculate_character_count(source_text, include_spaces=True)
         read_time_str = calculate_read_time(word_count, self.wpm)
 
-        # 3. Update UI Labels with dynamic prefix
+        # Update UI Labels with dynamic prefix
         self.word_count_label.setText(f"{label_prefix} Words: {word_count:,}")
         self.char_count_label.setText(f"{label_prefix} Chars: {char_count_with_spaces:,}")
         self.read_time_label.setText(f"Read Time: {read_time_str} (WPM: {self.wpm})")
 
+    @receiver(Events.WPM_CHANGED)
     def set_wpm(self, new_wpm: int) -> None:
         """
         Updates the WPM setting and recalculates the statistics display.
@@ -176,7 +176,8 @@ class ChapterEditor(BaseEditor):
         self.text_editor.set_html_content(html_content)
         self._update_stats_display()
 
-    def display_lookup_result(self, entity_type: str, title: str, content: str) -> None:
+    @receiver(Events.LOOKUP_RESULT)
+    def display_lookup_result(self, data: dict) -> None:
         """
         Creates and displays a small, modal dialog containing the content of the linked entity.
         
@@ -189,6 +190,10 @@ class ChapterEditor(BaseEditor):
 
         :rtype: None
         """
+        entity_type = data.get('entity_type')
+        title = data.get('title')
+        content = data.get('content')
+
         # 1. Close the old dialog if it's still open
         if self.current_lookup_dialog is not None:
             self.current_lookup_dialog.close()

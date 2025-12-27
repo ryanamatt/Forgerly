@@ -9,6 +9,9 @@ from typing import Any
 
 from .base_editor import BaseEditor
 from ...ui.widgets.basic_text_editor import BasicTextEditor
+from ...utils.constants import ViewType
+from ...utils.events import Events
+from ...utils.event_bus import bus
 
 class LoreEditor(BaseEditor):
     """
@@ -20,16 +23,6 @@ class LoreEditor(BaseEditor):
     management (dirty checks), and local validation, but does not interact 
     with repositories directly.
     """
-
-    lore_title_changed = Signal(int, str)
-    """
-    :py:class:`~PyQt6.QtCore.Signal` (int, str): Emitted when the Lore Entry's 
-    title changes, carrying the Lore Entry ID and the new title.
-    """
-    
-    # State tracking for unsaved changes
-    _initial_title = ""
-    _initial_category = ""
 
     current_lore_id: int | None = None
     """The database ID of the Lore Entry currently loaded in the editor, or :py:obj:`None`."""
@@ -44,6 +37,10 @@ class LoreEditor(BaseEditor):
         :rtype: None
         """
         super().__init__(parent)
+
+        bus.register_instance(self)
+
+        self._dirty = False
         
         # --- Sub-components ---
         self.text_editor = BasicTextEditor()
@@ -91,8 +88,6 @@ class LoreEditor(BaseEditor):
         main_layout.addWidget(content_splitter)
         
         # --- Connections: All changes trigger a dirtiness state check ---
-        self.text_editor.content_changed.connect(self._set_dirty)
-        self.tag_manager.tags_changed.connect(self._set_dirty)
         self.title_input.textChanged.connect(self._set_dirty)
         self.category_combo.currentIndexChanged.connect(self._set_dirty)
         
@@ -178,26 +173,23 @@ class LoreEditor(BaseEditor):
         
     def is_dirty(self) -> bool:
         """
-        Checks if the content in the editor has unsaved changes compared to 
-        the last loaded or saved state.
-        
-        This dynamically compares the current state of inputs with their 
-        initial values.
+        Returns the dirty flag to see if the editor is dirty.
         
         :returns: True if changes are detected, False otherwise.
         :rtype: bool
         """
+        return self._dirty or super().is_dirty()
+    
+    def _set_dirty(self) -> None:
+        """
+        Sets the dirty flag to be True.
+        
+        :rtype: None
+        """
         if not self.current_lore_id:
-            return False # Nothing is loaded, so nothing is dirty
+            return False
         
-        # self.text_editor and self.tag_manager
-        if super().is_dirty():
-            return True
-
-        title_changed = self.title_input.text().strip() != self._initial_title
-        category_changed = self.category_combo.currentText().strip() != self._initial_category
-        
-        return (title_changed or category_changed)
+        self._dirty = True
 
     def mark_saved(self) -> None:
         """
@@ -208,8 +200,7 @@ class LoreEditor(BaseEditor):
         # # self.text_editor and self.tag_manager
         super().mark_saved()
 
-        self._initial_title = self.title_input.text().strip()
-        self._initial_category = self.category_combo.currentText().strip()
+        self._dirty = False
         
         
     def set_enabled(self, enabled: bool) -> None:
@@ -226,14 +217,6 @@ class LoreEditor(BaseEditor):
 
         self.title_input.setEnabled(enabled)
         self.category_combo.setEnabled(enabled)
-        
-    def _set_dirty(self) -> None:
-        """
-        Placeholder for dirtiness signals. Actual dirtiness is checked in is_dirty().
-        
-        :rtype: None
-        """
-        pass
 
     def _emit_title_change(self) -> None:
         """
@@ -242,7 +225,12 @@ class LoreEditor(BaseEditor):
         :rtype: None
         """
         if self.current_lore_id is not None:
-             self.lore_title_changed.emit(self.current_lore_id, self.title_input.text().strip())
+            bus.publish(Events.OUTLINE_NAME_CHANGE, data={
+                'editor': self,
+                'ID': self.current_lore_id,
+                'title': self.title_input.text().strip(),
+                'view': ViewType.LORE_EDITOR
+            })
 
     def get_save_data(self) -> dict:
         """
@@ -270,13 +258,12 @@ class LoreEditor(BaseEditor):
         id, title, content = data['ID'], data['Title'], data['Content']
         category, tags = data['Category'], data['tags']
 
+        self.current_lore_id = id
+
         self.title_input.setText(title)
         self.text_editor.set_html_content(content)
         self.category_combo.setCurrentText(category)
         self.tag_manager.set_tags(tags)
-
-        self._initial_title = title
-        self._initial_category = category
 
         self.mark_saved()
         self.set_enabled(True)

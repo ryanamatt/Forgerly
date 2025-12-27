@@ -32,7 +32,7 @@ class EntityType:
     CHARACTER = "Character"
     """The Character Entity"""
 
-    Note = "Note"
+    NOTE = "Note"
     """The Note Entity"""
 
     RELATIONSHIP = "Relationship"

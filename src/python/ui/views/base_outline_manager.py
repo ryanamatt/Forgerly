@@ -8,6 +8,8 @@ from PySide6.QtCore import Qt, Signal, QPoint
 
 from ..widgets.nested_tree_widget import NestedTreeWidget
 from ..widgets.reordering_tree_widget import ReorderingTreeWidget
+from ...utils.events import Events
+from ...utils.event_bus import bus, receiver
 
 class BaseOutlineManager(QWidget):
     """
@@ -56,6 +58,8 @@ class BaseOutlineManager(QWidget):
         :rtype: None
         """
         super().__init__(parent)
+
+        bus.register_instance(self)
 
         self.project_title = project_title
         self.id_role = id_role

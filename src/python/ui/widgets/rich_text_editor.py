@@ -14,6 +14,8 @@ from ...resources_rc import *
 from .basic_text_editor import BasicTextEditor
 from ...utils.logger import get_logger
 from ...utils.exceptions import EditorContentError
+from ...utils.event_bus import bus
+from ...utils.events import Events
 
 logger = get_logger(__name__)
 
@@ -35,12 +37,6 @@ class RichTextEditor(BasicTextEditor):
     :vartype editor: :py:class:`PyQt6.QtWidgets.QTextEdit`
     """
 
-    popup_lookup_requested = Signal(str)
-    """
-    :py:class:`~PyQt6.QtCore.Signal` (str): Emitted to when the user wants to lookup
-        something in the editor. Contains the Name of whatever it is they want to lookup.
-    """
-
     def __init__(self, parent=None) -> None:
         """
         Initializes the RichTextEditor and connects its signals
@@ -53,6 +49,8 @@ class RichTextEditor(BasicTextEditor):
         super().__init__(parent)
 
         logger.debug("Initializing RichTextEditor (including its toolbar).")
+
+        bus.register_instance(self)
 
         # Map display names to their corresponding QTextFormat block level
         self._block_style_map = {
@@ -654,7 +652,11 @@ class RichTextEditor(BasicTextEditor):
                 selected_text = self.get_selected_text().strip()
 
                 if selected_text:
-                    self.popup_lookup_requested.emit(selected_text)
+
+                    bus.publish(Events.LOOKUP_REQUESTED, data={
+                        'editor': self,
+                        'selected_text': selected_text
+                    })
 
                     event.accept()
                     logger.debug(f"Lookup shortcut (Ctrl+Shift+L) activated for text: '{selected_text[:30]}...'")

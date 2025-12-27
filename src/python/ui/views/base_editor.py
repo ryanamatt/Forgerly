@@ -1,7 +1,11 @@
 # src/python/ui/views/base_editor.py
 
 from PySide6.QtWidgets import QWidget
+from PySide6.QtGui import QCloseEvent
+
 from ...ui.widgets.tag_widget import TagManagerWidget
+from ...utils.event_bus import bus
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..widgets.basic_text_editor import BasicTextEditor
@@ -22,9 +26,35 @@ class BaseEditor(QWidget):
         """
         super().__init__(parent)
 
+        bus.register_instance(self)
+
+        self._dirty = False
+
         self.tag_manager = TagManagerWidget()
         # Common text editor reference (to be initialized by subclasses)
         self.text_editor: BasicTextEditor | None = None
+
+    def __del__(self) -> None:
+        """
+        Deleting a BaseEditor.
+        
+        :rtype: None
+        """
+        try:
+            bus.unregister_instance(self)
+        except:
+            pass
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """
+        Handling cleanup after closing the Widget.
+        
+        :param event: The closing event.
+        :type event: QCloseEvent
+
+        :rtype: None
+        """
+        super().closeEvent()
 
     def is_dirty(self) -> bool:
         """
@@ -34,8 +64,13 @@ class BaseEditor(QWidget):
         :returns: True if content or tags are modified, ``False`` otherwise.
         :rtype: bool
         """
-        text_dirty =  self.text_editor.is_dirty() or self.tag_manager.is_dirty()
-        return text_dirty or self.tag_manager.is_dirty()
+        return self.text_editor.is_dirty() or self.tag_manager.is_dirty() or self._dirty
+    
+    def set_dirty(self) -> None:
+        """
+        Sets the text_editor and tag_manager to be dirty.
+        """
+        self._dirty = True
     
     def mark_saved(self) -> None:
         """
@@ -46,6 +81,8 @@ class BaseEditor(QWidget):
         if self.text_editor:
             self.text_editor.mark_saved()
         self.tag_manager.mark_saved()
+
+        self._dirty = False
 
     def set_enabled(self, enabled: bool) -> None:
         """
