@@ -45,6 +45,8 @@ class BasicTextEditor(QWidget):
 
         logger.debug("Initializing BasicTextEditor widget.")
 
+        bus.register_instance(self)
+
         # State tracking for unsaved changes
         self._is_dirty = False
         self._last_saved_content = ""

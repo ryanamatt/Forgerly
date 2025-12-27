@@ -26,6 +26,10 @@ class BaseEditor(QWidget):
         """
         super().__init__(parent)
 
+        bus.register_instance(self)
+
+        self._dirty = False
+
         self.tag_manager = TagManagerWidget()
         # Common text editor reference (to be initialized by subclasses)
         self.text_editor: BasicTextEditor | None = None
@@ -60,8 +64,13 @@ class BaseEditor(QWidget):
         :returns: True if content or tags are modified, ``False`` otherwise.
         :rtype: bool
         """
-        text_dirty =  self.text_editor.is_dirty() or self.tag_manager.is_dirty()
-        return text_dirty
+        return self.text_editor.is_dirty() or self.tag_manager.is_dirty() or self._dirty
+    
+    def set_dirty(self) -> None:
+        """
+        Sets the text_editor and tag_manager to be dirty.
+        """
+        self._dirty = True
     
     def mark_saved(self) -> None:
         """
@@ -72,6 +81,8 @@ class BaseEditor(QWidget):
         if self.text_editor:
             self.text_editor.mark_saved()
         self.tag_manager.mark_saved()
+
+        self._dirty = False
 
     def set_enabled(self, enabled: bool) -> None:
         """

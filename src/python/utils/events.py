@@ -21,6 +21,9 @@ class Events(str, Enum):
     LOAD_REQUESTED = "load.requested"
     CHECK_SAVE = "save.check"
     DATA_LOADED = "data.loaded"
+
+    # OutlineManager Name Changes
+    OUTLINE_NAME_CHANGE = "outline.name_change"
     
     # Item Creation Events
     NEW_CHAPTER_REQUESTED = "chapter.new_requested"

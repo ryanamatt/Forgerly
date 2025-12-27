@@ -10,6 +10,41 @@ from .logger import get_logger
 logger = get_logger(__name__)
 
 def receiver(topic: str, once: bool = False):
+    """
+    Decorator to mark a method as an event subscriber.
+
+    Methods decorated with this function are flagged with metadata that allows 
+    the :class:`EventBus` to automatically register them using 
+    :meth:`EventBus.register_instance`.
+
+    :param topic: The event topic string or member of the :class:`Events` enum 
+                  to subscribe to.
+    :type topic: str
+    :param once: If True, the subscription will be removed after the first 
+                 time the event is received. Defaults to False.
+    :type once: bool, optional
+
+    :return: A decorator function that adds ``_event_subscriptions`` metadata 
+             to the method.
+    :rtype: Callable
+
+    .. note::
+        This decorator does not subscribe the method to the :class:`EventBus` 
+        immediately. Subscription occurs when :meth:`EventBus.register_instance` 
+        is called on the object containing the decorated method.
+
+    **Example:**
+
+    .. code-block:: python
+
+        class MyController:
+            def __init__(self):
+                bus.register_instance(self)
+
+            @receiver("file.saved")
+            def on_save(self, data):
+                print(f"File saved with data: {data}")
+    """
     def decorator(func):
         if not hasattr(func, '_event_subscriptions'):
             func._event_subscriptions = []
@@ -269,7 +304,7 @@ class EventBus(QObject):
         :param topic: Optional filter by topic
         :type topic: str or Events
         :param limit: Maximum number of events to return. Default 20.
-        :type limitL int
+        :type limit: int
 
         :return: List of (topic, data) tuples
         :rtype: list[tuple[str, object]]

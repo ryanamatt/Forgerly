@@ -116,6 +116,7 @@ class ChapterEditor(BaseEditor):
         if editor != self.text_editor:
             return # Ensure we are getting our own Text Editor
 
+        print("CHAPTER")
 
         # Check for selected text first
         selected_text = data.get('selected_text')

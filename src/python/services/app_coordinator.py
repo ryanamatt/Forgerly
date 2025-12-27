@@ -14,7 +14,7 @@ from ..repository.relationship_repository import RelationshipRepository
 from ..utils.nf_core_wrapper import calculate_read_time
 from ..utils.constants import ViewType, EntityType
 from ..utils.events import Events
-from ..utils.event_bus import bus
+from ..utils.event_bus import bus, receiver
 
 from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
@@ -71,6 +71,8 @@ class AppCoordinator(QObject):
         :rtype: None
         """
         super().__init__()
+
+        bus.register_instance(self)
 
         self.db = db_connector
 
@@ -130,7 +132,21 @@ class AppCoordinator(QObject):
         
         # If discard proceed
         return True
-    
+
+    @receiver(Events.OUTLINE_NAME_CHANGE)
+    def save_name_change(self, data: dict) -> None:
+        """
+        Docstring for save_name_change
+        
+        :param data: Description
+        :type data: dict
+
+        :rtype: None
+        """
+        editor = data.get('editor')
+        view = data.get('view')
+        self.save_current_item(view, editor)
+
     def save_current_item(self, view: ViewType, editor: 'BaseEditor') -> bool:
         """
         General Method to save either chapter, character or a lore entry.
