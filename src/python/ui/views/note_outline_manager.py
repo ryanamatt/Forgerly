@@ -221,7 +221,7 @@ class NoteOutlineManager(BaseOutlineManager):
         
         :rtype: None
         """
-        bus.publish(Events.PRE_ITEM_CHANGE)
+        bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': EntityType.NOTE, 'ID': self.current_item_id, 'parent': self})
             
         title, ok = QInputDialog.getText(
             self, 
@@ -308,7 +308,7 @@ class NoteOutlineManager(BaseOutlineManager):
 
         :rtype: None
         """
-        bus.publish(Events.PRE_ITEM_CHANGE)
+        bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': EntityType.NOTE, 'ID': self.current_item_id, 'parent': self})
         self._delete_note(item)
 
     def find_note_item_by_id(self, note_id: int) -> QTreeWidgetItem | None:

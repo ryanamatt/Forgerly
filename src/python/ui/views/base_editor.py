@@ -123,10 +123,14 @@ class BaseEditor(QWidget):
         """
         self.tag_manager.set_tags(tag_names)
 
-    # --- Save and Load Data ---
+    # --- Save and Load Data --
     def get_save_data(self) -> dict:
         """Subclasses MUST override this to return a dict of their current UI state."""
         raise NotImplementedError("Subclasses must implement get_save_data")
+    
+    def provide_data_for_save(self) -> None:
+        """Subclasses MUST override this of their current UI state."""
+        raise NotImplementedError("Sublcasses must implement provide_data_for_save")
 
     def load_entity(self, data: dict):
         """Subclasses MUST override this to populate UI and reset initial state."""

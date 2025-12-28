@@ -326,6 +326,28 @@ class CharacterEditor(BaseEditor):
             "tags": self.get_tags()
         }
     
+    @receiver(Events.SAVE_REQUESTED)
+    def provide_data_for_save(self, data: dict):
+        """
+        If this editor is dirty, it sends its current content back to the coordinator.
+
+        :param data: The data of the save data.
+        :type data: dict
+
+        :rtype: None
+        """
+        if not self.is_dirty():
+            return
+        
+        if data.get('entity_type') != EntityType.CHARACTER:
+            return
+
+        save_data = self.get_save_data()
+        data |= save_data
+        data.update({'parent': self})
+
+        bus.publish(Events.SAVE_DATA_PROVIDED, data=data)
+    
     @receiver(Events.DATA_LOADED)
     def load_entity(self, data: dict) -> None:
         """
