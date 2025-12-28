@@ -38,18 +38,6 @@ class ViewManager(QObject):
     carrying the new ViewType.
     """
 
-    save_requested = Signal(object, int) # (editor_instance, ViewType)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (editor ,ViewType). Emitted When a save is requested
-    carrying the Editor, View
-    """
-
-    load_requested = Signal(int, int)    # (item_id, ViewType)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (editor ,ViewType). Emitted When a load is requested
-    carrying the item_id, View
-    """
-
     new_chapter_requested = Signal()
     """
     :py:class:`~PySide6.QtCore.Signal` Emitted When a new Chapter is requested. Use when
@@ -66,44 +54,6 @@ class ViewManager(QObject):
     """
     :py:class:`~PySide6.QtCore.Signal`  Emitted When a new Character is requested. Use when
     MainMenuBar wants to created a new item.
-    """
-
-    item_selected = Signal(int, int)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (int, int): Emitted
-    when a item is selected in the OutlineManager containing
-    the item_id and ViewType.
-    """
-
-    check_save = Signal(int, object)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (int, object): Emitted 
-    when checking if needed to save before moving on. Contains
-    the current current view and current editor.
-    """
-
-    lore_categories_changed = Signal(list)
-    """
-    :py:class:`~PySide6.QtCore.Signal` Emitted when the list of available 
-    categories is refreshed containing list[str] of all unique category names.
-    """
-
-    refresh_lore_categories = Signal()
-    """
-    :py:class:`~PySide6.QtCore.Signal` Emitted when changing the view to 
-    Lore to refresh all existing Lore Categories.
-    """
-
-    relay_lookup_requested = Signal(str)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (str). Emitted When a lookup is requested carrying
-    the text to lookup.
-    """
-
-    relay_return_lookup_requested = Signal(str, str, str)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (str, str, str) Emitted when returning a lookup. 
-    Carries the (EntityType, Name of Entity, Description of Entity)
     """
 
     graph_load_requested = Signal()
@@ -163,31 +113,6 @@ class ViewManager(QObject):
     the relationship types are recieved containing a list
     of the names of the Relationship Types.
     """
-
-    request_reorder_chapter = Signal(list)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (list[tuple[int, int]]): Emitted to request the 
-    reorder of chapters containing a list of all chapters to reorder.
-    """
-
-    request_rename_chapter = Signal(int, str)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (int, str): Emitted when renaming an item
-    in the tree widget containing the (ID, New Name).
-    """
-
-    request_create_chapter = Signal(str, int)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (str, int): Emitted when creating a new
-    item on the outline manager containing the (Title, Sort_Order).
-    """
-
-    request_delete_chapter = Signal(int)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (int): Emiited when deleting a new
-    item on the outline manager containing (ID).
-    """
-
 
     def __init__(self, outline_stack: QStackedWidget, editor_stack: QStackedWidget) -> None:
         """
@@ -321,7 +246,6 @@ class ViewManager(QObject):
             
         elif view == ViewType.LORE_EDITOR:
             # Refresh category dropdowns for the lore editor
-            self.refresh_lore_categories.emit()
             bus.publish(Events.LORE_CATEGORIES_REFRESH)
             entity_type = EntityType.LORE
 

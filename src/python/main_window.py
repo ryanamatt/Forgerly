@@ -285,11 +285,6 @@ class MainWindow(QMainWindow):
         """
         logger.info("Connecting all application UI and data components.")
 
-        # ViewManager Saving/Loading to AppCoordinator Saving/Loading
-        self.view_manager.check_save.connect(self.coordinator.check_and_save_dirty)
-        self.view_manager.load_requested.connect(self.coordinator.load_item)
-        self.coordinator.data_loaded.connect(self._distribute_data_to_editor)
-
         # MainMenuBar Save Connection
         self.main_menu_bar.save_requested.connect(self._on_save_triggered)
 
@@ -313,10 +308,6 @@ class MainWindow(QMainWindow):
         # Connect Main Menu Project Stats Dialog Openm
         self.main_menu_bar.project_stats_requested.connect(self._open_project_stats_dialog)
 
-        # Lore Categories Refresh
-        self.coordinator.lore_categories_changed.connect(self.view_manager.lore_categories_changed)
-        self.view_manager.refresh_lore_categories.connect(self.coordinator.refresh_lore_categories)
-
         # --- Relationship Graph Wiring (The "Glue") ---
 
         # Requests from ViewManager to Coordinator
@@ -334,15 +325,15 @@ class MainWindow(QMainWindow):
 
     # --- Coordinator/ViewManager ---
 
-    def _distribute_data_to_editor(self, data) -> None:
-        """
-        Distributes data to Edtior
+    # def _distribute_data_to_editor(self, data) -> None:
+    #     """
+    #     Distributes data to Edtior
         
-        :rtype: None
-        """
-        editor = self.view_manager.get_current_editor()
-        if editor:
-            editor.load_entity(data)
+    #     :rtype: None
+    #     """
+    #     editor = self.view_manager.get_current_editor()
+    #     if editor:
+    #         editor.load_entity(data)
 
     def _on_save_triggered(self) -> None:
         """
