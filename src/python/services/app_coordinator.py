@@ -125,8 +125,13 @@ class AppCoordinator(QObject):
         if save_reply == QMessageBox.StandardButton.Cancel:
             return False
         
+        map = {ViewType.CHAPTER_EDITOR: EntityType.CHAPTER, ViewType.LORE_EDITOR: EntityType.LORE,
+               ViewType.CHARACTER_EDITOR: EntityType.CHARACTER, ViewType.NOTE_EDITOR: EntityType.NOTE}
+        
         if save_reply == QMessageBox.StandardButton.Save:
-            return self.save_current_item(view=view, editor=editor)
+            data = {'entity_type': map.get(view), 'ID': self.current_item_id}
+            data |= editor.get_save_data()
+            return self.save_current_item_bus(data=data)
         
         # If discard proceed
         return True
@@ -238,7 +243,6 @@ class AppCoordinator(QObject):
         # If discard proceed
         return True
 
-    
     def save_current_item_bus(self, data: dict) -> None:
         """
         New Function for save the current item using the event bus.
@@ -249,10 +253,10 @@ class AppCoordinator(QObject):
         content_success, tag_success = False, False
 
         entity_type = data.pop('entity_type')
-        id = data.pop('id')
+        id = data.pop('ID')
         tags = data.pop('tags')
 
-        match type:
+        match entity_type:
             case EntityType.CHAPTER:
                 content_success = self.chapter_repo.update_chapter_content(id, **data)
                 tag_success = self.tag_repo.set_tags_for_chapter(id, tags)
@@ -380,58 +384,14 @@ class AppCoordinator(QObject):
 
         bus.publish(Events.OUTLINE_DATA_LOADED, return_data)
 
-    def load_item(self, item_id: int, view: ViewType) -> None:
-        """
-        Loads an items item from the database into the correct editor.
-        
-        :param item_id: The ID of the item.
-        :type item_id: int
-        :param view: The current view.
-        :type view: ViewType
-
-        :rtype: None
-        """
-        self.current_item_id = item_id
-
-        data = {}
-
-        if view == ViewType.CHAPTER_EDITOR:
-            content = self.chapter_repo.get_chapter_content(chapter_id=item_id)
-            if content is None: content = ""
-            tags_data = self.tag_repo.get_tags_for_chapter(chapter_id=item_id)
-            tag_names = [name for _, name in tags_data] if tags_data else []
-            data['ID'] = item_id
-            data['content'] = content
-            data['tags'] = tag_names
-
-        elif view == ViewType.LORE_EDITOR:
-            lore = self.lore_repo.get_lore_entry_details(lore_id=item_id)
-            tags_data = self.tag_repo.get_tags_for_lore_entry(item_id)
-            tag_names = [name for _, name in tags_data] if tags_data else []
-            data['ID'] = item_id
-            data |= lore
-            data['tags'] = tag_names
-
-        elif view == ViewType.CHARACTER_EDITOR:
-            data = self.character_repo.get_character_details(char_id=item_id)
-
-        elif view == ViewType.NOTE_EDITOR:
-            content = self.note_repo.get_note_content(note_id=item_id)
-            tags_data = self.tag_repo.get_tags_for_note(item_id)
-            tag_names = [name for _, name in tags_data] if tags_data else []
-            data['ID'] = item_id
-            data['content'] = content
-            data['tags'] = tag_names
-
-        self.data_loaded.emit(data)
-
     @receiver(Events.ITEM_SELECTED)
-    def load_item_bus(self, data: dict) -> None:
+    def load_item(self, data: dict) -> None:
         """
-        Docstring for load_item_bus
+        Called when an item in the OutlineManager is selected and
+        the data is needed to load that item.
         
-        :param self: Description
-        :param data: Description
+        :param data: The data dictionary containng {'entity_type': EntityType,
+        'ID': int (item_id)}
         :type data: dict
         """
         entity_type = data.get('entity_type')
@@ -613,7 +573,7 @@ class AppCoordinator(QObject):
         return result
     
     @receiver(Events.LORE_CATEGORIES_REFRESH)
-    def refresh_lore_categories(self) -> None:
+    def refresh_lore_categories(self, data: dict) -> None:
         """
         Fetches unique categories and notifies the Lore Editor.
         
