@@ -18,6 +18,7 @@ class Events(str, Enum):
     
     # Save/Load Events
     SAVE_REQUESTED = "save.requested"
+    SAVE_DATA_PROVIDED = "save.data_provided"
     LOAD_REQUESTED = "load.requested"
     CHECK_SAVE = "save.check"
     DATA_LOADED = "data.loaded"

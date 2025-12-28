@@ -90,51 +90,51 @@ class AppCoordinator(QObject):
 
     # --- Save / Dirty Check Logic (Core Business Logic) ---
 
-    def check_and_save_dirty(self, view: ViewType, editor: 'BaseEditor', parent=None) -> bool:
-        """
-        Prompts the user to save if the active editor is dirty.
-        Returns True if safe to proceed (saved or discarded), False otherwise (canceled).
+    # def check_and_save_dirty(self, view: ViewType, editor: 'BaseEditor', parent=None) -> bool:
+    #     """
+    #     Prompts the user to save if the active editor is dirty.
+    #     Returns True if safe to proceed (saved or discarded), False otherwise (canceled).
 
-        :param view: The current view.
-        :type view: 'ViewType'
-        :param editor: The current editor.
-        :type editor: 'BaseEditor'
-        :param parent: The parent. Default is None.
-        :type parent: :py:class:`~PySide6.QtWidgets.QWidget`
+    #     :param view: The current view.
+    #     :type view: 'ViewType'
+    #     :param editor: The current editor.
+    #     :type editor: 'BaseEditor'
+    #     :param parent: The parent. Default is None.
+    #     :type parent: :py:class:`~PySide6.QtWidgets.QWidget`
 
-        :returns: Returns True if saved, otherwise False
-        :rtype: bool
-        """
-        if view == ViewType.RELATIONSHIP_GRAPH:
-            return True
+    #     :returns: Returns True if saved, otherwise False
+    #     :rtype: bool
+    #     """
+    #     if view == ViewType.RELATIONSHIP_GRAPH:
+    #         return True
 
-        if self.current_item_id == 0 or not view:
-            return True # No item loeaded
+    #     if self.current_item_id == 0 or not view:
+    #         return True # No item loeaded
         
-        if not editor.is_dirty():
-            return True # Editor is clean
+    #     if not editor.is_dirty():
+    #         return True # Editor is clean
         
-        save_reply = QMessageBox.question(
-            parent, # Use parent for dialog centering
-            "Unsaved Changes",
-            f"The current item has unsaved changes. Do you want to save before continuing?",
-            QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Save
-        )
+    #     save_reply = QMessageBox.question(
+    #         parent, # Use parent for dialog centering
+    #         "Unsaved Changes",
+    #         f"The current item has unsaved changes. Do you want to save before continuing?",
+    #         QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+    #         QMessageBox.StandardButton.Save
+    #     )
 
-        if save_reply == QMessageBox.StandardButton.Cancel:
-            return False
+    #     if save_reply == QMessageBox.StandardButton.Cancel:
+    #         return False
         
-        map = {ViewType.CHAPTER_EDITOR: EntityType.CHAPTER, ViewType.LORE_EDITOR: EntityType.LORE,
-               ViewType.CHARACTER_EDITOR: EntityType.CHARACTER, ViewType.NOTE_EDITOR: EntityType.NOTE}
+    #     map = {ViewType.CHAPTER_EDITOR: EntityType.CHAPTER, ViewType.LORE_EDITOR: EntityType.LORE,
+    #            ViewType.CHARACTER_EDITOR: EntityType.CHARACTER, ViewType.NOTE_EDITOR: EntityType.NOTE}
         
-        if save_reply == QMessageBox.StandardButton.Save:
-            data = {'entity_type': map.get(view), 'ID': self.current_item_id}
-            data |= editor.get_save_data()
-            return self.save_current_item_bus(data=data)
+    #     if save_reply == QMessageBox.StandardButton.Save:
+    #         data = {'entity_type': map.get(view), 'ID': self.current_item_id}
+    #         data |= editor.get_save_data()
+    #         return self.save_current_item(data=data)
         
-        # If discard proceed
-        return True
+    #     # If discard proceed
+    #     return True
 
     @receiver(Events.OUTLINE_NAME_CHANGE)
     def save_name_change(self, data: dict) -> None:
@@ -169,50 +169,20 @@ class AppCoordinator(QObject):
 
         bus.publish(Events.OUTLINE_LOAD_REQUESTED, data=data)
 
-    def save_current_item(self, view: ViewType, editor: 'BaseEditor') -> bool:
+    @receiver(Events.PRE_ITEM_CHANGE)
+    def handle_pre_change_request(self, data: dict) -> None:
         """
-        General Method to save either chapter, character or a lore entry.
+        Called before a UI change (like switching chapters). 
+        Tells the current active editor to provide its data if dirty.
+        
+        :param data: Description
+        :type data: dict
 
-        :param view: The current view.
-        :type view: 'ViewType'
-        :param editor: The current editor.
-        :type editor: 'BaseEditor'
-
-        :returns: Returns True if saved, otherwise False
-        :rtype: bool
+        :rtype: None
         """
-        if view == ViewType.RELATIONSHIP_GRAPH or self.current_item_id <= 0:
-            return True
+        bus.publish(Events.SAVE_REQUESTED, data=data)
 
-        if not editor:
-            return False
-        
-        data = editor.get_save_data()
-        tags = data.pop('tags', [])
-        
-        match view:
-            case ViewType.CHAPTER_EDITOR:
-                content_success = self.chapter_repo.update_chapter_content(self.current_item_id, **data)
-                tag_success = self.tag_repo.set_tags_for_chapter(self.current_item_id, tags)
-
-            case ViewType.CHARACTER_EDITOR:
-                content_success = self.character_repo.update_character(self.current_item_id, **data)
-                tag_success = True # No Tags for Character
-
-            case ViewType.LORE_EDITOR:
-                content_success = self.lore_repo.update_lore_entry(self.current_item_id, **data)
-                tag_success = self.tag_repo.set_tags_for_lore_entry(self.current_item_id, tags)
-
-            case ViewType.NOTE_EDITOR:
-                content_success = self.note_repo.update_note_content(self.current_item_id, **data)
-                tag_success = self.tag_repo.set_tags_for_note(self.current_item_id, tags)
-            
-        if content_success and tag_success:
-            editor.mark_saved()
-            return True
-        
-        return False
-
+    @receiver(Events.SAVE_DATA_PROVIDED)
     def check_and_save_dirty_bus(self, data: dict) -> None:
         """
         New Check and Save Dirty function for the event bus.
@@ -221,7 +191,7 @@ class AppCoordinator(QObject):
         :type data: dict
         """
         id = data.get('ID')
-        parent = data.get('parent')
+        parent = data.pop('parent')
 
         if id == 0 or not parent:
             return True # No item loaded
@@ -238,17 +208,20 @@ class AppCoordinator(QObject):
             return False
         
         if save_reply == QMessageBox.StandardButton.Save:
-            return self.save_current_item_bus(data=data)
+            return self.save_current_item(data=data)
         
         # If discard proceed
         return True
 
-    def save_current_item_bus(self, data: dict) -> None:
+    def save_current_item(self, data: dict) -> None:
         """
-        New Function for save the current item using the event bus.
+        This functions saves the current item to the database.
         
-        :param data: Description
+        :param data: The dictionary of data containing {entity_type: EntityType,
+            'ID': int (Item ID), 'tags': list[str] (list of the tags)}
         :type data: dict
+
+        :rtype: None
         """
         content_success, tag_success = False, False
 
@@ -265,7 +238,7 @@ class AppCoordinator(QObject):
                 content_success = self.character_repo.update_character(id, **data)
                 tag_success = True # No Tags for Character
 
-            case EntityType.CHARACTER:
+            case EntityType.LORE:
                 content_success = self.lore_repo.update_lore_entry(id, **data)
                 tag_success = self.tag_repo.set_tags_for_lore_entry(self.current_item_id, tags)
 

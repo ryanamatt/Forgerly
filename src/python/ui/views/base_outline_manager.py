@@ -18,23 +18,23 @@ class BaseOutlineManager(QWidget):
     Consolidates UI setup, search, and common tree interactions.
     """
 
-    item_selected = Signal(int)
-    """
-    :py:class:`~PyQt6.QtCore.Signal` (int): Emitted when an item is 
-    selected, carrying the item ID.
-    """
+    # item_selected = Signal(int)
+    # """
+    # :py:class:`~PyQt6.QtCore.Signal` (int): Emitted when an item is 
+    # selected, carrying the item ID.
+    # """
 
-    new_item_created = Signal()
-    """
-    :py:class:`~PyQt6.QtCore.Signal`: Emmited when a new item is created
-    telling MainWindow to switch the view.
-    """
+    # new_item_created = Signal()
+    # """
+    # :py:class:`~PyQt6.QtCore.Signal`: Emmited when a new item is created
+    # telling MainWindow to switch the view.
+    # """
 
-    pre_item_change = Signal()
-    """
-    :py:class:`~PyQt6.QtCore.Signal` (): Emitted before a new item is 
-    selected, allowing the main window to save the current item state.
-    """
+    # pre_item_change = Signal()
+    # """
+    # :py:class:`~PyQt6.QtCore.Signal` (): Emitted before a new item is 
+    # selected, allowing the main window to save the current item state.
+    # """
 
     def __init__(self, project_title: str, header_text: str, id_role: int,
                  search_placeholder: str = "Search...", is_nested_tree: bool = False,
@@ -59,6 +59,8 @@ class BaseOutlineManager(QWidget):
         :rtype: None
         """
         super().__init__(parent)
+
+        self.current_item_id = 0
 
         bus.register_instance(self)
 
@@ -141,13 +143,13 @@ class BaseOutlineManager(QWidget):
         :rtype: None
         """
         item_id = item.data(0, self.id_role)
+
         if isinstance(item_id, int) and item_id > 0:
-            self.pre_item_change.emit()
-            bus.publish(Events.PRE_ITEM_CHANGE)
+            bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': self.type, 'ID': self.current_item_id, 'parent': self})
+            self.current_item_id = item_id
             bus.publish(Events.ITEM_SELECTED, data={
                 'entity_type': self.type, 'ID': item_id
             })
-            self.item_selected.emit(item_id)
 
     # -------------------------------------------------------
     # Abstract/Virtual Methods to be overridden by subclasses

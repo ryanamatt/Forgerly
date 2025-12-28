@@ -192,7 +192,7 @@ class CharacterOutlineManager(BaseOutlineManager):
         
         :rtype: None
         """
-        bus.publish(Events.PRE_ITEM_CHANGE)
+        bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': EntityType.CHARACTER, 'ID': self.current_item_id, 'parent': self})
         
         name, ok = QInputDialog.getText(
             self, 
@@ -278,7 +278,7 @@ class CharacterOutlineManager(BaseOutlineManager):
 
         :rtype: None
         """
-        bus.publish(Events.PRE_ITEM_CHANGE)
+        bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': EntityType.CHARACTER, 'ID': self.current_item_id, 'parent': self})
         self._delete_chapter(item)
 
     def find_character_item_by_id(self, char_id: int) -> QTreeWidgetItem | None:

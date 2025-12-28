@@ -181,8 +181,7 @@ class MainWindow(QMainWindow):
         """
 
         # If check_and_save_dirty returns False, the user canceled the exit.
-        can_exit = self.coordinator.check_and_save_dirty(self.view_manager.get_current_view(),
-                                                     self.view_manager.get_current_editor(), parent=self)
+        can_exit = self.save_helper()
         if not can_exit:
             logger.debug("Close event ignored: User canceled due to unsaved changes.")
             event.ignore()
@@ -335,6 +334,26 @@ class MainWindow(QMainWindow):
     #     if editor:
     #         editor.load_entity(data)
 
+    def save_helper(self):
+        """
+        TEMP Helper function for saving while moving from signals
+        to event bus.
+        """
+        editor = self.view_manager.get_current_editor()
+        view = self.view_manager.get_current_view()
+
+        if not editor.is_dirty():
+            return True
+
+        map = {ViewType.CHAPTER_EDITOR: EntityType.CHAPTER, ViewType.LORE_EDITOR: EntityType.LORE,
+                ViewType.CHARACTER_EDITOR: EntityType.CHARACTER, ViewType.NOTE_EDITOR: EntityType.NOTE}
+        
+        data = {'entity_type': map.get(view), 'parent': self, 'ID': self.coordinator.current_item_id}
+        data |= editor.get_save_data()
+
+        return self.coordinator.check_and_save_dirty_bus(data=data)
+
+
     def _on_save_triggered(self) -> None:
         """
         Called When Save is triggered
@@ -343,16 +362,23 @@ class MainWindow(QMainWindow):
         """
         editor = self.view_manager.get_current_editor()
         view = self.view_manager.get_current_view()
-        self.coordinator.save_current_item(view=view, editor=editor)
 
-    @receiver(Events.PRE_ITEM_CHANGE)
-    def _on_item_change(self, data: dict) -> None:
-        """
-        Called when PRE_ITEM_CHANGE is emittted to change and save.
-        """
-        editor = self.view_manager.get_current_editor()
-        view = self.view_manager.get_current_view()
-        self.coordinator.check_and_save_dirty(view=view, editor=editor)
+        map = {ViewType.CHAPTER_EDITOR: EntityType.CHAPTER, ViewType.LORE_EDITOR: EntityType.LORE,
+                ViewType.CHARACTER_EDITOR: EntityType.CHARACTER, ViewType.NOTE_EDITOR: EntityType.NOTE}
+        
+        data = {'entity_type': map.get(view), 'ID': self.coordinator.current_item_id}
+        data |= editor.get_save_data()
+
+        return self.coordinator.save_current_item(data=data)
+
+    # @receiver(Events.PRE_ITEM_CHANGE)
+    # def _on_item_change(self, data: dict) -> None:
+    #     """
+    #     Called when PRE_ITEM_CHANGE is emittted to change and save.
+    #     """
+    #     editor = self.view_manager.get_current_editor()
+    #     view = self.view_manager.get_current_view()
+    #     self.coordinator.check_and_save_dirty(view=view, editor=editor)
 
     # --- For Creating/Opening other Projects ---
 
@@ -373,8 +399,7 @@ class MainWindow(QMainWindow):
 
         # Check for and save unsaved changes before switching
         # The coordinator handles the QMessageBox logic and returns False if the user cancels.
-        if not self.coordinator.check_and_save_dirty(self.view_manager.get_current_view(),
-                                                     self.view_manager.get_current_editor(), parent=self):
+        if not self.save_helper():
             logger.info(f"User cancelled {action} action during save prompt. Aborting switch.")
             return
 
@@ -405,8 +430,7 @@ class MainWindow(QMainWindow):
         
         # 1. Check for unsaved changes before exporting. 
         # If check_and_save_dirty returns False, the user canceled the operation.
-        if not self.coordinator.check_and_save_dirty(self.view_manager.get_current_view(),
-                                                     self.view_manager.get_current_editor(), parent=self):
+        if not self.save_helper():
             logger.info("Export canceled by user during unsaved changes check.")
             self.statusBar().showMessage("Export canceled.", 3000)
             return

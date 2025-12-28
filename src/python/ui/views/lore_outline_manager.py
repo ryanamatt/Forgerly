@@ -1,7 +1,7 @@
 # src/python/ui/lore_outline_manager.py
 
 from PySide6.QtWidgets import (
-    QTreeWidget, QTreeWidgetItem, QMenu, QInputDialog, QMessageBox, QTreeWidgetItemIterator
+    QTreeWidgetItem, QMenu, QInputDialog, QMessageBox, QTreeWidgetItemIterator
 )
 from PySide6.QtCore import Qt, QPoint
 from PySide6.QtGui import QIcon
@@ -12,8 +12,6 @@ from ...resources_rc import *
 from ...utils.constants import EntityType
 from ...utils.events import Events
 from ...utils.event_bus import bus, receiver
-
-from ...repository.lore_repository import LoreRepository
 
 class LoreOutlineManager(BaseOutlineManager):
     """
@@ -212,11 +210,9 @@ class LoreOutlineManager(BaseOutlineManager):
         Prompts the user for a new Lore Entry name, creates the Lore Entry in 
         the database, reloads the outline, and selects the new Lore Entry.
         
-        Emits :py:attr:`.pre_item_change` before prompting.
-        
         :rtype: None
         """
-        bus.publish(Events.PRE_ITEM_CHANGE)
+        bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': EntityType.LORE, 'ID': self.current_item_id, 'parent': self})
 
         title, ok = QInputDialog.getText(
             self,
@@ -293,7 +289,7 @@ class LoreOutlineManager(BaseOutlineManager):
                 
     def check_save_and_delete(self, item: QTreeWidgetItem) -> None:
         """
-        Emits :py:attr:`.pre_item_change` to ensure the currently viewed 
+        Emits PRE_ITEM_CHANGE bus event to ensure the currently viewed 
         Lore Entry is saved, then triggers the deletion process.
 
         :param item: The Lore Entry item queued for deletion.
@@ -301,7 +297,7 @@ class LoreOutlineManager(BaseOutlineManager):
 
         :rtype: None
         """
-        bus.publish(Events.PRE_ITEM_CHANGE)
+        bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': EntityType.LORE, 'ID': self.current_item_id, 'parent': self})
         self._delete_lore(item)
 
     def find_lore_item_by_id(self, lore_id: int) -> QTreeWidgetItem | None:
