@@ -334,17 +334,6 @@ class RelationshipEditor(QWidget):
             )
             QMessageBox.information(self, "Success", f"Relationship creation request sent for {node_a.name} and {node_b.name}.")
 
-    def update_types_available(self, types: list[dict]) -> None:
-        """
-        Updates the internal cache of available relationship types.
-        
-        :param types: List of types to update.
-        :type types: list[dict]
-
-        :rtype: None
-        """
-        self.available_rel_types = types
-
     def load_graph(self, graph_data: dict[str, list[dict[str, Any]]]) -> None:
         """
         Recieves graph data from :py:class:`~app.services.app_coordinator.AppCoordinator` 

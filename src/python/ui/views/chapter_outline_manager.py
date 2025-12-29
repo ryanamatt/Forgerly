@@ -46,6 +46,8 @@ class ChapterOutlineManager(BaseOutlineManager):
             type=EntityType.CHAPTER
         )
 
+        self.search_input.setHidden(True)
+
         bus.register_instance(self)
 
         self.tree_widget.order_changed.connect(self._update_sort_orders)

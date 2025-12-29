@@ -105,7 +105,7 @@ class RelationshipOutlineManager(QWidget):
                 item.setForeground(QColor(color))
                 
                 self.list_widget.addItem(item)
-                
+                                
     # --- Internal Handlers ---
 
     def _handle_item_clicked(self, item: QListWidgetItem) -> None:
