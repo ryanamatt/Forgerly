@@ -611,6 +611,8 @@ class AppCoordinator(QObject):
         self.current_item_id = 0
         # self.view_manager.current_view = ViewType.RELATIONSHIP_GRAPH
 
+        self.load_relationship_types_for_editor()
+
         # Fetch all components
         relationships = self.relationship_repo.get_all_relationships_for_graph() or []
         node_positons = self.relationship_repo.get_all_node_positions() or []
