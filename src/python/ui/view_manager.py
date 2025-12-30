@@ -163,7 +163,7 @@ class ViewManager(QObject):
         rel_outline: RelationshipOutlineManager = self.outline_stack.widget(4) #RelationshipOutlineManager
 
         # Connect the internal relay signals to the specific widgets - MainMenuBar
-        self.new_chapter_requested.connect(chapter_outline.prompt_and_add_chapter)
+        # self.new_chapter_requested.connect(chapter_outline.prompt_and_add_chapter)
         self.new_lore_requested.connect(lore_outline.prompt_and_add_lore)
         self.new_character_requested.connect(char_outline.prompt_and_add_character)
 
@@ -222,10 +222,7 @@ class ViewManager(QObject):
         editor: BaseEditor = self.get_current_editor()
 
         if view == ViewType.RELATIONSHIP_GRAPH:
-            # Load Graph Data
-            # self.graph_load_requested.emit()
             bus.publish(Events.GRAPH_LOAD_REQUESTED)
-
             entity_type = EntityType.RELATIONSHIP
 
         elif view == ViewType.CHAPTER_EDITOR:

@@ -301,8 +301,8 @@ class MainWindow(QMainWindow):
         self.main_menu_bar.settings_requested.connect(self._open_settings_dialog)
 
         # Connections for MainMenuBar Projects
-        self.main_menu_bar.new_project_requested.connect(lambda: self._request_project_switch(is_new=True))
-        self.main_menu_bar.open_project_requested.connect(lambda: self._request_project_switch(is_new=False))
+        # self.main_menu_bar.new_project_requested.connect(lambda: self._request_project_switch(is_new=True))
+        # self.main_menu_bar.open_project_requested.connect(lambda: self._request_project_switch(is_new=False))
         
         # Connect Main Menu Project Stats Dialog Openm
         self.main_menu_bar.project_stats_requested.connect(self._open_project_stats_dialog)
@@ -350,36 +350,36 @@ class MainWindow(QMainWindow):
 
     # --- For Creating/Opening other Projects ---
 
-    def _request_project_switch(self, is_new: bool) -> None:
-        """
-        Handles the request to switch to a new project or open an existing one.
+    # def _request_project_switch(self, is_new: bool) -> None:
+    #     """
+    #     Handles the request to switch to a new project or open an existing one.
         
-        First, checks for unsaved changes. If safe to proceed, emits a signal 
-        to the ApplicationFlowManager to handle the window switch.
+    #     First, checks for unsaved changes. If safe to proceed, emits a signal 
+    #     to the ApplicationFlowManager to handle the window switch.
         
-        :param is_new: True if 'New Project' was requested, False if 'Open Project'.
-        :type is_new: bool
+    #     :param is_new: True if 'New Project' was requested, False if 'Open Project'.
+    #     :type is_new: bool
 
-        :rtype: None
-        """
-        action = "New Project" if is_new else "Open Existing Project"
-        logger.info(f"Project switch requested: {action}. Initiating dirty state check.")
+    #     :rtype: None
+    #     """
+    #     action = "New Project" if is_new else "Open Existing Project"
+    #     logger.info(f"Project switch requested: {action}. Initiating dirty state check.")
 
-        # Check for and save unsaved changes before switching
-        # The coordinator handles the QMessageBox logic and returns False if the user cancels.
-        if not self.save_helper():
-            logger.info(f"User cancelled {action} action during save prompt. Aborting switch.")
-            return
+    #     # Check for and save unsaved changes before switching
+    #     # The coordinator handles the QMessageBox logic and returns False if the user cancels.
+    #     if not self.save_helper():
+    #         logger.info(f"User cancelled {action} action during save prompt. Aborting switch.")
+    #         return
 
-        logger.debug(f"Dirty check passed. Emitting project close and open signal for: {action}.")
+    #     logger.debug(f"Dirty check passed. Emitting project close and open signal for: {action}.")
 
-        # Emit the signal to the ApplicationFlowManager (slot: _handle_project_switch_request in main.py)
-        if is_new:
-            self.project_new_requested.emit()
-        if is_new ==False:
-            self.project_open_requested.emit()
+    #     # Emit the signal to the ApplicationFlowManager (slot: _handle_project_switch_request in main.py)
+    #     if is_new:
+    #         self.project_new_requested.emit()
+    #     if is_new ==False:
+    #         self.project_open_requested.emit()
 
-        logger.debug(f"Signal emitted to ApplicationFlowManager. Current MainWindow is now closing.")
+    #     logger.debug(f"Signal emitted to ApplicationFlowManager. Current MainWindow is now closing.")
     
     # -------------------------------------------------------------------------
     # I/O Handlers (Export/Settings)

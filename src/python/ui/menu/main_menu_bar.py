@@ -5,8 +5,10 @@ from PySide6.QtCore import Signal
 from PySide6.QtGui import QAction, QActionGroup, QIcon
 
 from ...resources_rc import *
-from ...utils.constants import ViewType
+from ...utils.constants import ViewType, EntityType
 from ...utils.logger import get_logger
+from ...utils.events import Events
+from ...utils.event_bus import bus
 
 logger = get_logger(__name__)
 
@@ -56,17 +58,17 @@ class MainMenuBar(QMenuBar):
     The integer payload corresponds to a member of :py:class:`~app.utils.constants.ViewType`.
     """
 
-    new_project_requested = Signal()
-    """
-    :py:class:`~PyQt6.QtCore.Signal` (int): Emitted when the user selected New Project button
-        in the File Menu.
-    """
+    # new_project_requested = Signal()
+    # """
+    # :py:class:`~PyQt6.QtCore.Signal` (int): Emitted when the user selected New Project button
+    #     in the File Menu.
+    # """
 
-    open_project_requested = Signal()
-    """
-    :py:class:`~PyQt6.QtCore.Signal` (int): Emitted when the user selected Open Project button
-        in the File Menu.
-    """
+    # open_project_requested = Signal()
+    # """
+    # :py:class:`~PyQt6.QtCore.Signal` (int): Emitted when the user selected Open Project button
+    #     in the File Menu.
+    # """
 
     project_stats_requested = Signal()
     """
@@ -119,12 +121,12 @@ class MainMenuBar(QMenuBar):
         # Project Actions
         new_project_action = QAction("New Project", self)
         new_project_action.setIcon(QIcon(":icons/project-add.svg"))
-        new_project_action.triggered.connect(self.new_project_requested.emit)
+        new_project_action.triggered.connect(lambda: bus.publish(Events.PROJECT_NEW_REQUESTED))
         file_menu.addAction(new_project_action)
 
         open_project_action = QAction("Open Project", self)
         open_project_action.setIcon(QIcon(":icons/project-open.svg"))
-        open_project_action.triggered.connect(self.open_project_requested.emit)
+        open_project_action.triggered.connect(lambda: bus.publish(Events.PROJECT_OPEN_REQUESTED))
         file_menu.addAction(open_project_action)
         
         file_menu.addSeparator()

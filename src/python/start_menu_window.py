@@ -16,6 +16,9 @@ from .services.settings_manager import SettingsManager
 from .utils._version import __version__
 from .utils.exceptions import ConfigurationError
 from .utils.logger import get_logger
+from .utils.constants import EntityType
+from .utils.events import Events
+from .utils.event_bus import bus, receiver
 
 logger = get_logger(__name__)
 
@@ -45,6 +48,9 @@ class StartMenuWindow(QMainWindow):
         rtype: None
         """
         super().__init__(parent)
+
+        bus.register_instance(self)
+
         self.settings_manager = settings_manager
         self.setWindowTitle(f"Narrative Forge - Start Menu - {__version__}")
         self.setFixedSize(650, 450)
@@ -191,7 +197,7 @@ class StartMenuWindow(QMainWindow):
         """
         Opens a directory dialog for the user to select the location for a new project,
         prompts for a project name, and creates the project structure.
-        
+
         :rtype: None
         """
         logger.info("New project creation initiated.")

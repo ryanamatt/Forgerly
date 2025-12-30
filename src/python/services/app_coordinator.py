@@ -487,8 +487,6 @@ class AppCoordinator(QObject):
         :rtype: None
         """
         categories = self.lore_repo.get_unique_categories()
-        # self.lore_categories_changed.emit(categories)
-        print(categories)
         bus.publish(Events.LORE_CATEGORIES_CHANGED, data={'categories': categories})
 
     def update_note_parent_id(self, note_id: int, new_parent_id: int | None) -> bool:

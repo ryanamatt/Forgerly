@@ -9,6 +9,8 @@ from .main_window import MainWindow
 from .start_menu_window import StartMenuWindow
 from .utils.logger import setup_logger, get_logger
 from .utils.error_handler import install_system_exception_hook
+from .utils.events import Events
+from .utils.event_bus import bus, receiver
 
 class ApplicationFlowManager:
     """
@@ -23,6 +25,9 @@ class ApplicationFlowManager:
 
         :rtype: None
         """ 
+
+        bus.register_instance(self)
+
         self.app = app
         
         # 1. Instantiate Application-wide Service
@@ -124,21 +129,33 @@ class ApplicationFlowManager:
 
         self.main_window.show()
 
-    def _handle_project_switch_request(self, is_new: bool) -> None:
+    @receiver(Events.PROJECT_NEW_REQUESTED)
+    def handle_new_project_request(self, data: dict = None) -> None:
         """
-        Slot to handle the signal from MainWindow to switch back to the Start Menu.
+        Handles event to switch to Start Menu for a new project.
         
-        :param is_new: True if 'New Project' was requested, False if 'Open Project'.
-        :type is_new: bool
+        :param data: Empty Dict, No needed parameters.
+        :type data: dict
 
         :rtype: None
         """
-        # The MainWindow has already checked for and handled dirty state
+        if self.main_window and not self.main_window.save_helper():
+            return  # User cancelled due to unsaved changes
+        self.show_start_menu(is_new_project=True)
 
-        # 'show_start_menu' will close 'main_window' and clear 'last_project_path'
-        # The 'is_new' flag is passed to potentially open the dialog immediately
-        self.show_start_menu(is_new_project=is_new)
+    @receiver(Events.PROJECT_OPEN_REQUESTED)
+    def handle_open_project_request(self, data: dict = None) -> None:
+        """
+        Handles event to switch to Start Menu to open an existing project.
+        
+        :param data: Empty Dict, No needed parameters.
+        :type data: dict
 
+        :rtype: None
+        """
+        if self.main_window and not self.main_window.save_helper():
+            return
+        self.show_start_menu(is_new_project=False)
 
 def main() -> None:
     """
