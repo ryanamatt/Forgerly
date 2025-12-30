@@ -307,32 +307,9 @@ class MainWindow(QMainWindow):
         # Connect Main Menu Project Stats Dialog Openm
         self.main_menu_bar.project_stats_requested.connect(self._open_project_stats_dialog)
 
-        # --- Relationship Graph Wiring (The "Glue") ---
-
-        # Requests from ViewManager to Coordinator
-        self.view_manager.graph_load_requested.connect(self.coordinator.load_relationship_graph_data)
-        # self.view_manager.rel_types_requested.connect(self.coordinator.load_relationship_types_for_editor)
-        self.view_manager.node_attributes_save_requested.connect(self.coordinator.save_node_position)
-        self.view_manager.relationship_create_requested.connect(self.coordinator.save_new_relationship)
-        self.view_manager.relationship_delete_requested.connect(self.coordinator.handle_relationship_deletion)
-
-        # Data back from Coordinator to ViewManager
-        self.coordinator.graph_data_loaded.connect(self.view_manager.graph_data_received)
-        self.coordinator.relationship_types_available.connect(self.view_manager.rel_types_received)
-
         logger.info("Component signal connections complete.")
 
     # --- Coordinator/ViewManager ---
-
-    # def _distribute_data_to_editor(self, data) -> None:
-    #     """
-    #     Distributes data to Edtior
-        
-    #     :rtype: None
-    #     """
-    #     editor = self.view_manager.get_current_editor()
-    #     if editor:
-    #         editor.load_entity(data)
 
     def save_helper(self):
         """
@@ -351,7 +328,7 @@ class MainWindow(QMainWindow):
         data = {'entity_type': map.get(view), 'parent': self, 'ID': self.coordinator.current_item_id}
         data |= editor.get_save_data()
 
-        return self.coordinator.check_and_save_dirty_bus(data=data)
+        return self.coordinator.check_and_save_dirty(data=data)
 
 
     def _on_save_triggered(self) -> None:
@@ -370,15 +347,6 @@ class MainWindow(QMainWindow):
         data |= editor.get_save_data()
 
         return self.coordinator.save_current_item(data=data)
-
-    # @receiver(Events.PRE_ITEM_CHANGE)
-    # def _on_item_change(self, data: dict) -> None:
-    #     """
-    #     Called when PRE_ITEM_CHANGE is emittted to change and save.
-    #     """
-    #     editor = self.view_manager.get_current_editor()
-    #     view = self.view_manager.get_current_view()
-    #     self.coordinator.check_and_save_dirty(view=view, editor=editor)
 
     # --- For Creating/Opening other Projects ---
 

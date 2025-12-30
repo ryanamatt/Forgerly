@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QGraphicsView, QGraphicsScene, QGraphicsLineItem, QMessageBox, 
     QFrame, QDialog, QToolBar
 )
-from PySide6.QtCore import Qt, Signal, QLineF
+from PySide6.QtCore import Qt, QLineF
 from PySide6.QtGui import QPen, QAction, QIcon
 from typing import Any
 
@@ -13,6 +13,9 @@ from ..widgets.graph_items import CharacterNode, RelationshipEdge
 from ..widgets.relationship_canvas import RelationshipCanvas
 from ..dialogs.relationship_dialog import RelationshipCreationDialog
 from ...utils.nf_core_wrapper import GraphLayoutEngineWrapper
+from ...utils.constants import EntityType
+from ...utils.events import Events
+from ...utils.event_bus import bus, receiver
     
 class RelationshipEditor(QWidget):
     """
@@ -26,38 +29,6 @@ class RelationshipEditor(QWidget):
     persistence managed by an external controller (:py:class:`~app.services.app_coordinator.AppCoordinator`).
     """
 
-    request_load_data = Signal()
-    """
-    :py:class:`~PySide6.QtCore.Signal`: Emitted to request all graph data from the coordinator.
-    """
-
-    save_node_attributes = Signal(int, float, float, str, str, int)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (int, float, float, str, str, int): 
-    Emitted to save a character node's position and attributes.
-
-    Carries the (Character ID, new X position, new Y position, Name, Color, 
-    Shape ID, Name, Color, and Shape ID)
-    """
-
-    relationship_created = Signal(int, int, int, str, int)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (int, int, int, str, int): 
-    Emitted when a new relationship is created, carrying 
-    (Source ID, Target ID, Type ID, Description, Intensity).
-    """
-
-    relationship_deleted = Signal(int)
-    """:py:class:`~PySide6.QtCore.Signal` (int):
-    Emitted when a relationshipo is deleted, carrying
-    (Relationship_ID)
-    """
-
-    request_load_rel_types = Signal()
-    """
-    :py:class:`~PySide6.QtCore.Signal`: Emitted to request the list of available relationship types.
-    """
-
     def __init__(self, parent=None) -> None:
         """
         Initializes the :py:class:`.RelationshipEditor`.
@@ -68,6 +39,8 @@ class RelationshipEditor(QWidget):
         :rtype: None
         """
         super().__init__(parent)
+
+        bus.register_instance(self)
 
         self.scene = QGraphicsScene(self)
         self.view = RelationshipCanvas(self.scene, self)
@@ -114,15 +87,17 @@ class RelationshipEditor(QWidget):
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 
-    def set_available_relationship_types(self, rel_types: list[dict]) -> None:
+    @receiver(Events.REL_TYPES_RECEIVED)
+    def set_available_relationship_types(self, data: dict) -> None:
         """
         Receives and stores the list of relationship types from the coordinator.
         
-        :param rel_types: The list of relationship type dictionaries.
+        :param rel_types: The data containing {relationship_types: list[str]}
         :type rel_types: list[dict]
         
         :rtype: None
         """
+        rel_types = data.get('relationship_types')
         self.available_rel_types = rel_types
         
     def clear_selection(self) -> None:
@@ -216,7 +191,7 @@ class RelationshipEditor(QWidget):
             QMessageBox.critical(self, "Error", "No relationship types defined. Please define types in the Outline Manager first.")
             return
             
-        # 1. Open dialog for user input
+        # Open dialog for user input
         dialog = RelationshipCreationDialog(
             relationship_types=self.available_rel_types, 
             char_a_name=node_a.name, 
@@ -225,21 +200,17 @@ class RelationshipEditor(QWidget):
         )
         
         if dialog.exec() == QDialog.DialogCode.Accepted:
-            # 2. Get user data
+            # Get user data
             type_id, description, intensity = dialog.get_relationship_data()
             
-            # 3. Emit signal to coordinator to save the new relationship
-            # Order A->B is kept consistent for storage.
-            self.relationship_created.emit(
-                node_a.char_id, 
-                node_b.char_id, 
-                type_id, 
-                description, 
-                intensity
-            )
-            QMessageBox.information(self, "Success", f"Relationship creation request sent for {node_a.name} and {node_b.name}.")
+            # Emit signal to coordinator to save the new relationship
+            bus.publish(Events.REL_CREATE_REQUESTED, data={
+                'char_a_id': node_a.char_id, 'char_b_id': node_b.char_id,
+                'type_id': type_id, 'description': description, 'intensity': intensity
+            })
 
-    def edit_relationship(self, edge: RelationshipEdge) -> None:
+    @receiver(Events.REL_DETAILS_RETURN)
+    def edit_relationship(self, data: dict) -> None:
         """
         Opens the dialog with existing data to update the relationship.
         
@@ -248,92 +219,25 @@ class RelationshipEditor(QWidget):
 
         :type: None
         """
-        # Extract existing data from the edge object
-        node_a = edge.source_node
-        node_b = edge.target_node
+        node_a = data.get('source')
+        node_b = data.get('target')
         
         dialog = RelationshipCreationDialog(
             relationship_types=self.available_rel_types,
             char_a_name=node_a.name,
             char_b_name=node_b.name,
+            description=data.get('Description', ''),
+            intensity=data.get('Intensity', '5'),
             parent=self
         )
-        
-        # Pre-fill logic would go here depending on RelationshipCreationDialog implementation
-        
+                
         if dialog.exec() == QDialog.DialogCode.Accepted:
             type_id, description, intensity = dialog.get_relationship_data()
-            # Emit the same signal; your backend should handle 'UPSERT' 
-            # (update if exists) based on the Unique constraint.
-            self.relationship_created.emit(
-                node_a.char_id,
-                node_b.char_id,
-                type_id,
-                description,
-                intensity
-            )
+            bus.publish(Events.REL_UPDATE_REQUESTED, data={
+                'relationship_id': data.get('ID'), 'type_id': type_id, 'description': description, 'intensity': intensity,
+            })
 
-    def delete_relationship(self, edge: RelationshipEdge) -> None:
-        """
-        Prompts for confirmation and requests deletion via the coordinator.
-        
-        :param edge: The relationship edge to delete.
-        :type edge: RelationshipEdge
-
-        :rtype: Noe
-        """
-        msg = f"Are you sure you want to delete the relationship between {edge.source_node.name} and {edge.target_node.name}?"
-        res = QMessageBox.question(self, "Delete Relationship", msg, 
-                                   QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        
-        if res == QMessageBox.StandardButton.Yes:
-            self.relationship_deleted.emit(edge.edge_data['id'])
-
-    def connect_selected_characters(self, node_a: 'CharacterNode', node_b: 'CharacterNode') -> None:
-        """
-        Opens a dialog to create a relationship between two nodes.
-        
-        This method is an alternative entry point for relationship creation, 
-        often used by menu actions or external triggers.
-        
-        :param node_a: The first selected :py:class:`.CharacterNode`.
-        :type node_a: :py:class:`.CharacterNode`
-        :param node_b: The second selected :py:class:`.CharacterNode`.
-        :type node_b: :py:class:`.CharacterNode`
-        
-        :rtype: None
-        """
-        
-        # Prevent connecting a node to itself
-        if node_a.char_id == node_b.char_id:
-            QMessageBox.warning(self, "Warning", "Cannot create a relationship to the same character.")
-            return
-
-        if not self.available_rel_types:
-            QMessageBox.critical(self, "Error", "No relationship types defined. Please define types in the Outline Manager first.")
-            return
-        
-        # 1. Open dialog for user input
-        dialog = RelationshipCreationDialog(self.available_rel_types, parent=self)
-        
-        # Pre-fill names in the dialog for clarity (optional, but good UX)
-        dialog.setWindowTitle(f"Create Relationship: {node_a.name} ↔ {node_b.name}")
-        
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            # 2. Get user data
-            type_id, description, intensity = dialog.get_relationship_data()
-            
-            # 3. Emit signal to coordinator to save the new relationship
-            # Note: We enforce a consistent order A->B for storage. The graph handles visual direction.
-            self.relationship_created.emit(
-                node_a.char_id, 
-                node_b.char_id, 
-                type_id, 
-                description, 
-                intensity
-            )
-            QMessageBox.information(self, "Success", f"Relationship creation request sent for {node_a.name} and {node_b.name}.")
-
+    @receiver(Events.GRAPH_DATA_LOADED)
     def load_graph(self, graph_data: dict[str, list[dict[str, Any]]]) -> None:
         """
         Recieves graph data from :py:class:`~app.services.app_coordinator.AppCoordinator` 
@@ -369,7 +273,7 @@ class RelationshipEditor(QWidget):
                 )
 
                 # Connect node's movement signal to the editor's save signal so every node movement is tracked and persisted
-                node.signals.node_moved.connect(self.save_node_attributes)
+                node.signals.node_moved.connect(self._save_node_positions)
 
                 self.scene.addItem(node)
                 self.nodes[char_id] = node
@@ -480,6 +384,31 @@ class RelationshipEditor(QWidget):
                     node_id, pos_data['x_pos'], pos_data['y_pos'],
                     node.node_color, node.node_shape, node.is_hidden
                 )
+
+    def _save_node_positions(self, char_id: int, x_pos: int, y_pos: int,
+                             node_color: str, node_shape: str, is_hidden: int) -> None:
+        """
+        Calls the Event to Save the Node Positions.
+        
+        :param char_id: The ID of the node.
+        :type char_id: int
+        :param x_pos: The X position of the node.
+        :type x_pos: int
+        :param y_pos: The Y_Position of the node.
+        :type y_pos: int
+        :param node_color: The color of the node.
+        :type node_color: str
+        :param node_shape: The shape of the node
+        :type node_shape: str
+        :param is_hidden: Whether the node is hidden.
+        :type is_hidden: int
+
+        :rtype: None
+        """
+        bus.publish(Events.NODE_SAVE_REQUESTED, data={
+                'character_id': char_id, 'x_pos': x_pos, 'y_pos': y_pos, 'node_color': node_color, 
+                'node_shape': node_shape, 'is_hidden': is_hidden,
+            })
 
     def set_enabled(self, enabled: bool) -> None:
         """

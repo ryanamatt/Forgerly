@@ -107,12 +107,12 @@ class ViewManager(QObject):
     graph data is received containng the Nodes and Edges.
     """
 
-    rel_types_received = Signal(list)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (list): Emitted wehn
-    the relationship types are recieved containing a list
-    of the names of the Relationship Types.
-    """
+    # rel_types_received = Signal(list)
+    # """
+    # :py:class:`~PySide6.QtCore.Signal` (list): Emitted wehn
+    # the relationship types are recieved containing a list
+    # of the names of the Relationship Types.
+    # """
 
     def __init__(self, outline_stack: QStackedWidget, editor_stack: QStackedWidget) -> None:
         """
@@ -166,18 +166,6 @@ class ViewManager(QObject):
         self.new_chapter_requested.connect(chapter_outline.prompt_and_add_chapter)
         self.new_lore_requested.connect(lore_outline.prompt_and_add_lore)
         self.new_character_requested.connect(char_outline.prompt_and_add_character)
-
-        # --- Relationship Graph Relays (No Coordinator calls) ---
-        
-        # Data Flow: Editor -> ViewManager (Relay)
-        rel_editor.save_node_attributes.connect(self.node_attributes_save_requested.emit)
-        rel_editor.request_load_rel_types.connect(self.rel_types_requested.emit)
-        rel_editor.relationship_created.connect(self.relationship_create_requested.emit)
-        rel_editor.relationship_deleted.connect(self.relationship_delete_requested.emit)
-        
-        # Data Flow: ViewManager (Input) -> Editor
-        self.graph_data_received.connect(rel_editor.load_graph)
-        self.rel_types_received.connect(rel_editor.set_available_relationship_types)
 
     def get_current_editor(self) -> 'BaseEditor':
         """
@@ -235,7 +223,9 @@ class ViewManager(QObject):
 
         if view == ViewType.RELATIONSHIP_GRAPH:
             # Load Graph Data
-            self.graph_load_requested.emit()
+            # self.graph_load_requested.emit()
+            bus.publish(Events.GRAPH_LOAD_REQUESTED)
+
             entity_type = EntityType.RELATIONSHIP
 
         elif view == ViewType.CHAPTER_EDITOR:

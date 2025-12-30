@@ -50,7 +50,7 @@ class UIFactory:
             'note_outline': NoteOutlineManager(project_title=project_title),
             'note_editor': NoteEditor(settings),
 
-            'relationship_outline': RelationshipOutlineManager(relationship_repository=coordinator.relationship_repo),
+            'relationship_outline': RelationshipOutlineManager(),
             'relationship_editor': RelationshipEditor()
         }
 

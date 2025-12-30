@@ -31,37 +31,6 @@ class AppCoordinator(QObject):
     with each other via signals, and interact with the database only via this coordinator.
     """
 
-    graph_data_loaded = Signal(dict)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (dict): Emitted to provide all necessary 
-    data for the relationship graph. Carries a dictionary containing node and edge data.
-    """
-
-    data_loaded = Signal(dict)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (dict) Emitted when a item's data is loaded
-    carrying a dictionary of all needed stuff for that item to be displayed in the
-    editor.
-    """
-    
-    relationship_types_available = Signal(list) # list[dict]
-    """
-    :py:class:`~PySide6.QtCore.Signal` (list): Emitted to provide the list of 
-    all defined relationship types (names, colors, IDs) to the graph and outline manager.
-    """
-
-    lore_categories_changed = Signal(list) 
-    """
-    :py:class:`~PySide6.QtCore.Signal` Emitted when the list of available 
-    categories is refreshed containing list[str] of all unique category names.
-    """
-
-    return_lookup = Signal(str, str, str)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (str, str, str) Emitted when returning a lookup
-    from the repositories. Carries the (EntityType, Name of Entity, Description of Entity)
-    """
-
     def __init__(self, db_connector: DBConnector) -> None:
         """
         Initializes the :py:class:`.AppCoordinator` and sets up the database repositories.
@@ -89,52 +58,6 @@ class AppCoordinator(QObject):
         self.current_item_id: int = 0
 
     # --- Save / Dirty Check Logic (Core Business Logic) ---
-
-    # def check_and_save_dirty(self, view: ViewType, editor: 'BaseEditor', parent=None) -> bool:
-    #     """
-    #     Prompts the user to save if the active editor is dirty.
-    #     Returns True if safe to proceed (saved or discarded), False otherwise (canceled).
-
-    #     :param view: The current view.
-    #     :type view: 'ViewType'
-    #     :param editor: The current editor.
-    #     :type editor: 'BaseEditor'
-    #     :param parent: The parent. Default is None.
-    #     :type parent: :py:class:`~PySide6.QtWidgets.QWidget`
-
-    #     :returns: Returns True if saved, otherwise False
-    #     :rtype: bool
-    #     """
-    #     if view == ViewType.RELATIONSHIP_GRAPH:
-    #         return True
-
-    #     if self.current_item_id == 0 or not view:
-    #         return True # No item loeaded
-        
-    #     if not editor.is_dirty():
-    #         return True # Editor is clean
-        
-    #     save_reply = QMessageBox.question(
-    #         parent, # Use parent for dialog centering
-    #         "Unsaved Changes",
-    #         f"The current item has unsaved changes. Do you want to save before continuing?",
-    #         QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
-    #         QMessageBox.StandardButton.Save
-    #     )
-
-    #     if save_reply == QMessageBox.StandardButton.Cancel:
-    #         return False
-        
-    #     map = {ViewType.CHAPTER_EDITOR: EntityType.CHAPTER, ViewType.LORE_EDITOR: EntityType.LORE,
-    #            ViewType.CHARACTER_EDITOR: EntityType.CHARACTER, ViewType.NOTE_EDITOR: EntityType.NOTE}
-        
-    #     if save_reply == QMessageBox.StandardButton.Save:
-    #         data = {'entity_type': map.get(view), 'ID': self.current_item_id}
-    #         data |= editor.get_save_data()
-    #         return self.save_current_item(data=data)
-        
-    #     # If discard proceed
-    #     return True
 
     @receiver(Events.OUTLINE_NAME_CHANGE)
     def save_name_change(self, data: dict) -> None:
@@ -183,9 +106,10 @@ class AppCoordinator(QObject):
         bus.publish(Events.SAVE_REQUESTED, data=data)
 
     @receiver(Events.SAVE_DATA_PROVIDED)
-    def check_and_save_dirty_bus(self, data: dict) -> None:
+    def check_and_save_dirty(self, data: dict) -> None:
         """
-        New Check and Save Dirty function for the event bus.
+        Checks to see if it is dirty and if it is dirty
+        asks user if they want to save.
         
         :param data: Description
         :type data: dict
@@ -257,61 +181,39 @@ class AppCoordinator(QObject):
         
         return False
         
-    def save_node_position(self, char_id: int, x_pos: float, y_pos: float, node_color: str, node_shape: str, is_hidden: int) -> bool:
+    @receiver(Events.NODE_SAVE_REQUESTED)
+    def save_node_position(self, data: dict) -> bool:
         """
         Saves the position and presentation attributes of a character node in the database.
         
         This method is typically called frequently (e.g., on mouse release after a drag) 
         and does not affect the dirty status of the main character editor.
 
-        :param char_id: The ID of the character node.
-        :type char_id: int
-        :param x_pos: The new X-coordinate for the node.
-        :type x_pos: float
-        :param y_pos: The new Y-coordinate for the node.
-        :type y_pos: float
-        :param node_color: The color of the node.
-        :type node_color: str
-        :param node_shape: The shape of the node.
-        :type node_shape: str
-        :param is_hidden: To tell whether the Node is hidden. 1 if True, otherwise 0
-        :type is_hidden: int
+        :param data: Dict containg all data to save for the node. Contians
+            {'char_id': int, 'x_pos': float, 'y_pos': float, 'node_color': str, 
+                'node_shape': str, 'is_hidden': int,
+            }
+        :type data: dict
         
         :returns: True if the save was successful, False otherwise.
         :rtype: bool
         """
-        return self.relationship_repo.save_node_attributes(
-            character_id=char_id,
-            x_pos=x_pos,
-            y_pos=y_pos,
-            node_color=node_color,
-            node_shape=node_shape,
-            is_hidden=is_hidden
-        )
+        return self.relationship_repo.save_node_attributes(**data)
     
-    def save_new_relationship(self, char_a_id: int, char_b_id: int, type_id: int,
-                              description: str = "", intensity: int = 5) -> bool:
+    @receiver(Events.REL_CREATE_REQUESTED)
+    def save_new_relationship(self, data: dict) -> bool:
         """
         Saves the new relationship by creating a new relationship.
         
-        :param char_a_id: The ID of the first character
-        :type char_a_id: int
-        :param char_b_id: The ID of the second character
-        :type char_b_id: int
-        :param type_id: The ID of the type of relationship
-        :type type_id: int
-        :param description: A description of the relationship
-        :type description: str
-        :param intensity: The intensity (thickness) of the line
-        :type intensity: int
+        :param data: A dictionary containing all need data for a new relationship,
+            {char_a_id: int, char_b_id: int, ID: int, description: str, intensity: int}
+        :type data: dict
 
         :return: Returns the True if successfully created and saved new relationship.
         :rtype: bool
         """
         # 1. Save to DB
-        new_id = self.relationship_repo.create_relationship(
-            char_a_id, char_b_id, type_id, None, description, intensity
-        )
+        new_id = self.relationship_repo.create_relationship(**data)
 
         if new_id:
             # 2. Reload graph data to show the new edge
@@ -325,6 +227,20 @@ class AppCoordinator(QObject):
             )
             return False
         
+    @receiver(Events.REL_UPDATE_REQUESTED)
+    def update_relationship(self, data: dict) -> None:
+        """
+        Updates a relationship in the Databsase.
+        
+        :param data: The data needed to update the relationship.
+            {char_a_id: int, char_b_id: int, ID: int, description: str, intensity: int}
+        :type data: dict
+
+        :rtype: None
+        """
+        self.relationship_repo.update_relationship_details(**data)
+        self.load_relationship_graph_data()
+
     # --- Load Content Logic (Called by Outline Managers) ---
 
     @receiver(Events.OUTLINE_LOAD_REQUESTED)
@@ -362,7 +278,8 @@ class AppCoordinator(QObject):
 
             case EntityType.RELATIONSHIP:
                 relationship_types = self.relationship_repo.get_all_relationship_types()
-                self.relationship_types_available.emit(relationship_types)
+                # self.relationship_types_available.emit(relationship_types)
+                bus.publish(Events.REL_TYPES_RECEIVED, data={'relationship_types': relationship_types})
                 return_data = {'entity_type': entity_type, 'relationship_types': relationship_types}
 
         bus.publish(Events.OUTLINE_DATA_LOADED, return_data)
@@ -462,11 +379,10 @@ class AppCoordinator(QObject):
 
         :rtype: None
         """
-        print(data)
         entity_type = data.get('entity_type')
         id = data.get('ID')
 
-        check = self.check_and_save_dirty_bus(data=data)
+        check = self.check_and_save_dirty(data=data)
         if check:
             match entity_type:
                 case EntityType.CHAPTER:
@@ -482,7 +398,6 @@ class AppCoordinator(QObject):
                     self.note_repo.delete_note(id)
 
                 case EntityType.RELATIONSHIP:
-                    print("IN RELATIONSHIP")
                     self.relationship_repo.delete_relationship_type(id)
 
         bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': entity_type})
@@ -572,7 +487,8 @@ class AppCoordinator(QObject):
         :rtype: None
         """
         categories = self.lore_repo.get_unique_categories()
-        self.lore_categories_changed.emit(categories)
+        # self.lore_categories_changed.emit(categories)
+        print(categories)
         bus.publish(Events.LORE_CATEGORIES_CHANGED, data={'categories': categories})
 
     def update_note_parent_id(self, note_id: int, new_parent_id: int | None) -> bool:
@@ -623,13 +539,12 @@ class AppCoordinator(QObject):
         Fetches all character nodes, relationship edges, and relationship types 
         required for the graph editor.
 
-        Emits :py:attr:`.relationship_types_available` and :py:attr:`.graph_data_loaded`.
+        Emits :py:attr:`.graph_data_loaded`.
         
         :rtype: None
         """
         # Update Coordinator State
         self.current_item_id = 0
-        # self.view_manager.current_view = ViewType.RELATIONSHIP_GRAPH
 
         self.load_outline(data={'entity_type': EntityType.RELATIONSHIP})
 
@@ -642,45 +557,45 @@ class AppCoordinator(QObject):
         graph_data = self._process_graph_data(relationships, node_positons, relationship_types)
 
         # Emit signal to the RelationshipEditor
-        self.graph_data_loaded.emit(graph_data)
+        bus.publish(Events.GRAPH_DATA_LOADED, data=graph_data)
 
     @receiver(Events.REL_DETAILS_REQUESTED)
+    def get_rel_details(self, data: dict) -> None:
+        """
+        Retrieves all the details for a relationship
+        and calls the event REL_DETAILS_RETURN.
+        
+        :param data: Description
+        :type data: dict
+
+        :rtype: None
+        """
+        return_data = data
+        return_data |= self.relationship_repo.get_relationship_details(data.get('ID'))
+        bus.publish(Events.REL_DETAILS_RETURN, data=return_data)
+
+    @receiver(Events.REL_TYPE_DETAILS_REQUESTED)
     def get_rel_types_details(self, data: dict) -> None:
         """
         Retrieves the relationship details for a relationship
-        type.
+        type and calls the event REL_TYPE_DETAILS_RETURN.
         
         :param data: Description
         :type data: dict
         """
         data |= self.relationship_repo.get_relationship_type_details(data.get('ID'))
-        bus.publish(Events.REL_DETAILS_RETURN, data=data)
+        bus.publish(Events.REL_TYPE_DETAILS_RETURN, data=data)
         
-
-    # def load_relationship_types_for_editor(self) -> None:
-    #     """
-    #     Fetches and emits the current list of relationship types.
-
-    #     Emits :py:attr:`.relationship_types_available`.
-        
-    #     :rtype: None
-    #     """
-    #     try:
-    #         rel_types = self.relationship_repo.get_all_relationship_types()
-    #         self.relationship_types_available.emit(rel_types)
-    #     except Exception as e:
-    #         QMessageBox.critical(None, "Data Error", f"Failed to load relationship types: {e}")
-
-    def handle_relationship_deletion(self, relationship_id: int) -> None:
+    @receiver(Events.REL_DELETE_REQUESTED)
+    def handle_relationship_deletion(self, data: dict) -> None:
         """
         handles the deletion of a relationshipo
         
-        :param relationship_id: The relationship ID
-        :type relationship_id: int
+        :param data: Dictionary containing {ID: int}
 
         :rtype: None
         """
-        success = self.relationship_repo.delete_relationship(relationship_id)
+        self.relationship_repo.delete_relationship(data.get('ID'))
         self.load_relationship_graph_data()
 
 
