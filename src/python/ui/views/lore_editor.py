@@ -195,6 +195,21 @@ class LoreEditor(BaseEditor):
         
         self._dirty = True
 
+    @receiver(Events.MARK_SAVED)
+    def mark_saved_connection(self, data: dict) -> None:
+        """
+        A connection for the mark saved Event.
+        
+        :param data: Data dictionary, Empty as function doesn't need it.
+        :type data: dict
+
+        :rtype: None
+        """
+        if data.get('entity_type') != EntityType.LORE:
+            return
+        
+        self.mark_saved()
+
     def mark_saved(self) -> None:
         """
         Marks all nested components as clean.

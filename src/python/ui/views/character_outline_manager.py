@@ -183,17 +183,17 @@ class CharacterOutlineManager(BaseOutlineManager):
         if menu.actions():
             menu.exec(self.mapToGlobal(pos))
         
-    def prompt_and_add_character(self) -> None:
+    @receiver(Events.NEW_CHARACTER_REQUESTED)
+    def prompt_and_add_character(self, data: dict = None) -> None:
         """
         Prompts the user for a new character name, creates the character in the 
         database, reloads the outline, and selects the new character.
         
-        Emits :py:attr:`.pre_char_change` before prompting.
+        :param data: Data dictionary, Empty as function doesn't need it.
+        :type data: dict
         
         :rtype: None
-        """
-        bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': EntityType.CHARACTER, 'ID': self.current_item_id, 'parent': self})
-        
+        """        
         name, ok = QInputDialog.getText(
             self, 
             "New Character", 

@@ -56,6 +56,19 @@ class AppCoordinator(QObject):
 
         # State Tracking
         self.current_item_id: int = 0
+        self.current_entity_type: EntityType = EntityType.CHAPTER
+
+    @receiver(Events.DATA_LOADED)
+    def set_state_tracking(self, data: dict) -> None:
+        """
+        Docstring for set_state_tracking
+        
+        :param self: Description
+        :param data: Description
+        :type data: dict
+        """
+        self.current_item_id = data.get('ID')
+        self.current_entity_type = data.get('entity_type')
 
     # --- Save / Dirty Check Logic (Core Business Logic) ---
 
@@ -103,6 +116,9 @@ class AppCoordinator(QObject):
 
         :rtype: None
         """
+        data |= {'ID': self.current_item_id}
+        if 'entity_type' not in data:
+            data |= {'entity_type': self.current_entity_type}
         bus.publish(Events.SAVE_REQUESTED, data=data)
 
     @receiver(Events.SAVE_DATA_PROVIDED)
@@ -117,9 +133,13 @@ class AppCoordinator(QObject):
         id = data.get('ID')
         parent = data.pop('parent', None)
 
-        if id == 0 or not parent:
+        if id == -1 or not parent:
             return True # No item loaded
         
+        skip_check = data.pop('skip_check', False)
+        if skip_check:
+            return self.save_current_item(data=data)
+            
         save_reply = QMessageBox.question(
             parent, # Use parent for dialog centering
             "Unsaved Changes",
@@ -150,8 +170,8 @@ class AppCoordinator(QObject):
         """
         content_success, tag_success = False, False
 
-        entity_type = data.pop('entity_type')
-        id = data.pop('ID')
+        entity_type = data.pop('entity_type', self.current_entity_type)
+        id = data.pop('ID', self.current_item_id)
         tags = data.pop('tags', None)
 
         match entity_type:
@@ -282,6 +302,7 @@ class AppCoordinator(QObject):
                 bus.publish(Events.REL_TYPES_RECEIVED, data={'relationship_types': relationship_types})
                 return_data = {'entity_type': entity_type, 'relationship_types': relationship_types}
 
+        self.current_entity_type = entity_type
         bus.publish(Events.OUTLINE_DATA_LOADED, return_data)
 
     @receiver(Events.ITEM_SELECTED)
@@ -333,6 +354,21 @@ class AppCoordinator(QObject):
     # --- Creating New Items ---
 
     @receiver(Events.NEW_ITEM_REQUESTED)
+    def _check_save_before_new_item(self, data: dict) -> None:
+        """
+        Docstring for _check_save_before_new_item
+        
+        :param data: Description
+        :type data: dict
+
+        :rtype: None
+        """
+        bus.publish(Events.PRE_ITEM_CHANGE, data={
+            'entity_type': self.current_entity_type, 'ID': self.current_item_id
+        })
+
+        self._new_item_created(data=data)
+
     def _new_item_created(self, data: dict) -> None:
         """
         Called when a new item is created.
@@ -346,7 +382,7 @@ class AppCoordinator(QObject):
         entity_type = data.pop('entity_type')
         if not entity_type:
             return
-        
+                
         match entity_type:
             case EntityType.CHAPTER:
                 id = self.chapter_repo.create_chapter(data.get('title'), data.get('sort_order'))
@@ -363,6 +399,10 @@ class AppCoordinator(QObject):
             case EntityType.RELATIONSHIP:
                 id = self.relationship_repo.create_relationship_type(**data)
 
+        map = {EntityType.CHAPTER: ViewType.CHAPTER_EDITOR, EntityType.LORE: ViewType.LORE_EDITOR,
+                EntityType.CHARACTER: ViewType.CHARACTER_EDITOR, EntityType.NOTE: ViewType.NOTE_EDITOR}
+
+        bus.publish(Events.VIEW_SWITCH_REQUESTED, data={'view_type': map.get(entity_type)})
         bus.publish(Events.NEW_ITEM_CREATED, data={'entity_type': entity_type, 'ID': id})
 
     # --- Deleting Items ---
@@ -487,8 +527,6 @@ class AppCoordinator(QObject):
         :rtype: None
         """
         categories = self.lore_repo.get_unique_categories()
-        # self.lore_categories_changed.emit(categories)
-        print(categories)
         bus.publish(Events.LORE_CATEGORIES_CHANGED, data={'categories': categories})
 
     def update_note_parent_id(self, note_id: int, new_parent_id: int | None) -> bool:

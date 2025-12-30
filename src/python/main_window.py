@@ -146,10 +146,8 @@ class MainWindow(QMainWindow):
 
         self._setup_ui()
         
-        self._connect_components()
-
         # Initially set the view to Chapters
-        self.view_manager.switch_to_view(ViewType.CHAPTER_EDITOR)
+        bus.publish(Events.VIEW_SWITCH_REQUESTED, data={'view_type': ViewType.CHAPTER_EDITOR})
         bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': EntityType.CHAPTER})
 
         # Enable geometry saving after initial setup is complete
@@ -272,43 +270,6 @@ class MainWindow(QMainWindow):
 
         logger.info("UI setup finalized.")
 
-    # -------------------------------------------------------------------------
-    # Signal Connections
-    # -------------------------------------------------------------------------
-
-    def _connect_components(self) -> None:
-        """
-        Connects signals from custom widgets to slots in the main window and coordinator.
-        
-        :rtype: None
-        """
-        logger.info("Connecting all application UI and data components.")
-
-        # MainMenuBar Save Connection
-        self.main_menu_bar.save_requested.connect(self._on_save_triggered)
-
-        # MainMenuBar View Related Connections
-        self.main_menu_bar.view_switch_requested.connect(self.view_manager.switch_to_view)
-        self.view_manager.view_changed.connect(self.main_menu_bar.update_view_checkmarks)
-
-        # MainMenuBar New Item Connections
-        self.main_menu_bar.new_chapter_requested.connect(self.view_manager.new_chapter_requested)
-        self.main_menu_bar.new_lore_requested.connect(self.view_manager.new_lore_requested)
-        self.main_menu_bar.new_character_requested.connect(self.view_manager.new_character_requested)
-
-        # MainMenuBar Connections Export/Settings
-        self.main_menu_bar.export_requested.connect(self._export)
-        self.main_menu_bar.settings_requested.connect(self._open_settings_dialog)
-
-        # Connections for MainMenuBar Projects
-        self.main_menu_bar.new_project_requested.connect(lambda: self._request_project_switch(is_new=True))
-        self.main_menu_bar.open_project_requested.connect(lambda: self._request_project_switch(is_new=False))
-        
-        # Connect Main Menu Project Stats Dialog Openm
-        self.main_menu_bar.project_stats_requested.connect(self._open_project_stats_dialog)
-
-        logger.info("Component signal connections complete.")
-
     # --- Coordinator/ViewManager ---
 
     def save_helper(self):
@@ -329,68 +290,21 @@ class MainWindow(QMainWindow):
         data |= editor.get_save_data()
 
         return self.coordinator.check_and_save_dirty(data=data)
-
-
-    def _on_save_triggered(self) -> None:
-        """
-        Called When Save is triggered
-        
-        :rtype: None
-        """
-        editor = self.view_manager.get_current_editor()
-        view = self.view_manager.get_current_view()
-
-        map = {ViewType.CHAPTER_EDITOR: EntityType.CHAPTER, ViewType.LORE_EDITOR: EntityType.LORE,
-                ViewType.CHARACTER_EDITOR: EntityType.CHARACTER, ViewType.NOTE_EDITOR: EntityType.NOTE}
-        
-        data = {'entity_type': map.get(view), 'ID': self.coordinator.current_item_id}
-        data |= editor.get_save_data()
-
-        return self.coordinator.save_current_item(data=data)
-
-    # --- For Creating/Opening other Projects ---
-
-    def _request_project_switch(self, is_new: bool) -> None:
-        """
-        Handles the request to switch to a new project or open an existing one.
-        
-        First, checks for unsaved changes. If safe to proceed, emits a signal 
-        to the ApplicationFlowManager to handle the window switch.
-        
-        :param is_new: True if 'New Project' was requested, False if 'Open Project'.
-        :type is_new: bool
-
-        :rtype: None
-        """
-        action = "New Project" if is_new else "Open Existing Project"
-        logger.info(f"Project switch requested: {action}. Initiating dirty state check.")
-
-        # Check for and save unsaved changes before switching
-        # The coordinator handles the QMessageBox logic and returns False if the user cancels.
-        if not self.save_helper():
-            logger.info(f"User cancelled {action} action during save prompt. Aborting switch.")
-            return
-
-        logger.debug(f"Dirty check passed. Emitting project close and open signal for: {action}.")
-
-        # Emit the signal to the ApplicationFlowManager (slot: _handle_project_switch_request in main.py)
-        if is_new:
-            self.project_new_requested.emit()
-        if is_new ==False:
-            self.project_open_requested.emit()
-
-        logger.debug(f"Signal emitted to ApplicationFlowManager. Current MainWindow is now closing.")
     
     # -------------------------------------------------------------------------
     # I/O Handlers (Export/Settings)
     # -------------------------------------------------------------------------
 
-    def _export(self) -> None:
+    @receiver(Events.EXPORT_REQUESTED)
+    def _export(self, data: dict = None) -> None:
         """
         Opens the :py:class:`~app.ui.dialogs.ExporterDialog`. 
         
         If accepted, it delegates the export logic to the appropriate exporter 
         class (:py:class:`~app.services.story_exporter.StoryExporter`, etc.).
+
+        :param data: Data dictionary, Empty as function doesn't need it.
+        :type data: dict
         
         :rtype: None
         """
@@ -500,11 +414,15 @@ class MainWindow(QMainWindow):
             # or a benign cancellation (e.g., closing the file dialog) or a handled error (shown as QMessageBox).
             logger.debug(f"Export of '{export_type}' was canceled or failed gracefully.")
 
-    def _open_settings_dialog(self) -> None:
+    @receiver(Events.SETTINGS_REQUESTED)
+    def _open_settings_dialog(self, data: dict = None) -> None:
         """
         Opens the :py:class:`~app.ui.dialogs.SettingsDialog`. 
         
         If accepted, it saves the new settings and applies the new theme and geometry.
+
+        :param data: Data dictionary, Empty as function doesn't need it.
+        :type data: dict
         
         :rtype: None
         """
@@ -659,9 +577,13 @@ class MainWindow(QMainWindow):
         self.current_settings['window_pos_x'] = new_pos_x
         self.current_settings['window_pos_y'] = new_pos_y
 
-    def _open_project_stats_dialog(self) -> None:
+    @receiver(Events.PROJECT_STATS_REQUESTED)
+    def _open_project_stats_dialog(self, data: dict = None) -> None:
         """
         Opens the :py:class:`~app.ui.dialogs.ProjectStatsDialog`. 
+
+        :param data: Data dictionary, Empty as function doesn't need it.
+        :type data: dict
                 
         :rtype: None
         """

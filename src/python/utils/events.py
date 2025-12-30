@@ -37,6 +37,11 @@ class Events(str, Enum):
     # Item Creation Events
     NEW_ITEM_REQUESTED = "item.new_requested"
     NEW_ITEM_CREATED = "item.new_created"
+    
+    NEW_CHAPTER_REQUESTED = "item.chapter_new_requested"
+    NEW_LORE_REQUESTED = "item.lore_new_requested"
+    NEW_CHARACTER_REQUESTED = "item.character_new_requested"
+    NEW_NOTE_REQUESTED = "item.note_new_requested"
 
     # Item Deletion
     ITEM_DELETE_REQUESTED = "item.delete_requested"

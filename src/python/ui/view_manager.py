@@ -38,82 +38,6 @@ class ViewManager(QObject):
     carrying the new ViewType.
     """
 
-    new_chapter_requested = Signal()
-    """
-    :py:class:`~PySide6.QtCore.Signal` Emitted When a new Chapter is requested. Use when
-    MainMenuBar wants to created a new item.
-    """
-
-    new_lore_requested = Signal()
-    """
-    :py:class:`~PySide6.QtCore.Signal` Emitted When a new Lore Entry is requested. Use when
-    MainMenuBar wants to created a new item.
-    """
-
-    new_character_requested = Signal()
-    """
-    :py:class:`~PySide6.QtCore.Signal`  Emitted When a new Character is requested. Use when
-    MainMenuBar wants to created a new item.
-    """
-
-    graph_load_requested = Signal()
-    """
-    :py:class:`~PySide6.QtCore.Signal`. Emitted when a graph reload is requested.
-    """
-
-    node_attributes_save_requested = Signal(int, float, float, str, str, int)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (int, float, float, str, str, int): 
-    Emitted to save a character node's position and attributes. Connects
-    to RelationshipEditor.node_attributes_save.
-
-    Carries the (Character ID, new X position, new Y position, Name, Color, 
-    Shape ID, Name, Color, and Shape ID)
-    """
-
-    rel_types_requested = Signal()
-    """
-    :py:class:`~PySide6.QtCore.Signal`: Emitted to request the list of available relationship types.
-    """
-
-    relationship_create_requested = Signal(int, int, int, str, int)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (int, int, int, str, int): 
-    Emitted when a new relationship is created, carrying 
-    (Source ID, Target ID, Type ID, Description, Intensity).
-    Emitted when RelationshipEditor.relationship_created is 
-    emitted.
-    """
-
-    relationship_delete_requested = Signal(int)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (int):
-    Emitted when a relationshipo is deleted, carrying
-    (Relationship_ID). Emitted when 
-    RelationshipEditor.relatiopnship_deleted is 
-    emitted.
-    """
-
-    graph_data_wanted = Signal()
-    """
-    :py:class:`~PySide6.QtCore.Signal` (dict): Emitted when changing
-    the view to RelationshipEditor and asks for the Graph Data to be
-    sent and recieved by graph_data_recieved.
-    """
-
-    graph_data_received = Signal(dict)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (dict): Emitted when the 
-    graph data is received containng the Nodes and Edges.
-    """
-
-    # rel_types_received = Signal(list)
-    # """
-    # :py:class:`~PySide6.QtCore.Signal` (list): Emitted wehn
-    # the relationship types are recieved containing a list
-    # of the names of the Relationship Types.
-    # """
-
     def __init__(self, outline_stack: QStackedWidget, editor_stack: QStackedWidget) -> None:
         """
         Creates the ViewManager Object.
@@ -126,6 +50,9 @@ class ViewManager(QObject):
         :rtype: None
         """
         super().__init__()
+
+        bus.register_instance(self)
+
         self.outline_stack = outline_stack
         self.editor_stack = editor_stack
 
@@ -140,32 +67,6 @@ class ViewManager(QObject):
             ViewType.NOTE_EDITOR: 3,
             ViewType.RELATIONSHIP_GRAPH: 4
         }
-
-        self._connect_view_signals()
-
-    def _connect_view_signals(self) -> None:
-        """
-        Connects navigation and view-state signals internally.
-        
-        :rtype: None
-        """
-
-        chapter_editor: ChapterEditor = self.editor_stack.widget(0) # ChapterEditor
-        lore_editor: LoreEditor = self.editor_stack.widget(1)    # LoreEditor
-        char_editor: CharacterEditor = self.editor_stack.widget(2)    # ChapterEditor
-        note_editor: NoteEditor = self.editor_stack.widget(3) # NoteEditor
-        rel_editor: RelationshipEditor = self.editor_stack.widget(4) # RelationshipEditor
-
-        chapter_outline: ChapterOutlineManager = self.outline_stack.widget(0) # ChapterOutlineManager
-        lore_outline: LoreOutlineManager = self.outline_stack.widget(1)    # LoreOutlineManager
-        char_outline: CharacterOutlineManager = self.outline_stack.widget(2)    # CharacterOutlineManager
-        note_outline: NoteOutlineManager = self.outline_stack.widget(3) # NoteOutlineManager
-        rel_outline: RelationshipOutlineManager = self.outline_stack.widget(4) #RelationshipOutlineManager
-
-        # Connect the internal relay signals to the specific widgets - MainMenuBar
-        self.new_chapter_requested.connect(chapter_outline.prompt_and_add_chapter)
-        self.new_lore_requested.connect(lore_outline.prompt_and_add_lore)
-        self.new_character_requested.connect(char_outline.prompt_and_add_character)
 
     def get_current_editor(self) -> 'BaseEditor':
         """
@@ -185,15 +86,17 @@ class ViewManager(QObject):
         """
         return self.current_view
 
-    def switch_to_view(self, view: ViewType) -> None:
+    @receiver(Events.VIEW_SWITCH_REQUESTED)
+    def switch_to_view(self, data: dict) -> None:
         """
         Changes the current visible panels and performs view-specific setup logic.
         
-        :param view: The view to switch to.
-        :type view: ViewType
+        :param data: Carrying the dict of a data containing {'view_type': ViewType}
+        :type data: dict
 
         :rtype: None
         """
+        view = data.get('view_type')
         index = self._view_indices.get(view, -1)
 
         if index == -1:
@@ -208,9 +111,8 @@ class ViewManager(QObject):
 
         self._perform_view_entry_logic(view)
 
-        self.view_changed.emit(view)
-        bus.publish(Events.VIEW_CHANGED, data={'view': self.current_view})
-
+        # self.view_changed.emit(view)
+        bus.publish(Events.VIEW_CHANGED, data={'current_view': self.current_view})
 
     def _perform_view_entry_logic(self, view: ViewType) -> None:
         """
@@ -222,10 +124,7 @@ class ViewManager(QObject):
         editor: BaseEditor = self.get_current_editor()
 
         if view == ViewType.RELATIONSHIP_GRAPH:
-            # Load Graph Data
-            # self.graph_load_requested.emit()
             bus.publish(Events.GRAPH_LOAD_REQUESTED)
-
             entity_type = EntityType.RELATIONSHIP
 
         elif view == ViewType.CHAPTER_EDITOR:

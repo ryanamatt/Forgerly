@@ -153,6 +153,21 @@ class ChapterEditor(BaseEditor):
             new_wpm = 250
         self.wpm = new_wpm
         self._update_stats_display()
+
+    @receiver(Events.MARK_SAVED)
+    def mark_saved_connection(self, data: dict) -> None:
+        """
+        A connection for the mark saved Event.
+        
+        :param data: Data dictionary, Empty as function doesn't need it.
+        :type data: dict
+
+        :rtype: None
+        """
+        if data.get('entity_type') != EntityType.CHAPTER:
+            return
+        
+        self.mark_saved()
         
     # --- Content Passthrough Methods (RichTextEditor) ---
 

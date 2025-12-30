@@ -64,8 +64,22 @@ class NoteEditor(BaseEditor):
         # Add the splitter to the main layout
         main_layout.addWidget(editor_splitter)
 
-
         self.setEnabled(False)
+
+    @receiver(Events.MARK_SAVED)
+    def mark_saved_connection(self, data: dict) -> None:
+        """
+        A connection for the mark saved Event.
+        
+        :param data: Data dictionary, Empty as function doesn't need it.
+        :type data: dict
+
+        :rtype: None
+        """
+        if data.get('entity_type') != EntityType.NOTE:
+            return
+        
+        self.mark_saved()
         
     # --- Content Passthrough Methods (RichTextEditor) ---
 
