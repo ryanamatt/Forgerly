@@ -55,7 +55,8 @@ class AppCoordinator(QObject):
         self.relationship_repo = RelationshipRepository(self.db)
 
         # State Tracking
-        self.current_item_id: int = 0
+        self.current_item_id: int = -1
+        self.current_entity_type: EntityType = EntityType.CHAPTER
 
     # --- Save / Dirty Check Logic (Core Business Logic) ---
 
@@ -103,6 +104,7 @@ class AppCoordinator(QObject):
 
         :rtype: None
         """
+        data |= {'ID': self.current_item_id}
         bus.publish(Events.SAVE_REQUESTED, data=data)
 
     @receiver(Events.SAVE_DATA_PROVIDED)
@@ -282,6 +284,7 @@ class AppCoordinator(QObject):
                 bus.publish(Events.REL_TYPES_RECEIVED, data={'relationship_types': relationship_types})
                 return_data = {'entity_type': entity_type, 'relationship_types': relationship_types}
 
+        self.current_entity_type = entity_type
         bus.publish(Events.OUTLINE_DATA_LOADED, return_data)
 
     @receiver(Events.ITEM_SELECTED)
@@ -333,6 +336,21 @@ class AppCoordinator(QObject):
     # --- Creating New Items ---
 
     @receiver(Events.NEW_ITEM_REQUESTED)
+    def _check_save_before_new_item(self, data: dict) -> None:
+        """
+        Docstring for _check_save_before_new_item
+        
+        :param data: Description
+        :type data: dict
+
+        :rtype: None
+        """
+        bus.publish(Events.PRE_ITEM_CHANGE, data={
+            'entity_type': self.current_entity_type, 'ID': self.current_item_id
+        })
+
+        self._new_item_created(data=data)
+
     def _new_item_created(self, data: dict) -> None:
         """
         Called when a new item is created.
@@ -346,7 +364,7 @@ class AppCoordinator(QObject):
         entity_type = data.pop('entity_type')
         if not entity_type:
             return
-        
+                
         match entity_type:
             case EntityType.CHAPTER:
                 id = self.chapter_repo.create_chapter(data.get('title'), data.get('sort_order'))
@@ -363,6 +381,10 @@ class AppCoordinator(QObject):
             case EntityType.RELATIONSHIP:
                 id = self.relationship_repo.create_relationship_type(**data)
 
+        map = {EntityType.CHAPTER: ViewType.CHAPTER_EDITOR, EntityType.LORE: ViewType.LORE_EDITOR,
+                EntityType.CHARACTER: ViewType.CHARACTER_EDITOR, EntityType.NOTE: ViewType.NOTE_EDITOR}
+
+        bus.publish(Events.VIEW_SWITCH_REQUESTED, data={'view_type': map.get(entity_type)})
         bus.publish(Events.NEW_ITEM_CREATED, data={'entity_type': entity_type, 'ID': id})
 
     # --- Deleting Items ---

@@ -212,17 +212,17 @@ class NoteOutlineManager(BaseOutlineManager):
         if menu.actions():
             menu.exec(self.mapToGlobal(pos))
 
-    def prompt_and_add_note(self) -> None:
+    @receiver(Events.NEW_NOTE_REQUESTED)
+    def prompt_and_add_note(self, data: dict = None) -> None:
         """
         Prompts the user for a new note name, creates the note in 
         the database, reloads the outline, and selects the new note.
         
-        Emits :py:attr:`.pre_note_change` before prompting.
+        :param data: Data dictionary, Empty as function doesn't need it.
+        :type data: dict
         
         :rtype: None
-        """
-        bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': EntityType.NOTE, 'ID': self.current_item_id, 'parent': self})
-            
+        """            
         title, ok = QInputDialog.getText(
             self, 
             "New Note", 

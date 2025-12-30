@@ -38,24 +38,6 @@ class ViewManager(QObject):
     carrying the new ViewType.
     """
 
-    new_chapter_requested = Signal()
-    """
-    :py:class:`~PySide6.QtCore.Signal` Emitted When a new Chapter is requested. Use when
-    MainMenuBar wants to created a new item.
-    """
-
-    new_lore_requested = Signal()
-    """
-    :py:class:`~PySide6.QtCore.Signal` Emitted When a new Lore Entry is requested. Use when
-    MainMenuBar wants to created a new item.
-    """
-
-    new_character_requested = Signal()
-    """
-    :py:class:`~PySide6.QtCore.Signal`  Emitted When a new Character is requested. Use when
-    MainMenuBar wants to created a new item.
-    """
-
     graph_load_requested = Signal()
     """
     :py:class:`~PySide6.QtCore.Signal`. Emitted when a graph reload is requested.
@@ -107,13 +89,6 @@ class ViewManager(QObject):
     graph data is received containng the Nodes and Edges.
     """
 
-    # rel_types_received = Signal(list)
-    # """
-    # :py:class:`~PySide6.QtCore.Signal` (list): Emitted wehn
-    # the relationship types are recieved containing a list
-    # of the names of the Relationship Types.
-    # """
-
     def __init__(self, outline_stack: QStackedWidget, editor_stack: QStackedWidget) -> None:
         """
         Creates the ViewManager Object.
@@ -126,6 +101,9 @@ class ViewManager(QObject):
         :rtype: None
         """
         super().__init__()
+
+        bus.register_instance(self)
+
         self.outline_stack = outline_stack
         self.editor_stack = editor_stack
 
@@ -164,8 +142,8 @@ class ViewManager(QObject):
 
         # Connect the internal relay signals to the specific widgets - MainMenuBar
         # self.new_chapter_requested.connect(chapter_outline.prompt_and_add_chapter)
-        self.new_lore_requested.connect(lore_outline.prompt_and_add_lore)
-        self.new_character_requested.connect(char_outline.prompt_and_add_character)
+        # self.new_lore_requested.connect(lore_outline.prompt_and_add_lore)
+        # self.new_character_requested.connect(char_outline.prompt_and_add_character)
 
     def get_current_editor(self) -> 'BaseEditor':
         """
@@ -184,6 +162,13 @@ class ViewManager(QObject):
         :rtype: ViewType
         """
         return self.current_view
+
+    @receiver(Events.VIEW_SWITCH_REQUESTED)
+    def _switch_view(self, data: dict):
+        """
+        TEMPORARY HELPER for event bus to switch view.
+        """
+        self.switch_to_view(view=data.get('view_type'))
 
     def switch_to_view(self, view: ViewType) -> None:
         """
@@ -210,7 +195,6 @@ class ViewManager(QObject):
 
         self.view_changed.emit(view)
         bus.publish(Events.VIEW_CHANGED, data={'view': self.current_view})
-
 
     def _perform_view_entry_logic(self, view: ViewType) -> None:
         """

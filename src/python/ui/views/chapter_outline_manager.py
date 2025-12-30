@@ -162,7 +162,7 @@ class ChapterOutlineManager(BaseOutlineManager):
             menu.exec(self.tree_widget.mapToGlobal(pos))
 
     @receiver(Events.NEW_CHAPTER_REQUESTED)
-    def prompt_and_add_chapter(self, data: dict) -> None:
+    def prompt_and_add_chapter(self, data: dict = None) -> None:
         """
         Prompts the user for a new chapter title, creates the chapter in the 
         database, reloads the outline, and selects the new chapter.
@@ -171,9 +171,7 @@ class ChapterOutlineManager(BaseOutlineManager):
         :type data: dict
         
         :rtype: None
-        """
-        bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': EntityType.CHAPTER, 'ID': self.current_item_id, 'parent': self})
-        
+        """        
         title, ok = QInputDialog.getText(
             self, 
             "New Chapter", 

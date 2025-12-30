@@ -36,39 +36,12 @@ class MainMenuBar(QMenuBar):
     """
     :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'Settings' action is triggered.
     """
-    
-    new_chapter_requested = Signal()
-    """
-    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'New Chapter' action is triggered.
-    """
-
-    new_lore_requested = Signal()
-    """
-    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'New Lore Item' action is triggered.
-    """
-
-    new_character_requested = Signal()
-    """
-    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'New Character' action is triggered.
-    """
 
     view_switch_requested = Signal(int)
     """
     :py:class:`~PyQt6.QtCore.Signal` (int): Emitted when a view switch action is triggered. 
     The integer payload corresponds to a member of :py:class:`~app.utils.constants.ViewType`.
     """
-
-    # new_project_requested = Signal()
-    # """
-    # :py:class:`~PyQt6.QtCore.Signal` (int): Emitted when the user selected New Project button
-    #     in the File Menu.
-    # """
-
-    # open_project_requested = Signal()
-    # """
-    # :py:class:`~PyQt6.QtCore.Signal` (int): Emitted when the user selected Open Project button
-    #     in the File Menu.
-    # """
 
     project_stats_requested = Signal()
     """
@@ -80,8 +53,6 @@ class MainMenuBar(QMenuBar):
         """
         Initializes the main menu bar.
 
-        :param current_view: The currently active view type, used to set the initial checkmark.
-        :type current_view: :py:class:`~app.utils.constants.ViewType`
         :param app_version: The application's version string, used for the About dialog.
         :type app_version: str
         :param is_macos: Flag indicating if the application is running on macOS to set the correct modifier key (Cmd vs Ctrl).
@@ -134,17 +105,17 @@ class MainMenuBar(QMenuBar):
         # New Actions (connects directly to repository via MainWindow/Coordinator)
         new_chapter_action = QAction("New Chapter", self)
         new_chapter_action.setIcon(QIcon(":icons/chapter.svg"))
-        new_chapter_action.triggered.connect(self.new_chapter_requested.emit)
+        new_chapter_action.triggered.connect(lambda: bus.publish(Events.NEW_CHAPTER_REQUESTED))
         file_menu.addAction(new_chapter_action)
 
         new_lore_action = QAction("New Lore Entry", self)
         new_lore_action.setIcon(QIcon(":icons/lore-entry.svg"))
-        new_lore_action.triggered.connect(self.new_lore_requested.emit)
+        new_lore_action.triggered.connect(lambda: bus.publish(Events.NEW_LORE_REQUESTED))
         file_menu.addAction(new_lore_action)
 
         new_character_action = QAction("New Character", self)
         new_character_action.setIcon(QIcon(":icons/character.svg"))
-        new_character_action.triggered.connect(self.new_character_requested.emit)
+        new_character_action.triggered.connect(lambda: bus.publish(Events.NEW_CHARACTER_REQUESTED))
         file_menu.addAction(new_character_action)
         
         file_menu.addSeparator()

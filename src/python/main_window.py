@@ -291,18 +291,9 @@ class MainWindow(QMainWindow):
         self.main_menu_bar.view_switch_requested.connect(self.view_manager.switch_to_view)
         self.view_manager.view_changed.connect(self.main_menu_bar.update_view_checkmarks)
 
-        # MainMenuBar New Item Connections
-        self.main_menu_bar.new_chapter_requested.connect(self.view_manager.new_chapter_requested)
-        self.main_menu_bar.new_lore_requested.connect(self.view_manager.new_lore_requested)
-        self.main_menu_bar.new_character_requested.connect(self.view_manager.new_character_requested)
-
         # MainMenuBar Connections Export/Settings
         self.main_menu_bar.export_requested.connect(self._export)
         self.main_menu_bar.settings_requested.connect(self._open_settings_dialog)
-
-        # Connections for MainMenuBar Projects
-        # self.main_menu_bar.new_project_requested.connect(lambda: self._request_project_switch(is_new=True))
-        # self.main_menu_bar.open_project_requested.connect(lambda: self._request_project_switch(is_new=False))
         
         # Connect Main Menu Project Stats Dialog Openm
         self.main_menu_bar.project_stats_requested.connect(self._open_project_stats_dialog)
