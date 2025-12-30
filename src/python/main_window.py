@@ -48,17 +48,6 @@ class MainWindow(QMainWindow):
     5. **Settings/Theming:** Loading and saving window geometry and applying the current theme.
     """
 
-    project_open_requested = Signal() 
-    """
-    :py:class:`~PySide6.QtCore.Signal` (bool): Emitted when the user selects 
-    'Open Project' from the file menu. 
-    """
-    project_new_requested = Signal()
-    """
-    :py:class:`~PySide6.QtCore.Signal` (bool): Emitted when the user selects 
-    'New Project' from the file menu. 
-    """
-
     def __init__(self, project_settings: dict[str, Any], settings_manager: SettingsManager, db_connector: DBConnector,
                  parent=None) -> None:
         """
