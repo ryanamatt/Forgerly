@@ -19,6 +19,7 @@ class Events(str, Enum):
     # Save/Load Events
     SAVE_REQUESTED = "save.requested"
     SAVE_DATA_PROVIDED = "save.data_provided"
+    NO_CHECK_SAVE_DATA_PROVIDED = "save.no_check_save_data_provided"
     LOAD_REQUESTED = "load.requested"
     CHECK_SAVE = "save.check"
     DATA_LOADED = "data.loaded"
@@ -60,6 +61,8 @@ class Events(str, Enum):
     REL_TYPES_RECEIVED = "graph.rel_types_received"
     REL_CREATE_REQUESTED = "graph.rel_create"
     REL_DELETE_REQUESTED = "graph.rel_delete"
+    REL_DETAILS_REQUESTED = "graph.rel_details_requested"
+    REL_DETAILS_RETURN = "graph._rel_details_returned"
     
     # Export Events
     EXPORT_REQUESTED = "export.requested"

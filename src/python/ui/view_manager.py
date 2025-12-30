@@ -175,9 +175,6 @@ class ViewManager(QObject):
         rel_editor.relationship_created.connect(self.relationship_create_requested.emit)
         rel_editor.relationship_deleted.connect(self.relationship_delete_requested.emit)
         
-        # Outline updates also trigger a reload request
-        rel_outline.relationship_types_updated.connect(self.graph_load_requested.emit)
-
         # Data Flow: ViewManager (Input) -> Editor
         self.graph_data_received.connect(rel_editor.load_graph)
         self.rel_types_received.connect(rel_editor.set_available_relationship_types)

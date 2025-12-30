@@ -311,7 +311,7 @@ class MainWindow(QMainWindow):
 
         # Requests from ViewManager to Coordinator
         self.view_manager.graph_load_requested.connect(self.coordinator.load_relationship_graph_data)
-        self.view_manager.rel_types_requested.connect(self.coordinator.load_relationship_types_for_editor)
+        # self.view_manager.rel_types_requested.connect(self.coordinator.load_relationship_types_for_editor)
         self.view_manager.node_attributes_save_requested.connect(self.coordinator.save_node_position)
         self.view_manager.relationship_create_requested.connect(self.coordinator.save_new_relationship)
         self.view_manager.relationship_delete_requested.connect(self.coordinator.handle_relationship_deletion)
