@@ -72,6 +72,26 @@ class RelationshipRepository:
         except DatabaseError as e:
             logger.error("Failed to retrieve all character relationships for graph.", exc_info=True)
             raise e
+        
+    def get_relationship_details(self, rel_id: int) -> dict:
+        """
+        Gets the Details of a relationship from the database based on ID.
+        
+        :param rel_id: The ID of the relationship.
+        :type rel_id: int
+
+        :returns: Dict of all the Relationship Data.
+        :rtype dict:
+        """
+        query = "SELECT * FROM Character_Relationships WHERE ID = ?"
+        try:
+            rel_data = self.db._execute_query(query, (rel_id,), fetch_one=True)
+            if rel_data:
+                logger.info(f"Got details for Relationship: ID={rel_id}.")
+            return rel_data
+        except DatabaseError as e:
+            logger.error(f"Failed to get details for relationship with ID {rel_id}.", exc_info=True)
+            raise e
     
     def create_relationship(self, char_a_id: int, char_b_id: int, type_id: int, lore_id: int | None = None,
                             description: str = "", intensity: int = 5, start_chapter_id: int | None = None, 
@@ -135,9 +155,27 @@ class RelationshipRepository:
             raise e
 
     def update_relationship_details(self, relationship_id: int, type_id: int, description: str, 
-                                    intensity: int, lore_id: int | None, start_chapter_id: int | None, 
-                                    end_chapter_id: int | None) -> bool:
-        """Updates the non-ID fields of an existing relationship."""
+                                    intensity: int, lore_id: int | None = None, start_chapter_id: int | None = None, 
+                                    end_chapter_id: int | None = None) -> bool:
+        """
+        Updates the details of a relationships.
+        
+        :param relationship_id: The ID of the relationship.
+        :type relationship_id: int
+        :param type_id: The ID of the relationship type.
+        :type type_id: int
+        :param description: The description of the relationship.
+        :type description: str
+        :param intensity: The intensity of the relationship.
+        :type intensity: int
+                :param lore_id: The ID of the Lore Type of the Relationship.
+        :type lore_id: int
+        :param start_chapter_id: The chapter ID that the relationship begins in. Default is None.
+        :type start_chapter_id: int or None
+        :param end_chapter_id: The chapter ID that the relationships ends in. Default is None.
+        :type end_chapter_id: int or None
+        """
+
         query = """
         UPDATE Character_Relationships SET
             Type_ID = ?,
@@ -153,6 +191,7 @@ class RelationshipRepository:
             success = self.db._execute_commit(query, params)
             if success:
                 logger.info(f"Character relationship details updated: ID={relationship_id}.")
+            print(success)
             return success
 
         except DatabaseError as e:

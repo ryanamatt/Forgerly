@@ -59,10 +59,14 @@ class Events(str, Enum):
     NODE_SAVE_REQUESTED = "graph.node_save"
     REL_TYPES_REQUESTED = "graph.rel_types_requested"
     REL_TYPES_RECEIVED = "graph.rel_types_received"
+    REL_TYPE_DETAILS_REQUESTED = "graph.rel_type_details_requested"
+    REL_TYPE_DETAILS_RETURN = "graph.rel_types_details_return"
+
     REL_CREATE_REQUESTED = "graph.rel_create"
+    REL_UPDATE_REQUESTED = "graph.rel_update"
     REL_DELETE_REQUESTED = "graph.rel_delete"
     REL_DETAILS_REQUESTED = "graph.rel_details_requested"
-    REL_DETAILS_RETURN = "graph._rel_details_returned"
+    REL_DETAILS_RETURN = "graph._rel_details_return"
     
     # Export Events
     EXPORT_REQUESTED = "export.requested"

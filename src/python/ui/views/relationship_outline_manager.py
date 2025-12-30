@@ -2,16 +2,15 @@
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
-    QPushButton, QMenu, QMessageBox, QInputDialog, QColorDialog, QLineEdit,
-    QDialog, QFormLayout, QComboBox, QDialogButtonBox
+    QPushButton, QMenu, QMessageBox, QDialog
 )
-from PySide6.QtCore import Qt, Signal, QPoint
+from PySide6.QtCore import Qt, QPoint
 from PySide6.QtGui import QColor
 
+from ..dialogs.relationship_type_editor_dialog import RelationshipTypeEditorDialog
 from ...utils.constants import EntityType
 from ...utils.events import Events
 from ...utils.event_bus import bus, receiver
-from ...repository.relationship_repository import RelationshipRepository
 
 class RelationshipOutlineManager(QWidget):
     """
@@ -22,24 +21,19 @@ class RelationshipOutlineManager(QWidget):
     This manager allows users to define/edit the fundamental properties of a 
     relationship type (name, color, line style, directionality).
     """
+
     RELATIONSHIP_TYPE_ID_ROLE = Qt.ItemDataRole.UserRole + 1
     """The :py:obj:`int` role used to store the database ID of a Relationship_Type on an item."""
 
-    def __init__(self, relationship_repository: RelationshipRepository | None = None) -> None:
+    def __init__(self) -> None:
         """
         Initializes the :py:class:`.RelationshipOutlineManager`.
-
-        :param relationship_repository: The data access object for relationship types. 
-            Can be None if set later via :py:meth:`.set_repository`.
-        :type relationship_repository: :py:class:`~app.repository.relationship_repository.RelationshipRepository` or None
         
         :rtype: None
         """
         super().__init__()
 
         bus.register_instance(self)
-
-        self.rel_repo = relationship_repository
         
         # --- UI Components ---
         self.list_widget = QListWidget()
@@ -152,9 +146,9 @@ class RelationshipOutlineManager(QWidget):
 
         :rtype: None
         """
-        bus.publish(Events.REL_DETAILS_REQUESTED, data={'ID': item.data(self.RELATIONSHIP_TYPE_ID_ROLE)})
+        bus.publish(Events.REL_TYPE_DETAILS_REQUESTED, data={'ID': item.data(self.RELATIONSHIP_TYPE_ID_ROLE)})
 
-    @receiver(Events.REL_DETAILS_RETURN)
+    @receiver(Events.REL_TYPE_DETAILS_RETURN)
     def _open_type_editor(self, data: dict) -> None:
         """
         Opens a multi-step input dialog flow to edit the core properties of 
@@ -262,61 +256,3 @@ class RelationshipOutlineManager(QWidget):
         
         if reply == QMessageBox.StandardButton.Yes:
             bus.publish(Events.ITEM_DELETE_REQUESTED, data={'entity_type': EntityType.RELATIONSHIP, 'ID': type_id})
-
-class RelationshipTypeEditorDialog(QDialog):
-    def __init__(self, parent=None, details=None):
-        super().__init__(parent)
-        self.setWindowTitle("Edit Relationship Type")
-        self.setMinimumWidth(350)
-        
-        layout = QFormLayout(self)
-
-        # Inputs
-        self.name_edit = QLineEdit(details.get('Type_Name', ''))
-        self.short_label_edit = QLineEdit(details.get('Short_Label', ''))
-        
-        # Color - Storing the hex string
-        self.color_button = QPushButton(details.get('Default_Color', '#000000'))
-        self.color_button.setStyleSheet(f"background-color: {self.color_button.text()}; color: white;")
-        self.color_button.clicked.connect(self._pick_color)
-        self.current_color = details.get('Default_Color', '#000000')
-
-        # Line Style
-        self.style_combo = QComboBox()
-        self.style_combo.addItems(['Solid', 'Dash', 'Dot', 'DashDot'])
-        self.style_combo.setCurrentText(details.get('Line_Style', 'Solid'))
-
-        # Directionality
-        self.direction_combo = QComboBox()
-        self.direction_combo.addItem("Undirected (A <-> B)", 0)
-        self.direction_combo.addItem("Directed (A -> B)", 1)
-        self.direction_combo.setCurrentIndex(1 if details.get('Is_Directed', 0) else 0)
-
-        # Add to layout
-        layout.addRow("Type Name:", self.name_edit)
-        layout.addRow("Short Label:", self.short_label_edit)
-        layout.addRow("Default Color:", self.color_button)
-        layout.addRow("Line Style:", self.style_combo)
-        layout.addRow("Directionality:", self.direction_combo)
-
-        # Buttons
-        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        self.buttons.accepted.connect(self.accept)
-        self.buttons.rejected.connect(self.reject)
-        layout.addRow(self.buttons)
-
-    def _pick_color(self):
-        color = QColorDialog.getColor(QColor(self.current_color), self)
-        if color.isValid():
-            self.current_color = color.name()
-            self.color_button.setText(self.current_color)
-            self.color_button.setStyleSheet(f"background-color: {self.current_color};")
-
-    def get_values(self):
-        return {
-            "name": self.name_edit.text().strip(),
-            "short_label": self.short_label_edit.text().strip(),
-            "color": self.current_color,
-            "style": self.style_combo.currentText(),
-            "is_directed": self.direction_combo.currentData()
-        }

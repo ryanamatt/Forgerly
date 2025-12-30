@@ -11,7 +11,8 @@ class RelationshipCreationDialog(QDialog):
     
     Presents fields for Relationship Type, Description, and Intensity.
     """
-    def __init__(self, relationship_types: list[dict], char_a_name: str, char_b_name: str, parent=None) -> None:
+    def __init__(self, relationship_types: list[dict], char_a_name: str, char_b_name: str, 
+                 description: str = "", intensity: int = 5, parent=None) -> None:
         """
         Initializes :py:class:`.RelationshipCreationDialog`.
         
@@ -34,7 +35,7 @@ class RelationshipCreationDialog(QDialog):
         layout = QFormLayout(self)
         
         # Display the characters being connected
-        layout.addRow(QLabel(f"Connecting: **{char_a_name}** to **{char_b_name}**"))
+        layout.addRow(QLabel(f"Connecting: {char_a_name} to {char_b_name}"))
         
         # Relationship Type selection
         self.type_combo = QComboBox()
@@ -45,12 +46,13 @@ class RelationshipCreationDialog(QDialog):
         
         # Description
         self.description_input = QLineEdit()
+        self.description_input.setText(description)
         layout.addRow("Description:", self.description_input)
         
         # Intensity (e.g., a simple 1-10 scale)
         self.intensity_input = QSpinBox()
         self.intensity_input.setRange(1, 10) # Intensity is on Simple 1-10 Scale but multipled by scalar later
-        self.intensity_input.setValue(5)
+        self.intensity_input.setValue(intensity)
         layout.addRow("Intensity (0-10):", self.intensity_input)
         
         # Buttons
