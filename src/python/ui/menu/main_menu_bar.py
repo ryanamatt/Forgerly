@@ -8,7 +8,7 @@ from ...resources_rc import *
 from ...utils.constants import ViewType, EntityType
 from ...utils.logger import get_logger
 from ...utils.events import Events
-from ...utils.event_bus import bus
+from ...utils.event_bus import bus, receiver
 
 logger = get_logger(__name__)
 
@@ -37,12 +37,6 @@ class MainMenuBar(QMenuBar):
     :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'Settings' action is triggered.
     """
 
-    view_switch_requested = Signal(int)
-    """
-    :py:class:`~PyQt6.QtCore.Signal` (int): Emitted when a view switch action is triggered. 
-    The integer payload corresponds to a member of :py:class:`~app.utils.constants.ViewType`.
-    """
-
     def __init__(self, app_version: str, is_macos: bool, parent=None) -> None:
         """
         Initializes the main menu bar.
@@ -57,6 +51,9 @@ class MainMenuBar(QMenuBar):
         :rtype: None
         """
         super().__init__(parent=parent)
+
+        bus.register_instance(self)
+
         self.app_version = app_version
 
         self._mod_key = "Meta" if is_macos else "Ctrl"
@@ -169,7 +166,7 @@ class MainMenuBar(QMenuBar):
             action.setIcon(QIcon(icon_path))
             action.setCheckable(True)
             
-            action.triggered.connect(lambda: self.view_switch_requested.emit(view_type))
+            action.triggered.connect(lambda: bus.publish(Events.VIEW_SWITCH_REQUESTED, data={'view_type': view_type}))
             
             self.view_group.addAction(action)
             self.view_menu.addAction(action)
@@ -223,7 +220,8 @@ class MainMenuBar(QMenuBar):
             f"<p>Built with Python and PyQt6.</p>"
         )
 
-    def update_view_checkmarks(self, current_view: ViewType) -> None:
+    @receiver(Events.VIEW_CHANGED)
+    def update_view_checkmarks(self, data: dict) -> None:
         """
         Updates the checked state of the view menu actions based on the current active view.
         
@@ -235,6 +233,8 @@ class MainMenuBar(QMenuBar):
         
         :rtype: None
         """
+        print(data)
+        current_view = data.get('current_view')
         logger.debug(f"Updating view checkmarks to: {current_view}")
         actions = {
             ViewType.CHAPTER_EDITOR: self.view_chapter_action,

@@ -149,7 +149,7 @@ class MainWindow(QMainWindow):
         self._connect_components()
 
         # Initially set the view to Chapters
-        self.view_manager.switch_to_view(ViewType.CHAPTER_EDITOR)
+        bus.publish(Events.VIEW_SWITCH_REQUESTED, data={'view_type': ViewType.CHAPTER_EDITOR})
         bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': EntityType.CHAPTER})
 
         # Enable geometry saving after initial setup is complete
@@ -287,10 +287,6 @@ class MainWindow(QMainWindow):
         # MainMenuBar Save Connection
         self.main_menu_bar.save_requested.connect(self._on_save_triggered)
 
-        # MainMenuBar View Related Connections
-        self.main_menu_bar.view_switch_requested.connect(self.view_manager.switch_to_view)
-        self.view_manager.view_changed.connect(self.main_menu_bar.update_view_checkmarks)
-
         # MainMenuBar Connections Export/Settings
         self.main_menu_bar.export_requested.connect(self._export)
         self.main_menu_bar.settings_requested.connect(self._open_settings_dialog)
@@ -335,39 +331,6 @@ class MainWindow(QMainWindow):
         data |= editor.get_save_data()
 
         return self.coordinator.save_current_item(data=data)
-
-    # --- For Creating/Opening other Projects ---
-
-    # def _request_project_switch(self, is_new: bool) -> None:
-    #     """
-    #     Handles the request to switch to a new project or open an existing one.
-        
-    #     First, checks for unsaved changes. If safe to proceed, emits a signal 
-    #     to the ApplicationFlowManager to handle the window switch.
-        
-    #     :param is_new: True if 'New Project' was requested, False if 'Open Project'.
-    #     :type is_new: bool
-
-    #     :rtype: None
-    #     """
-    #     action = "New Project" if is_new else "Open Existing Project"
-    #     logger.info(f"Project switch requested: {action}. Initiating dirty state check.")
-
-    #     # Check for and save unsaved changes before switching
-    #     # The coordinator handles the QMessageBox logic and returns False if the user cancels.
-    #     if not self.save_helper():
-    #         logger.info(f"User cancelled {action} action during save prompt. Aborting switch.")
-    #         return
-
-    #     logger.debug(f"Dirty check passed. Emitting project close and open signal for: {action}.")
-
-    #     # Emit the signal to the ApplicationFlowManager (slot: _handle_project_switch_request in main.py)
-    #     if is_new:
-    #         self.project_new_requested.emit()
-    #     if is_new ==False:
-    #         self.project_open_requested.emit()
-
-    #     logger.debug(f"Signal emitted to ApplicationFlowManager. Current MainWindow is now closing.")
     
     # -------------------------------------------------------------------------
     # I/O Handlers (Export/Settings)

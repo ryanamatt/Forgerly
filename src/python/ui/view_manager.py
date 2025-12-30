@@ -38,57 +38,6 @@ class ViewManager(QObject):
     carrying the new ViewType.
     """
 
-    graph_load_requested = Signal()
-    """
-    :py:class:`~PySide6.QtCore.Signal`. Emitted when a graph reload is requested.
-    """
-
-    node_attributes_save_requested = Signal(int, float, float, str, str, int)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (int, float, float, str, str, int): 
-    Emitted to save a character node's position and attributes. Connects
-    to RelationshipEditor.node_attributes_save.
-
-    Carries the (Character ID, new X position, new Y position, Name, Color, 
-    Shape ID, Name, Color, and Shape ID)
-    """
-
-    rel_types_requested = Signal()
-    """
-    :py:class:`~PySide6.QtCore.Signal`: Emitted to request the list of available relationship types.
-    """
-
-    relationship_create_requested = Signal(int, int, int, str, int)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (int, int, int, str, int): 
-    Emitted when a new relationship is created, carrying 
-    (Source ID, Target ID, Type ID, Description, Intensity).
-    Emitted when RelationshipEditor.relationship_created is 
-    emitted.
-    """
-
-    relationship_delete_requested = Signal(int)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (int):
-    Emitted when a relationshipo is deleted, carrying
-    (Relationship_ID). Emitted when 
-    RelationshipEditor.relatiopnship_deleted is 
-    emitted.
-    """
-
-    graph_data_wanted = Signal()
-    """
-    :py:class:`~PySide6.QtCore.Signal` (dict): Emitted when changing
-    the view to RelationshipEditor and asks for the Graph Data to be
-    sent and recieved by graph_data_recieved.
-    """
-
-    graph_data_received = Signal(dict)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (dict): Emitted when the 
-    graph data is received containng the Nodes and Edges.
-    """
-
     def __init__(self, outline_stack: QStackedWidget, editor_stack: QStackedWidget) -> None:
         """
         Creates the ViewManager Object.
@@ -163,22 +112,24 @@ class ViewManager(QObject):
         """
         return self.current_view
 
-    @receiver(Events.VIEW_SWITCH_REQUESTED)
-    def _switch_view(self, data: dict):
-        """
-        TEMPORARY HELPER for event bus to switch view.
-        """
-        self.switch_to_view(view=data.get('view_type'))
+    # @receiver(Events.VIEW_SWITCH_REQUESTED)
+    # def _switch_view(self, data: dict):
+    #     """
+    #     TEMPORARY HELPER for event bus to switch view.
+    #     """
+    #     self.switch_to_view(view=data.get('view_type'))
 
-    def switch_to_view(self, view: ViewType) -> None:
+    @receiver(Events.VIEW_SWITCH_REQUESTED)
+    def switch_to_view(self, data: dict) -> None:
         """
         Changes the current visible panels and performs view-specific setup logic.
         
-        :param view: The view to switch to.
-        :type view: ViewType
+        :param data: Carrying the dict of a data containing {'view_type': ViewType}
+        :type data: dict
 
         :rtype: None
         """
+        view = data.get('view_type')
         index = self._view_indices.get(view, -1)
 
         if index == -1:
@@ -193,8 +144,8 @@ class ViewManager(QObject):
 
         self._perform_view_entry_logic(view)
 
-        self.view_changed.emit(view)
-        bus.publish(Events.VIEW_CHANGED, data={'view': self.current_view})
+        # self.view_changed.emit(view)
+        bus.publish(Events.VIEW_CHANGED, data={'current_view': self.current_view})
 
     def _perform_view_entry_logic(self, view: ViewType) -> None:
         """
