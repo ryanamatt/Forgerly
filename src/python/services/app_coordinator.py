@@ -191,7 +191,7 @@ class AppCoordinator(QObject):
         :type data: dict
         """
         id = data.get('ID')
-        parent = data.pop('parent')
+        parent = data.pop('parent', None)
 
         if id == 0 or not parent:
             return True # No item loaded
@@ -213,6 +213,7 @@ class AppCoordinator(QObject):
         # If discard proceed
         return True
 
+    @receiver(Events.NO_CHECK_SAVE_DATA_PROVIDED)
     def save_current_item(self, data: dict) -> None:
         """
         This functions saves the current item to the database.
@@ -227,7 +228,7 @@ class AppCoordinator(QObject):
 
         entity_type = data.pop('entity_type')
         id = data.pop('ID')
-        tags = data.pop('tags')
+        tags = data.pop('tags', None)
 
         match entity_type:
             case EntityType.CHAPTER:
@@ -245,6 +246,10 @@ class AppCoordinator(QObject):
             case EntityType.NOTE:
                 content_success = self.note_repo.update_note_content(id, **data)
                 tag_success = self.tag_repo.set_tags_for_note(id, tags)
+
+            case EntityType.RELATIONSHIP:
+                content_success = self.relationship_repo.update_relationship_type(id, **data)
+                tag_success = True # No Tags for Relationship
 
         if content_success and tag_success:
             bus.publish(Events.MARK_SAVED, data={'entity_type': entity_type})
@@ -355,6 +360,11 @@ class AppCoordinator(QObject):
                 notes = self.note_repo.get_all_notes()
                 return_data = {'entity_type': entity_type, 'notes': notes}
 
+            case EntityType.RELATIONSHIP:
+                relationship_types = self.relationship_repo.get_all_relationship_types()
+                self.relationship_types_available.emit(relationship_types)
+                return_data = {'entity_type': entity_type, 'relationship_types': relationship_types}
+
         bus.publish(Events.OUTLINE_DATA_LOADED, return_data)
 
     @receiver(Events.ITEM_SELECTED)
@@ -416,7 +426,7 @@ class AppCoordinator(QObject):
 
         :rtype: None
         """
-        entity_type = data.get('entity_type')
+        entity_type = data.pop('entity_type')
         if not entity_type:
             return
         
@@ -433,6 +443,9 @@ class AppCoordinator(QObject):
             case EntityType.NOTE:
                 id = self.note_repo.create_note(data.get('title'), data.get('sort_order'))
 
+            case EntityType.RELATIONSHIP:
+                id = self.relationship_repo.create_relationship_type(**data)
+
         bus.publish(Events.NEW_ITEM_CREATED, data={'entity_type': entity_type, 'ID': id})
 
     # --- Deleting Items ---
@@ -443,11 +456,13 @@ class AppCoordinator(QObject):
         Recieves the ITEM_DELETE_REQUESTED Event and deletes said
         item.
         
-        :param data: The data needed containing {type: EntityType, ID: item id (int)}
+        :param data: The data needed containing {type: EntityType, ID: item id (int),
+        parent: Widget}
         :type data: dict
 
         :rtype: None
         """
+        print(data)
         entity_type = data.get('entity_type')
         id = data.get('ID')
 
@@ -465,6 +480,10 @@ class AppCoordinator(QObject):
 
                 case EntityType.NOTE:
                     self.note_repo.delete_note(id)
+
+                case EntityType.RELATIONSHIP:
+                    print("IN RELATIONSHIP")
+                    self.relationship_repo.delete_relationship_type(id)
 
         bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': entity_type})
 
@@ -598,7 +617,8 @@ class AppCoordinator(QObject):
     
     # --- Relationship Graph Methods ---
 
-    def load_relationship_graph_data(self) -> None:
+    @receiver(Events.GRAPH_LOAD_REQUESTED)
+    def load_relationship_graph_data(self, data: dict = None) -> None:
         """
         Fetches all character nodes, relationship edges, and relationship types 
         required for the graph editor.
@@ -611,7 +631,7 @@ class AppCoordinator(QObject):
         self.current_item_id = 0
         # self.view_manager.current_view = ViewType.RELATIONSHIP_GRAPH
 
-        self.load_relationship_types_for_editor()
+        self.load_outline(data={'entity_type': EntityType.RELATIONSHIP})
 
         # Fetch all components
         relationships = self.relationship_repo.get_all_relationships_for_graph() or []
@@ -624,19 +644,32 @@ class AppCoordinator(QObject):
         # Emit signal to the RelationshipEditor
         self.graph_data_loaded.emit(graph_data)
 
-    def load_relationship_types_for_editor(self) -> None:
+    @receiver(Events.REL_DETAILS_REQUESTED)
+    def get_rel_types_details(self, data: dict) -> None:
         """
-        Fetches and emits the current list of relationship types.
-
-        Emits :py:attr:`.relationship_types_available`.
+        Retrieves the relationship details for a relationship
+        type.
         
-        :rtype: None
+        :param data: Description
+        :type data: dict
         """
-        try:
-            rel_types = self.relationship_repo.get_all_relationship_types()
-            self.relationship_types_available.emit(rel_types)
-        except Exception as e:
-            QMessageBox.critical(None, "Data Error", f"Failed to load relationship types: {e}")
+        data |= self.relationship_repo.get_relationship_type_details(data.get('ID'))
+        bus.publish(Events.REL_DETAILS_RETURN, data=data)
+        
+
+    # def load_relationship_types_for_editor(self) -> None:
+    #     """
+    #     Fetches and emits the current list of relationship types.
+
+    #     Emits :py:attr:`.relationship_types_available`.
+        
+    #     :rtype: None
+    #     """
+    #     try:
+    #         rel_types = self.relationship_repo.get_all_relationship_types()
+    #         self.relationship_types_available.emit(rel_types)
+    #     except Exception as e:
+    #         QMessageBox.critical(None, "Data Error", f"Failed to load relationship types: {e}")
 
     def handle_relationship_deletion(self, relationship_id: int) -> None:
         """

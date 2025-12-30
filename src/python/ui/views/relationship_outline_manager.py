@@ -2,11 +2,15 @@
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
-    QPushButton, QMenu, QMessageBox, QInputDialog, QColorDialog, QLineEdit
+    QPushButton, QMenu, QMessageBox, QInputDialog, QColorDialog, QLineEdit,
+    QDialog, QFormLayout, QComboBox, QDialogButtonBox
 )
 from PySide6.QtCore import Qt, Signal, QPoint
 from PySide6.QtGui import QColor
 
+from ...utils.constants import EntityType
+from ...utils.events import Events
+from ...utils.event_bus import bus, receiver
 from ...repository.relationship_repository import RelationshipRepository
 
 class RelationshipOutlineManager(QWidget):
@@ -21,21 +25,6 @@ class RelationshipOutlineManager(QWidget):
     RELATIONSHIP_TYPE_ID_ROLE = Qt.ItemDataRole.UserRole + 1
     """The :py:obj:`int` role used to store the database ID of a Relationship_Type on an item."""
 
-    type_selected = Signal(int)
-    """
-    :py:class:`~PyQt6.QtCore.Signal` (int): Emitted when a relationship 
-    type in the list is selected or double-clicked. Carries the Relationship 
-    Type ID of the selected item.
-    """
-    
-    relationship_types_updated = Signal()
-    """
-    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the list of 
-    relationship types has been modified (created, edited, or deleted). 
-    The recipient (e.g., the application coordinator) should use this 
-    to trigger a refresh of all views that depend on relationship types.
-    """ 
-
     def __init__(self, relationship_repository: RelationshipRepository | None = None) -> None:
         """
         Initializes the :py:class:`.RelationshipOutlineManager`.
@@ -47,6 +36,8 @@ class RelationshipOutlineManager(QWidget):
         :rtype: None
         """
         super().__init__()
+
+        bus.register_instance(self)
 
         self.rel_repo = relationship_repository
         
@@ -74,27 +65,28 @@ class RelationshipOutlineManager(QWidget):
         self.list_widget.itemDoubleClicked.connect(self._open_type_editor)
         self.list_widget.itemClicked.connect(self._handle_item_clicked)
         
-        # Load initial data
-        self.load_outline()
-        
-    def load_outline(self) -> None:
+    @receiver(Events.OUTLINE_DATA_LOADED)
+    def load_outline(self, data: dict) -> None:
         """
         Loads all relationship types from the database via the repository and 
         populates the internal :py:class:`~PyQt6.QtWidgets.QListWidget`.
         
         Each item is set with the name as text and its ID and color in the data roles.
+
+        :param data: A dictionary of the needed data containg {entity_type: EntityType.}
+        :type data: dict
         
         :rtype: None
         """
-        if not self.rel_repo:
+        entity_type = data.get('entity_type')
+        rel_types = data.get('relationship_types')
+        if entity_type != EntityType.RELATIONSHIP or not rel_types: 
             return
         
         self.list_widget.clear()
-        
-        all_types = self.rel_repo.get_all_relationship_types()
-        
-        if all_types:
-            for rel_type in all_types:
+                
+        if rel_types:
+            for rel_type in rel_types:
                 type_id = rel_type['ID']
                 name = rel_type['Type_Name']
                 color = rel_type.get('Default_Color', '#000000') # Default to black
@@ -112,16 +104,12 @@ class RelationshipOutlineManager(QWidget):
         """
         Handles a single click on a list item.
         
-        Emits the :py:attr:`.type_selected` signal with the ID of the clicked type.
-
         :param item: The list item that was clicked.
         :type item: :py:class:`~PyQt6.QtWidgets.QListWidgetItem`
         
         :rtype: None
         """
         type_id = item.data(self.RELATIONSHIP_TYPE_ID_ROLE)
-        if type_id is not None:
-            self.type_selected.emit(type_id)
 
     def _show_context_menu(self, position: QPoint) -> None:
         """
@@ -148,146 +136,110 @@ class RelationshipOutlineManager(QWidget):
             edit_action = menu.addAction("Edit Type Properties...")
             delete_action = menu.addAction("Delete Type")
             
-            edit_action.triggered.connect(lambda: self._open_type_editor(item))
+            edit_action.triggered.connect(lambda: self._call_type_editor_details(item))
             delete_action.triggered.connect(lambda: self._delete_type(item))
 
         menu.exec(self.list_widget.mapToGlobal(position))
 
-    def _open_type_editor(self, item: QListWidgetItem) -> None:
+    def _call_type_editor_details(self, item: QListWidgetItem) -> None:
+        """
+        Calls for all the details for the relationships types.
+        When received it will call the _open_type_editor to ope
+        up all the details.
+        
+        :param item: The item that was clicked on.
+        :type item: QListWidgetItem
+
+        :rtype: None
+        """
+        bus.publish(Events.REL_DETAILS_REQUESTED, data={'ID': item.data(self.RELATIONSHIP_TYPE_ID_ROLE)})
+
+    @receiver(Events.REL_DETAILS_RETURN)
+    def _open_type_editor(self, data: dict) -> None:
         """
         Opens a multi-step input dialog flow to edit the core properties of 
         the selected Relationship Type (Name, Short Label, Color, Style, Direction).
-        
-        Saves changes to the repository and refreshes the UI item if successful,
-        and emits the :py:attr:`.relationship_types_updated` signal.
 
-        :param item: The list item corresponding to the Relationship Type to be edited.
-        :type item: :py:class:`~PyQt6.QtWidgets.QListWidgetItem`
+        :param data:
+        :param dict:
         
         :rtype: None
         """
-        if not self.rel_repo:
-            QMessageBox.critical(self, "Error", "RelationshipRepository is missing.")
-            return
+        type_id = data.pop('ID')
+        details = data
 
-        type_id = item.data(self.RELATIONSHIP_TYPE_ID_ROLE)
-        current_name = item.text()
+        # Initialize and show the custom dialog
+        dialog = RelationshipTypeEditorDialog(self, details)
         
-        # 1. Get all details for editing (Requires new repo method)
-        details = self.rel_repo.get_relationship_type_details(type_id)
-        if not details:
-            QMessageBox.critical(self, "Error", "Could not retrieve relationship type details.")
-            return
-        
-        current_color = details.get('Default_Color', '#000000')
-        current_style = details.get('Line_Style', 'Solid')
-        current_directed = details.get('Is_Directed', 0)
-        current_short_label = details.get('Short_Label', '')
-
-        # --- Simple Edit Flow using QInputDialogs (multi-step) ---
-        
-        # a) Edit Name
-        new_name, ok = QInputDialog.getText(
-            self, "Edit Type Name", "Relationship Type Name:", QLineEdit.EchoMode.Normal, current_name
-        )
-        if not ok or not new_name.strip(): return
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            values = dialog.get_values()
             
-        new_name = new_name.strip()
-        
-        # b) Edit Short Label
-        new_short_label, ok = QInputDialog.getText(
-            self, "Edit Type Short Label", "Short Label (e.g., 'Fr', 'Ri'):", QLineEdit.EchoMode.Normal, current_short_label
-        )
-        if not ok: return
-        new_short_label = new_short_label.strip()
-
-        # c) Edit Color
-        color_dialog = QColorDialog()
-        color_dialog.setCurrentColor(QColor(current_color))
-        if color_dialog.exec() == QColorDialog.DialogCode.Accepted:
-            new_color = color_dialog.selectedColor().name()
-        else:
-            new_color = current_color 
+            # Validation: Ensure name is not empty
+            if not values.get('name'):
+                QMessageBox.warning(self, "Validation Error", "Type Name cannot be empty.")
+                return
             
-        # d) Edit Line Style 
-        styles = ['Solid', 'Dash', 'Dot', 'DashDot']
-        style_idx = styles.index(current_style) if current_style in styles else 0
-        new_style, ok = QInputDialog.getItem(
-            self, "Edit Line Style", "Line Style:", styles, current=style_idx, editable=False
-        )
-        if not ok: return
-        
-        # e) Edit Is_Directed 
-        directed_options = ['Undirected (A <-> B)', 'Directed (A -> B)']
-        directed_idx = 1 if current_directed else 0
-        selected_direction, ok = QInputDialog.getItem(
-            self, "Edit Directionality", "Relationship Direction:", directed_options, current=directed_idx, editable=False
-        )
-        if not ok: return
-            
-        new_directed = 1 if selected_direction == directed_options[1] else 0
+            save_data = {
+                'entity_type': EntityType.RELATIONSHIP,
+                'ID': type_id,
+                'type_name': values.get('name'),
+                'short_label': values.get("short_label"),
+                'default_color': values.get('color'),
+                'is_directed': values.get('is_directed'),
+                'line_style': values.get('style')
+            }
 
-        # --- Save Changes ---
-        success = self.rel_repo.update_relationship_type(
-            type_id=type_id,
-            type_name=new_name,
-            short_label=new_short_label,
-            default_color=new_color,
-            is_directed=new_directed,
-            line_style=new_style
-        )
-        
-        if success:
-            # Update the list item in the UI
-            item.setText(new_name)
-            item.setForeground(QColor(new_color))
-            self.relationship_types_updated.emit()
-            QMessageBox.information(self, "Success", f"Relationship Type '{new_name}' updated.")
-        else:
-            QMessageBox.critical(self, "Error", f"Failed to update relationship type '{current_name}' in the database.")
-
+            bus.publish(Events.NO_CHECK_SAVE_DATA_PROVIDED, data=save_data)
+            bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': EntityType.RELATIONSHIP})
+            bus.publish(Events.GRAPH_LOAD_REQUESTED)
 
     def _create_new_type(self) -> None:
         """
         Handles the creation of a new relationship type by prompting the user for a name.
         
         Saves the new type with default properties to the repository, reloads 
-        the list, and emits the :py:attr:`.relationship_types_updated` signal.
+        the list, and emits the event NEW_ITEM_REQUESTED.
         
         :rtype: None
         """
-        if not self.rel_repo:
-            QMessageBox.critical(self, "Error", "RelationshipRepository is missing.")
-            return
+        # Define default values for a brand new relationship type
+        default_details = {
+            'Type_Name': '',
+            'Short_Label': '',
+            'Default_Color': '#FFFFFF',
+            'Line_Style': 'Solid',
+            'Is_Directed': 0
+        }
 
-        name, ok = QInputDialog.getText(
-            self, "New Relationship Type", "Enter name for the new Relationship Type:"
-        )
-        
-        if ok and name.strip():
-            new_name = name.strip()
-            # Use sensible defaults for creation
-            new_id = self.rel_repo.create_relationship_type(
-                type_name=new_name, 
-                short_label=new_name[:3], # Default short label to first 3 chars
-                default_color="#FFFFFF", # Default to white
-                is_directed=0,
-                line_style="Solid"
-            )
+        # Open the same dialog used for editing
+        dialog = RelationshipTypeEditorDialog(self, default_details)
+        dialog.setWindowTitle("Create New Relationship Type") # Override title for clarity
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            values = dialog.get_values()
             
-            if new_id:
-                self.load_outline() 
-                self.relationship_types_updated.emit()
-                QMessageBox.information(self, "Success", f"Relationship Type '{new_name}' created.")
-            else:
-                QMessageBox.critical(self, "Error", f"Failed to create relationship type '{new_name}' in the database.")
+            # Validation: Ensure name is not empty
+            if not values.get('name'):
+                QMessageBox.warning(self, "Validation Error", "Type Name cannot be empty.")
+                return
+            
+            save_data = {
+                'entity_type': EntityType.RELATIONSHIP,
+                'type_name': values.get('name'),
+                'short_label': values.get("short_label"),
+                'default_color': values.get('color'),
+                'is_directed': values.get('is_directed'),
+                'line_style': values.get('style')
+            }
+
+            bus.publish(Events.NEW_ITEM_REQUESTED, data=save_data)
+            bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': EntityType.RELATIONSHIP})
 
     def _delete_type(self, item: QListWidgetItem) -> None:
         """
         Handles the deletion of a relationship type after user confirmation.
         
-        If deleted, it removes the item from the list and emits 
-        the :py:attr:`.relationship_types_updated` signal. Warns the user 
+        If deleted, it removes the item from the list and emits. Warns the user 
         that all relationships of this type will also be deleted.
 
         :param item: The list item corresponding to the Relationship Type to be deleted.
@@ -295,9 +247,6 @@ class RelationshipOutlineManager(QWidget):
         
         :rtype: None
         """
-        if not self.rel_repo:
-            QMessageBox.critical(self, "Error", "RelationshipRepository is missing.")
-            return
             
         type_id = item.data(self.RELATIONSHIP_TYPE_ID_ROLE)
         name = item.text()
@@ -312,10 +261,62 @@ class RelationshipOutlineManager(QWidget):
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            if self.rel_repo.delete_relationship_type(type_id):
-                # Remove from UI and notify
-                self.list_widget.takeItem(self.list_widget.row(item))
-                self.relationship_types_updated.emit()
-                QMessageBox.information(self, "Success", f"Relationship Type '{name}' deleted.")
-            else:
-                QMessageBox.critical(self, "Deletion Error", "A database error occurred while trying to delete the relationship type.")
+            bus.publish(Events.ITEM_DELETE_REQUESTED, data={'entity_type': EntityType.RELATIONSHIP, 'ID': type_id})
+
+class RelationshipTypeEditorDialog(QDialog):
+    def __init__(self, parent=None, details=None):
+        super().__init__(parent)
+        self.setWindowTitle("Edit Relationship Type")
+        self.setMinimumWidth(350)
+        
+        layout = QFormLayout(self)
+
+        # Inputs
+        self.name_edit = QLineEdit(details.get('Type_Name', ''))
+        self.short_label_edit = QLineEdit(details.get('Short_Label', ''))
+        
+        # Color - Storing the hex string
+        self.color_button = QPushButton(details.get('Default_Color', '#000000'))
+        self.color_button.setStyleSheet(f"background-color: {self.color_button.text()}; color: white;")
+        self.color_button.clicked.connect(self._pick_color)
+        self.current_color = details.get('Default_Color', '#000000')
+
+        # Line Style
+        self.style_combo = QComboBox()
+        self.style_combo.addItems(['Solid', 'Dash', 'Dot', 'DashDot'])
+        self.style_combo.setCurrentText(details.get('Line_Style', 'Solid'))
+
+        # Directionality
+        self.direction_combo = QComboBox()
+        self.direction_combo.addItem("Undirected (A <-> B)", 0)
+        self.direction_combo.addItem("Directed (A -> B)", 1)
+        self.direction_combo.setCurrentIndex(1 if details.get('Is_Directed', 0) else 0)
+
+        # Add to layout
+        layout.addRow("Type Name:", self.name_edit)
+        layout.addRow("Short Label:", self.short_label_edit)
+        layout.addRow("Default Color:", self.color_button)
+        layout.addRow("Line Style:", self.style_combo)
+        layout.addRow("Directionality:", self.direction_combo)
+
+        # Buttons
+        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+        layout.addRow(self.buttons)
+
+    def _pick_color(self):
+        color = QColorDialog.getColor(QColor(self.current_color), self)
+        if color.isValid():
+            self.current_color = color.name()
+            self.color_button.setText(self.current_color)
+            self.color_button.setStyleSheet(f"background-color: {self.current_color};")
+
+    def get_values(self):
+        return {
+            "name": self.name_edit.text().strip(),
+            "short_label": self.short_label_edit.text().strip(),
+            "color": self.current_color,
+            "style": self.style_combo.currentText(),
+            "is_directed": self.direction_combo.currentData()
+        }

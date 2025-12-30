@@ -34,9 +34,6 @@ class ChapterOutlineManager(BaseOutlineManager):
         :param chapter_repository: The repository object for chapter CRUD operations.
         :type chapter_repository: :py:class:`.ChapterRepository` or :py:obj:`None`, optional
         """
-
-        self.project_title = project_title
-
         super().__init__(
             project_title=project_title,
             header_text="Chapters",
