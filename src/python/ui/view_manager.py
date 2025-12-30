@@ -32,12 +32,6 @@ class ViewManager(QObject):
     Connects the OutlineManager, Editor signals.
     """
 
-    view_changed = Signal(int)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (ViewType). Emitted When the View changes
-    carrying the new ViewType.
-    """
-
     def __init__(self, outline_stack: QStackedWidget, editor_stack: QStackedWidget) -> None:
         """
         Creates the ViewManager Object.

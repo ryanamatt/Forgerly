@@ -21,11 +21,6 @@ class MainMenuBar(QMenuBar):
     or :py:class:`~app.services.app_coordinator.AppCoordinator`).
     """
 
-    settings_requested = Signal()
-    """
-    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'Settings' action is triggered.
-    """
-
     def __init__(self, app_version: str, is_macos: bool, parent=None) -> None:
         """
         Initializes the main menu bar.
