@@ -21,11 +21,6 @@ class MainMenuBar(QMenuBar):
     or :py:class:`~app.services.app_coordinator.AppCoordinator`).
     """
 
-    export_requested = Signal()
-    """
-    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'Export Project' action is triggered.
-    """
-
     settings_requested = Signal()
     """
     :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'Settings' action is triggered.
@@ -118,7 +113,7 @@ class MainMenuBar(QMenuBar):
         export_action = QAction("&Export...", self)
         export_action.setIcon(QIcon(":icons/download.svg"))
         export_action.setShortcut(f"{self._mod_key}+E")
-        export_action.triggered.connect(self.export_requested.emit)
+        export_action.triggered.connect(lambda: bus.publish(Events.EXPORT_REQUESTED))
         file_menu.addAction(export_action)
         
         file_menu.addSeparator()
@@ -127,7 +122,7 @@ class MainMenuBar(QMenuBar):
         settings_action = QAction("&Settings", self)
         settings_action.setIcon(QIcon(":icons/settings.svg"))
         settings_action.setShortcut(f"{self._mod_key}+,")
-        settings_action.triggered.connect(self.settings_requested.emit)
+        settings_action.triggered.connect(lambda: bus.publish(Events.SETTINGS_REQUESTED))
         file_menu.addAction(settings_action)
 
         file_menu.addSeparator()

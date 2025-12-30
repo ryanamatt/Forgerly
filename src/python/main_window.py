@@ -146,8 +146,6 @@ class MainWindow(QMainWindow):
 
         self._setup_ui()
         
-        self._connect_components()
-
         # Initially set the view to Chapters
         bus.publish(Events.VIEW_SWITCH_REQUESTED, data={'view_type': ViewType.CHAPTER_EDITOR})
         bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': EntityType.CHAPTER})
@@ -272,24 +270,6 @@ class MainWindow(QMainWindow):
 
         logger.info("UI setup finalized.")
 
-    # -------------------------------------------------------------------------
-    # Signal Connections
-    # -------------------------------------------------------------------------
-
-    def _connect_components(self) -> None:
-        """
-        Connects signals from custom widgets to slots in the main window and coordinator.
-        
-        :rtype: None
-        """
-        logger.info("Connecting all application UI and data components.")
-
-        # MainMenuBar Connections Export/Settings
-        self.main_menu_bar.export_requested.connect(self._export)
-        self.main_menu_bar.settings_requested.connect(self._open_settings_dialog)
-
-        logger.info("Component signal connections complete.")
-
     # --- Coordinator/ViewManager ---
 
     def save_helper(self):
@@ -310,35 +290,21 @@ class MainWindow(QMainWindow):
         data |= editor.get_save_data()
 
         return self.coordinator.check_and_save_dirty(data=data)
-
-
-    def _on_save_triggered(self) -> None:
-        """
-        Called When Save is triggered
-        
-        :rtype: None
-        """
-        editor = self.view_manager.get_current_editor()
-        view = self.view_manager.get_current_view()
-
-        map = {ViewType.CHAPTER_EDITOR: EntityType.CHAPTER, ViewType.LORE_EDITOR: EntityType.LORE,
-                ViewType.CHARACTER_EDITOR: EntityType.CHARACTER, ViewType.NOTE_EDITOR: EntityType.NOTE}
-        
-        data = {'entity_type': map.get(view), 'ID': self.coordinator.current_item_id}
-        data |= editor.get_save_data()
-
-        return self.coordinator.save_current_item(data=data)
     
     # -------------------------------------------------------------------------
     # I/O Handlers (Export/Settings)
     # -------------------------------------------------------------------------
 
-    def _export(self) -> None:
+    @receiver(Events.EXPORT_REQUESTED)
+    def _export(self, data: dict = None) -> None:
         """
         Opens the :py:class:`~app.ui.dialogs.ExporterDialog`. 
         
         If accepted, it delegates the export logic to the appropriate exporter 
         class (:py:class:`~app.services.story_exporter.StoryExporter`, etc.).
+
+        :param data: Data dictionary, Empty as function doesn't need it.
+        :type data: dict
         
         :rtype: None
         """
@@ -448,11 +414,15 @@ class MainWindow(QMainWindow):
             # or a benign cancellation (e.g., closing the file dialog) or a handled error (shown as QMessageBox).
             logger.debug(f"Export of '{export_type}' was canceled or failed gracefully.")
 
-    def _open_settings_dialog(self) -> None:
+    @receiver(Events.SETTINGS_REQUESTED)
+    def _open_settings_dialog(self, data: dict = None) -> None:
         """
         Opens the :py:class:`~app.ui.dialogs.SettingsDialog`. 
         
         If accepted, it saves the new settings and applies the new theme and geometry.
+
+        :param data: Data dictionary, Empty as function doesn't need it.
+        :type data: dict
         
         :rtype: None
         """
