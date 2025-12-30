@@ -43,12 +43,6 @@ class MainMenuBar(QMenuBar):
     The integer payload corresponds to a member of :py:class:`~app.utils.constants.ViewType`.
     """
 
-    project_stats_requested = Signal()
-    """
-    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'Project Statistics' action is triggered.
-    """
-
-
     def __init__(self, app_version: str, is_macos: bool, parent=None) -> None:
         """
         Initializes the main menu bar.
@@ -195,7 +189,7 @@ class MainMenuBar(QMenuBar):
         # Project Statistics (Not part of the group as it's a pop-up, not a toggle view)
         self.project_stats_action = QAction("&Project Statistics", self)
         self.project_stats_action.setIcon(QIcon(":icons/line-chart-line.svg"))
-        self.project_stats_action.triggered.connect(self.project_stats_requested.emit)
+        self.project_stats_action.triggered.connect(lambda: bus.publish(Events.PROJECT_STATS_REQUESTED))
         self.view_menu.addAction(self.project_stats_action)
 
     def _setup_help_menu(self) -> None:

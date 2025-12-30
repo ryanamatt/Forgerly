@@ -294,9 +294,6 @@ class MainWindow(QMainWindow):
         # MainMenuBar Connections Export/Settings
         self.main_menu_bar.export_requested.connect(self._export)
         self.main_menu_bar.settings_requested.connect(self._open_settings_dialog)
-        
-        # Connect Main Menu Project Stats Dialog Openm
-        self.main_menu_bar.project_stats_requested.connect(self._open_project_stats_dialog)
 
         logger.info("Component signal connections complete.")
 
@@ -650,9 +647,13 @@ class MainWindow(QMainWindow):
         self.current_settings['window_pos_x'] = new_pos_x
         self.current_settings['window_pos_y'] = new_pos_y
 
-    def _open_project_stats_dialog(self) -> None:
+    @receiver(Events.PROJECT_STATS_REQUESTED)
+    def _open_project_stats_dialog(self, data: dict = None) -> None:
         """
         Opens the :py:class:`~app.ui.dialogs.ProjectStatsDialog`. 
+
+        :param data: Data dictionary, Empty as function doesn't need it.
+        :type data: dict
                 
         :rtype: None
         """
