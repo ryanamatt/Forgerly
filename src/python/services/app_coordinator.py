@@ -55,8 +55,20 @@ class AppCoordinator(QObject):
         self.relationship_repo = RelationshipRepository(self.db)
 
         # State Tracking
-        self.current_item_id: int = -1
+        self.current_item_id: int = 0
         self.current_entity_type: EntityType = EntityType.CHAPTER
+
+    @receiver(Events.DATA_LOADED)
+    def set_state_tracking(self, data: dict) -> None:
+        """
+        Docstring for set_state_tracking
+        
+        :param self: Description
+        :param data: Description
+        :type data: dict
+        """
+        self.current_item_id = data.get('ID')
+        self.current_entity_type = data.get('entity_type')
 
     # --- Save / Dirty Check Logic (Core Business Logic) ---
 
@@ -105,6 +117,8 @@ class AppCoordinator(QObject):
         :rtype: None
         """
         data |= {'ID': self.current_item_id}
+        if 'entity_type' not in data:
+            data |= {'entity_type': self.current_entity_type}
         bus.publish(Events.SAVE_REQUESTED, data=data)
 
     @receiver(Events.SAVE_DATA_PROVIDED)
@@ -119,9 +133,13 @@ class AppCoordinator(QObject):
         id = data.get('ID')
         parent = data.pop('parent', None)
 
-        if id == 0 or not parent:
+        if id == -1 or not parent:
             return True # No item loaded
         
+        skip_check = data.pop('skip_check', False)
+        if skip_check:
+            return self.save_current_item(data=data)
+            
         save_reply = QMessageBox.question(
             parent, # Use parent for dialog centering
             "Unsaved Changes",
@@ -152,8 +170,8 @@ class AppCoordinator(QObject):
         """
         content_success, tag_success = False, False
 
-        entity_type = data.pop('entity_type')
-        id = data.pop('ID')
+        entity_type = data.pop('entity_type', self.current_entity_type)
+        id = data.pop('ID', self.current_item_id)
         tags = data.pop('tags', None)
 
         match entity_type:

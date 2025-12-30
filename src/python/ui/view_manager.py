@@ -68,32 +68,6 @@ class ViewManager(QObject):
             ViewType.RELATIONSHIP_GRAPH: 4
         }
 
-        self._connect_view_signals()
-
-    def _connect_view_signals(self) -> None:
-        """
-        Connects navigation and view-state signals internally.
-        
-        :rtype: None
-        """
-
-        chapter_editor: ChapterEditor = self.editor_stack.widget(0) # ChapterEditor
-        lore_editor: LoreEditor = self.editor_stack.widget(1)    # LoreEditor
-        char_editor: CharacterEditor = self.editor_stack.widget(2)    # ChapterEditor
-        note_editor: NoteEditor = self.editor_stack.widget(3) # NoteEditor
-        rel_editor: RelationshipEditor = self.editor_stack.widget(4) # RelationshipEditor
-
-        chapter_outline: ChapterOutlineManager = self.outline_stack.widget(0) # ChapterOutlineManager
-        lore_outline: LoreOutlineManager = self.outline_stack.widget(1)    # LoreOutlineManager
-        char_outline: CharacterOutlineManager = self.outline_stack.widget(2)    # CharacterOutlineManager
-        note_outline: NoteOutlineManager = self.outline_stack.widget(3) # NoteOutlineManager
-        rel_outline: RelationshipOutlineManager = self.outline_stack.widget(4) #RelationshipOutlineManager
-
-        # Connect the internal relay signals to the specific widgets - MainMenuBar
-        # self.new_chapter_requested.connect(chapter_outline.prompt_and_add_chapter)
-        # self.new_lore_requested.connect(lore_outline.prompt_and_add_lore)
-        # self.new_character_requested.connect(char_outline.prompt_and_add_character)
-
     def get_current_editor(self) -> 'BaseEditor':
         """
         Gets the current Editor
@@ -111,13 +85,6 @@ class ViewManager(QObject):
         :rtype: ViewType
         """
         return self.current_view
-
-    # @receiver(Events.VIEW_SWITCH_REQUESTED)
-    # def _switch_view(self, data: dict):
-    #     """
-    #     TEMPORARY HELPER for event bus to switch view.
-    #     """
-    #     self.switch_to_view(view=data.get('view_type'))
 
     @receiver(Events.VIEW_SWITCH_REQUESTED)
     def switch_to_view(self, data: dict) -> None:

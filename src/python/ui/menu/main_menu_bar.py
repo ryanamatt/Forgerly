@@ -21,12 +21,6 @@ class MainMenuBar(QMenuBar):
     or :py:class:`~app.services.app_coordinator.AppCoordinator`).
     """
 
-    save_requested = Signal()
-    """
-    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'Save' action is triggered 
-    (e.g., File -> Save or Ctrl+S).
-    """
-
     export_requested = Signal()
     """
     :py:class:`~PyQt6.QtCore.Signal`: Emitted when the 'Export Project' action is triggered.
@@ -115,7 +109,7 @@ class MainMenuBar(QMenuBar):
         save_action = QAction("&Save Content", self)
         save_action.setIcon(QIcon(":icons/save.svg"))
         save_action.setShortcut(f"{self._mod_key}+S")
-        save_action.triggered.connect(self.save_requested.emit) 
+        save_action.triggered.connect(lambda: bus.publish(Events.PRE_ITEM_CHANGE, data={'skip_check': True}))
         file_menu.addAction(save_action)
 
         file_menu.addSeparator()
@@ -233,7 +227,6 @@ class MainMenuBar(QMenuBar):
         
         :rtype: None
         """
-        print(data)
         current_view = data.get('current_view')
         logger.debug(f"Updating view checkmarks to: {current_view}")
         actions = {

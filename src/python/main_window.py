@@ -284,9 +284,6 @@ class MainWindow(QMainWindow):
         """
         logger.info("Connecting all application UI and data components.")
 
-        # MainMenuBar Save Connection
-        self.main_menu_bar.save_requested.connect(self._on_save_triggered)
-
         # MainMenuBar Connections Export/Settings
         self.main_menu_bar.export_requested.connect(self._export)
         self.main_menu_bar.settings_requested.connect(self._open_settings_dialog)
