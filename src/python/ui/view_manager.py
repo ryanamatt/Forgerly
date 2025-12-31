@@ -1,7 +1,7 @@
 # src/python/ui/view_manager.py
 
 from PySide6.QtWidgets import QStackedWidget
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject
 
 from ..utils.constants import ViewType, EntityType
 from ..utils.events import Events
@@ -11,16 +11,6 @@ from ..utils.logger import get_logger
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .views.base_editor import BaseEditor
-    from .views.chapter_outline_manager import ChapterOutlineManager
-    from .views.chapter_editor import ChapterEditor
-    from .views.lore_outline_manager import LoreOutlineManager
-    from .views.lore_editor import LoreEditor
-    from .views.character_outline_manager import CharacterOutlineManager
-    from .views.character_editor import CharacterEditor
-    from .views.note_outline_manager import NoteOutlineManager
-    from .views.note_editor import NoteEditor
-    from .views.relationship_outline_manager import RelationshipOutlineManager
-    from .views.relationship_editor import RelationshipEditor
 
 logger = get_logger(__name__)
 
