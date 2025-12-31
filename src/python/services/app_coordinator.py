@@ -211,8 +211,7 @@ class AppCoordinator(QObject):
 
         :param data: Dict containg all data to save for the node. Contians
             {'char_id': int, 'x_pos': float, 'y_pos': float, 'node_color': str, 
-                'node_shape': str, 'is_hidden': int,
-            }
+            'node_shape': str, 'is_hidden': int}
         :type data: dict
         
         :returns: True if the save was successful, False otherwise.
@@ -312,8 +311,10 @@ class AppCoordinator(QObject):
         the data is needed to load that item.
         
         :param data: The data dictionary containng {'entity_type': EntityType,
-        'ID': int (item_id)}
+            'ID': int (item_id)}
         :type data: dict
+
+        :rtype: None
         """
         entity_type = data.get('entity_type')
         item_id = data.get('ID')

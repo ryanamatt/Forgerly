@@ -3,7 +3,7 @@
 import os
 import sys
 
-project_root = os.path.abspath('..')
+project_root = os.path.abspath('../..')
 
 sys.path.insert(0, os.path.join(project_root, 'src'))
 
