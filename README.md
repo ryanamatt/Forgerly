@@ -2,7 +2,7 @@
 
 Narrative Forge is a comprehensive desktop application designed to assist **authors, storytellers, and worldbuilders** in organizing and developing their fictional universes. Built using **Python** and **PyQt6**, it provides dedicated tools for managing chapters, characters, lore, and the relationships between them.
 
-![Screenshot of Narrative Forge Main Interface](docs/screenshots/character_editor.png)
+![Screenshot of Narrative Forge Main Interface](docs/user/screenshots/character_editor.png)
 
 ## **🛠️ Requirements**
 
@@ -17,7 +17,7 @@ The application provides specialized views and editors to manage all aspects of 
 * **Chapter Management:** Outline and edit chapters.  
   * **Chapter Statistics:** The **Chapter Editor** displays real-time statistics for the active chapter, with an additional global statistics dialog for the entire story.
 
-![Screenshot of Chapter Editor with Statistics Panel](docs/screenshots/project_statistics.png)
+![Screenshot of Chapter Editor with Statistics Panel](docs/user/screenshots/project_statistics.png)
 
 * **Character Profiles:** Create and manage detailed character profiles and biographies.  
 * **Lore/Worldbuilding Editor:** Document and organize your world's history, locations, and other lore elements.  
@@ -26,7 +26,7 @@ The application provides specialized views and editors to manage all aspects of 
   * **High-Performance Layout:** Utilizes a custom **C++ library** implementing the **Fruchterman-Reingold** force-directed algorithm for the "Auto Layout" feature.  
   * **Precision Tools:** Toggleable background grid and "Snap to Grid" functionality for manual node organization.
 
-![Screenshot of Relationship Graph with Node Layout and Grid enabled](docs/screenshots/relationship_graph.png)
+![Screenshot of Relationship Graph with Node Layout and Grid enabled](docs/user/screenshots/relationship_graph.png)
 
 * **Tagging System:** Apply tags to various entities for easy organization and filtering.  
 * **Inter-Entry Lookup:** While editing a chapter, highlight text and press **Ctrl+Shift+L** to instantly view associated character or lore entries.  
@@ -112,7 +112,7 @@ python tools/view_docs.py
 2. **Install Dependencies:**
 
 ```Bash
-pip install \-r requirements.txt
+pip install -r requirements.txt
 ```
 
 3. Build C++ Core (Required for Auto-Layout):  

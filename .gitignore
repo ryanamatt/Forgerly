@@ -2,7 +2,7 @@ venv_runtime/
 venv_dev/
 __pycache__/
 .pytest_cache/
-documentation/_build/
+docs/api/_build/
 projects/
 logs/
 config/user_settings.json

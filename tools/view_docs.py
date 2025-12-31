@@ -8,7 +8,7 @@ def view_documentation():
     
     # Define paths relative to the script's location (tools/)
     PROJECT_ROOT = Path(__file__).parent.parent
-    INDEX_HTML_PATH = PROJECT_ROOT / 'documentation' / '_build' / 'index.html'
+    INDEX_HTML_PATH = PROJECT_ROOT / 'docs' / 'api' / '_build' / 'index.html'
 
     print("--- Attempting to open documentation in browser ---")
 

@@ -8,7 +8,7 @@ from typing import List
 # --- Configuration: Define paths relative to the project root ---
 # Assumes the script is run from the project root directory
 PROJECT_ROOT = Path(__file__).parent.parent
-DOCS_DIR = PROJECT_ROOT / 'documentation'
+DOCS_DIR = PROJECT_ROOT / 'docs' / 'api'
 SRC_DIR = PROJECT_ROOT / 'src' / 'python'
 
 def delete_build_dir():
@@ -91,7 +91,7 @@ def build_documentation():
     # Step 2: REGENERATE API stubs
     print("\nStep 2: Generating API stubs for src/python...")
     # Command: sphinx-apidoc -o . ../src/python --separate --force
-    run_sphinx_command('sphinx-apidoc', ['-o', '.', '../src/python', '--separate', '--force'], cwd=DOCS_DIR)
+    run_sphinx_command('sphinx-apidoc', ['-o', '.', '../../src/python', '--separate', '--force'], cwd=DOCS_DIR)
 
     # Step 3: BUILD the final HTML
     print("\nStep 3: Building final HTML documentation...")
