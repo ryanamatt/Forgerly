@@ -124,9 +124,6 @@ class ApplicationFlowManager:
             db_connector=db_connector
         )
 
-        self.main_window.project_open_requested.connect(lambda: self._handle_project_switch_request(is_new=False))
-        self.main_window.project_new_requested.connect(lambda: self._handle_project_switch_request(is_new=True))
-
         self.main_window.show()
 
     @receiver(Events.PROJECT_NEW_REQUESTED)

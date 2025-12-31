@@ -1,6 +1,6 @@
 # src/python/services/app_coordinator.py
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QMessageBox
 
 from ..db_connector import DBConnector
@@ -15,11 +15,6 @@ from ..utils.nf_core_wrapper import calculate_read_time
 from ..utils.constants import ViewType, EntityType
 from ..utils.events import Events
 from ..utils.event_bus import bus, receiver
-
-from typing import TYPE_CHECKING, Any
-if TYPE_CHECKING:
-    from ..ui.views.base_editor import BaseEditor
-    from ..ui.views.base_outline_manager import BaseOutlineManager
 
 class AppCoordinator(QObject):
     """

@@ -13,23 +13,17 @@ from .views.note_editor import NoteEditor
 from .views.relationship_outline_manager import RelationshipOutlineManager
 from .views.relationship_editor import RelationshipEditor
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from ..services.app_coordinator import AppCoordinator
-
 class UIFactory:
     """
     Handles the instantiation of all major UI components for MainWindow.
     """
     @staticmethod
-    def create_components(project_title: str, coordinator: 'AppCoordinator', settings: dict) -> dict:
+    def create_components(project_title: str, settings: dict) -> dict:
         """
         Instantiates all editors and outlines.
         
         :param project_title: The title of the project
         :type: project_title: str
-        :param coordinator: The AppCoordinator
-        :type coordinator: 'AppCoordinator'
         :param settings: The dictionary of settings
         :type settings: dict
 

@@ -5,18 +5,16 @@ import json
 import shutil 
 from pathlib import Path
 from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit,
-    QPushButton, QLabel, QFileDialog, QSizePolicy, QInputDialog, QMessageBox
+    QMainWindow, QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QFileDialog, 
+    QSizePolicy, QInputDialog, QMessageBox
 )
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QIcon
 
 from .services.settings_manager import SettingsManager
 
 from .utils._version import __version__
 from .utils.exceptions import ConfigurationError
 from .utils.logger import get_logger
-from .utils.constants import EntityType
 from .utils.events import Events
 from .utils.event_bus import bus, receiver
 

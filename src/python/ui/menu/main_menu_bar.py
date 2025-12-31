@@ -1,11 +1,10 @@
 # src/python/ui/menu/main_menu_bar.py
 
 from PySide6.QtWidgets import QMenuBar, QMessageBox
-from PySide6.QtCore import Signal
 from PySide6.QtGui import QAction, QActionGroup, QIcon
 
 from ...resources_rc import *
-from ...utils.constants import ViewType, EntityType
+from ...utils.constants import ViewType
 from ...utils.logger import get_logger
 from ...utils.events import Events
 from ...utils.event_bus import bus, receiver

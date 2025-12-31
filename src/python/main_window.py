@@ -1,22 +1,21 @@
 # src/python/main_window.py
 
 from PySide6.QtWidgets import QMainWindow, QSplitter, QMessageBox, QDialog
-from PySide6.QtCore import Qt, Signal, QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QCloseEvent, QResizeEvent, QIcon
 import os
 import sys
 import ctypes
 from typing import Any
 
+from .db_connector import DBConnector
+
 from .ui.ui_factory import UIFactory
 from .ui.view_manager import ViewManager
 from .ui.menu.main_menu_bar import MainMenuBar
-
 from .ui.dialogs.settings_dialog import SettingsDialog
 from .ui.dialogs.exporter_dialog import ExporterDialog
 from .ui.dialogs.project_stats_dialog import ProjectStatsDialog
-
-from .db_connector import DBConnector
 
 from .services.settings_manager import SettingsManager
 from .services.app_coordinator import AppCoordinator
