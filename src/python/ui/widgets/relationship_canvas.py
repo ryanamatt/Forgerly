@@ -4,6 +4,9 @@ from PySide6.QtWidgets import QGraphicsView
 from PySide6.QtCore import QLineF, QRectF
 from PySide6.QtGui import QWheelEvent, QPainter, QMouseEvent, QPen, QColor
 
+from ...utils.events import Events
+from ...utils.event_bus import bus, receiver
+
 class RelationshipCanvas(QGraphicsView):
     """
     A custom QGraphicsView that handles zooming, panning, and background drawing.
@@ -19,6 +22,9 @@ class RelationshipCanvas(QGraphicsView):
         :rtype: None
         """
         super().__init__(scene, parent)
+
+        bus.register_instance(self)
+
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)

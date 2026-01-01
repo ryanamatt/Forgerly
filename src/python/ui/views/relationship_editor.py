@@ -410,6 +410,30 @@ class RelationshipEditor(QWidget):
                 'node_shape': node_shape, 'is_hidden': is_hidden,
             })
 
+    @receiver(Events.GRAPH_VISIBILITY_CHANGED)
+    def handle_type_visibility(self, data: dict) -> None:
+        """
+        Shows or hides all edges of a specific relationship type.
+        
+        :param data: Dictionary containing {'type_id': int, 'visible': bool}
+        :type data: dict
+
+        :rtype: None
+        """
+        print('handle_type_visibility', data)
+        target_type_id = data.get('type_id')
+        is_visible = data.get('visible')
+
+        if target_type_id is None or is_visible is None:
+            return
+        
+        for edge in self.edges:
+            if edge.edge_data.get('type_id') == target_type_id:
+                edge.setVisible(is_visible)
+                edge.label_item.setVisible(is_visible)
+
+    # --- State Managers --- 
+
     def set_enabled(self, enabled: bool) -> None:
         """
         Enables/disables the editor panel's interaction.

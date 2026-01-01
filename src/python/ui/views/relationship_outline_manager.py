@@ -2,11 +2,12 @@
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
-    QPushButton, QMenu, QMessageBox, QDialog
+    QPushButton, QMenu, QMessageBox, QDialog, QLabel
 )
 from PySide6.QtCore import Qt, QPoint
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QIcon
 
+from ...resources_rc import *
 from ..dialogs.relationship_type_editor_dialog import RelationshipTypeEditorDialog
 from ...utils.constants import EntityType
 from ...utils.events import Events
@@ -85,12 +86,36 @@ class RelationshipOutlineManager(QWidget):
                 name = rel_type['Type_Name']
                 color = rel_type.get('Default_Color', '#000000') # Default to black
                 
+                # Create Item
                 item = QListWidgetItem(name)
                 # Store the Type ID and Color for later use
                 item.setData(self.RELATIONSHIP_TYPE_ID_ROLE, type_id)
-                item.setForeground(QColor(color))
-                
+                # Store Visibility (Default True)
+                item.setData(Qt.ItemDataRole.UserRole + 2, True)
+
+                # Create a custom widget for the row
+                row_widget = QWidget()
+                layout = QHBoxLayout(row_widget)
+                layout.setContentsMargins(5, 2, 5, 2)
+
+                # Label for Name
+                name_label = QLabel(name)
+                name_label.setStyleSheet(f"color: {color}; font-weight: bold;")
+
+                # Toggle Visibility Button
+                toggle_btn = QPushButton()
+                toggle_btn.setFixedSize(24, 24)
+                toggle_btn.setIcon(QIcon(":icons/visible-on.svg"))
+
+                toggle_btn.clicked.connect(lambda checked=False, i=item, b=toggle_btn: self._toggle_visibility(i, b))
+
+                layout.addWidget(name_label)
+                layout.addStretch()
+                layout.addWidget(toggle_btn)
+
+                item.setSizeHint(row_widget.sizeHint())
                 self.list_widget.addItem(item)
+                self.list_widget.setItemWidget(item, row_widget)
                                 
     # --- Internal Handlers ---
 
@@ -104,6 +129,29 @@ class RelationshipOutlineManager(QWidget):
         :rtype: None
         """
         type_id = item.data(self.RELATIONSHIP_TYPE_ID_ROLE)
+
+    def _toggle_visibility(self, item: QListWidgetItem, button: QPushButton) -> None:
+        """
+        Switches visibility state and updates the UI and Graph.
+        
+        :param item: The Item button clicked on.
+        :type item: QListWidgetItem
+        :param button: The button clicked on
+        :type button: QPushButton
+
+        :rtype: None
+        """
+        current_state = item.data(Qt.ItemDataRole.UserRole + 2)
+        new_state = not current_state
+
+        item.setData(Qt.ItemDataRole.UserRole + 2, new_state)
+        icon_path = ":icons/visible-on" if new_state else ":icons/visible-off"
+        button.setIcon(QIcon(icon_path))
+
+        type_id = item.data(self.RELATIONSHIP_TYPE_ID_ROLE)
+        bus.publish(Events.GRAPH_VISIBILITY_CHANGED, data={
+            'type_id': type_id, 'visible': new_state
+        })
 
     def _show_context_menu(self, position: QPoint) -> None:
         """
