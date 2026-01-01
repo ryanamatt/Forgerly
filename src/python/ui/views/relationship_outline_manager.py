@@ -75,9 +75,6 @@ class RelationshipOutlineManager(QWidget):
         char_tab_layout.addWidget(char_tab_label)
         char_tab_layout.addWidget(self.char_list_widget)
 
-        self.tabs.addTab(self.rel_types_tab, 'Relationship Types (Edges)')
-        self.tabs.addTab(self.characters_tab, "Characters (Nodes)")
-
         # Main Layout
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
