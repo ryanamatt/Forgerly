@@ -462,8 +462,7 @@ class RelationshipEditor(QWidget):
             node_item = self.nodes[node_id]
             node_item.setVisible(is_visible)
             
-            # Note: You may also want to hide connected edges 
-            # when a node is hidden, otherwise they will point to empty space.
+            # Make Connected Edges Invisible
             for edge in self.edges:
                 if edge.source_node == node_item or edge.target_node == node_item:
                     edge.setVisible(is_visible)
