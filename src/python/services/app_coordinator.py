@@ -101,7 +101,7 @@ class AppCoordinator(QObject):
         bus.publish(Events.OUTLINE_LOAD_REQUESTED, data=data)
 
     @receiver(Events.PRE_ITEM_CHANGE)
-    def handle_pre_change_request(self, data: dict) -> None:
+    def handle_pre_change_request(self, data: dict = {}) -> None:
         """
         Called before a UI change (like switching chapters). 
         Tells the current active editor to provide its data if dirty.
@@ -114,6 +114,7 @@ class AppCoordinator(QObject):
         data |= {'ID': self.current_item_id}
         if 'entity_type' not in data:
             data |= {'entity_type': self.current_entity_type}
+        
         bus.publish(Events.SAVE_REQUESTED, data=data)
 
     @receiver(Events.SAVE_DATA_PROVIDED)
@@ -684,6 +685,7 @@ class AppCoordinator(QObject):
             
             edges.append({
                 'id': rel['Relationship_ID'],
+                'type_id': rel_type.get('ID'),
                 'source': rel['Character_A_ID'],
                 'target': rel['Character_B_ID'],
                 'label': rel_type.get('Short_Label', 'Rel.'),
@@ -692,8 +694,8 @@ class AppCoordinator(QObject):
                 'intensity': rel.get('Intensity', 5),
                 'is_directed': rel_type.get('Is_Directed', 0),
                 'description': rel.get('Description'),
+                'is_visible': True
             })
-
         return {'nodes': nodes, 'edges': edges}
 
     # --- Export Logic Helper (For use by the new Exporter classes) ---

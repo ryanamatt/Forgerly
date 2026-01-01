@@ -19,6 +19,7 @@ class RelationshipCanvas(QGraphicsView):
         :rtype: None
         """
         super().__init__(scene, parent)
+
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)

@@ -236,7 +236,6 @@ class MainWindow(QMainWindow):
         
         self.outline_stack, self.editor_stack = UIFactory.create_components(
             project_title=self.project_title,
-            coordinator=self.coordinator,
             settings=self.current_settings
         )
 
@@ -304,7 +303,7 @@ class MainWindow(QMainWindow):
             logger.info("Export canceled by user during unsaved changes check.")
             self.statusBar().showMessage("Export canceled.", 3000)
             return
-        
+
         logger.debug("All data is saved or discarded. Proceeding to ExporterDialog.")
             
         # 2. Open the new ExporterDialog

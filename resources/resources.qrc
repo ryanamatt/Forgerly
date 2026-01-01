@@ -35,5 +35,7 @@
     <file>icons/snap-grid.svg</file>
     <file>icons/grid.svg</file>
     <file>icons/note.svg</file>
+    <file>icons/visible-off.svg</file>
+    <file>icons/visible-on.svg</file>
   </qresource>
 </RCC>
