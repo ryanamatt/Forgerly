@@ -266,8 +266,19 @@ class RelationshipEdge(QGraphicsLineItem):
         
         :rtype: None
         """
-        color = QColor(self.edge_data['color'])
-        thickness = max(1, self.edge_data['intensity']) # Value between 1-10
+        intensity = self.edge_data.get('intensity', 5) # Value between 1-10
+
+        color = QColor(self.edge_data.get('color', '#f0f0f0'))
+        intensity = self.edge_data.get('intensity', 5)
+
+        # Intensity-based opacity (50% to 100%)
+        opacity = 0.5 + (intensity / 10.0) * 0.5  # Maps 1-10 to 0.5-1.0
+        color.setAlphaF(opacity)
+        
+        # Power-scaled thickness
+        normalized = intensity / 10.0
+        thickness = 1 + (normalized ** 1.5) * 9
+        
         pen = QPen(color, thickness)
 
         # Line Style (Apply Solid, Dash, or Dot based on Data)

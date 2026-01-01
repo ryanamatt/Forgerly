@@ -268,6 +268,37 @@ class RelationshipOutlineManager(QWidget):
             'ID': char_id, 'is_hidden': not new_state
         })
 
+    @receiver(Events.GRAPH_NODE_VISIBILTY_CHANGED)
+    def sync_node_visibility_ui(self, data: dict) -> None:
+        """
+        Updates the character list icon when visibility is toggled from the graph.
+
+        :param data: dict: Data dict carrying {'ID': int, 'is_hidden': bool}
+        :type: data: dict:
+
+        :rtype:None
+        """
+        char_id = data.get('ID')
+        is_hidden = data.get('is_hidden')
+        is_visible = not is_hidden
+
+        # Find the item in the char_list_widget
+        for i in range(self.char_list_widget.count()):
+            item = self.char_list_widget.item(i)
+
+            if item.data(Qt.ItemDataRole.UserRole + 1) == char_id:
+                # Update the stored data state
+                item.setData(Qt.ItemDataRole.UserRole + 2, is_visible)
+                
+                # Update the widget icon
+                row_widget = self.char_list_widget.itemWidget(item)
+                if row_widget:
+                    # Assuming the toggle button is the last widget added to the layout
+                    toggle_btn = row_widget.layout().itemAt(row_widget.layout().count() - 1).widget()
+                    icon_path = ":icons/visible-on.svg" if is_visible else ":icons/visible-off.svg"
+                    toggle_btn.setIcon(QIcon(icon_path))
+                break
+
     def _show_context_menu(self, position: QPoint) -> None:
         """
         Shows the context menu for the list widget at the right-click position.
