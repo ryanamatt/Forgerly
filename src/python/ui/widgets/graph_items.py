@@ -4,12 +4,15 @@ from PySide6.QtWidgets import (
     QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem, QMenu
 )
 from PySide6.QtCore import Qt, QPointF, Signal, QRectF, QObject, QLineF, QEvent
-from PySide6.QtGui import QColor, QPen, QBrush, QFont
+from PySide6.QtGui import QColor, QPen, QBrush, QFont, QMouseEvent
 import math
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from ...utils.events import Events
 from ...utils.event_bus import bus
+
+if TYPE_CHECKING:
+    from ..views.relationship_editor import RelationshipEditor
 
 class CharacterNodeSignals(QObject):
     """
@@ -190,13 +193,36 @@ class CharacterNode(QGraphicsEllipseItem):
         # If left click, proceed with standard dragging/moving
         if event.button() == Qt.MouseButton.LeftButton:
             super().mousePressEvent(event)
-        
-        # If right click, signal to the editor that this node was right-clicked
-        elif event.button() == Qt.MouseButton.RightButton:
-            # We don't call super() here because we want the editor to handle the context menu/selection logic
-            editor = self.scene().views()[0].parent()
+
+    def contextMenuEvent(self, event: QMouseEvent) -> None:
+        """
+        Custom context menu for the character node.
+
+        :param event: The right click event.
+        :type event: QMouseEvent
+
+        :rtype: None
+        """
+        menu = QMenu()
+
+        connect_action = menu.addAction("Connect to Character...")
+
+        set_visible_action = menu.addAction("Set Character Visibility")
+    
+        view = self.scene().views()[0]
+        editor: 'RelationshipEditor' = view.parent()
+
+        action = menu.exec(event.screenPos())
+
+        if action == connect_action:
             editor.handle_node_right_click(self)
 
+        elif action == set_visible_action:
+            self.is_hidden = not self.is_hidden
+
+            bus.publish(Events.GRAPH_NODE_VISIBILTY_CHANGED, data={
+                'ID': self.char_id, 'is_hidden': self.is_hidden
+            })
 
 class RelationshipEdge(QGraphicsLineItem):
     """

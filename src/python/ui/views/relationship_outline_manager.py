@@ -2,7 +2,7 @@
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
-    QPushButton, QMenu, QMessageBox, QDialog, QLabel
+    QPushButton, QMenu, QMessageBox, QDialog, QLabel, QTabWidget
 )
 from PySide6.QtCore import Qt, QPoint
 from PySide6.QtGui import QColor, QIcon
@@ -37,22 +37,51 @@ class RelationshipOutlineManager(QWidget):
         bus.register_instance(self)
         
         # --- UI Components ---
+        self.tabs = QTabWidget()
+        self.tabs.setUsesScrollButtons(False)
+        self.tabs.setElideMode(Qt.TextElideMode.ElideRight)
+        self.tabs.tabBar().setExpanding(True)
+        self.tabs.tabBar().setDocumentMode(True)
+
+        self.rel_types_tab = QWidget()
+        self.characters_tab = QWidget()
+
+        # List For Relationship Types
         self.list_widget = QListWidget()
         self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         
         self.new_button = QPushButton("New Relationship Type")
+
+        # List for Characters
+        self.char_list_widget = QListWidget()
+        self.char_list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         
         # --- Layout Setup ---
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        tab_layout = QVBoxLayout(self.rel_types_tab)
 
         # Buttons/Actions area
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.new_button)
-        main_layout.addLayout(button_layout)
         
-        # List of types
-        main_layout.addWidget(self.list_widget)
+        tab_layout.addLayout(button_layout)
+        tab_layout.addWidget(self.list_widget)
+
+        self.tabs.addTab(self.rel_types_tab, 'Relationship Types (Edges)')
+        self.tabs.addTab(self.characters_tab, "Characters (Nodes)")
+
+        # Layout for Characters Tab
+        char_tab_layout = QVBoxLayout(self.characters_tab)
+        char_tab_label = QLabel("Toggle character visibility on the graph:")
+        char_tab_layout.addWidget(char_tab_label)
+        char_tab_layout.addWidget(self.char_list_widget)
+
+        self.tabs.addTab(self.rel_types_tab, 'Relationship Types (Edges)')
+        self.tabs.addTab(self.characters_tab, "Characters (Nodes)")
+
+        # Main Layout
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(self.tabs)
 
         # --- Connections ---
         self.new_button.clicked.connect(self._create_new_type)
@@ -61,6 +90,7 @@ class RelationshipOutlineManager(QWidget):
         self.list_widget.itemClicked.connect(self._handle_item_clicked)
         
     @receiver(Events.OUTLINE_DATA_LOADED)
+    @receiver(Events.REL_CHAR_DATA_RETURN)
     def load_outline(self, data: dict) -> None:
         """
         Loads all relationship types from the database via the repository and 
@@ -68,54 +98,117 @@ class RelationshipOutlineManager(QWidget):
         
         Each item is set with the name as text and its ID and color in the data roles.
 
-        :param data: A dictionary of the needed data containg {entity_type: EntityType.}
+        :param data: A dictionary of the needed data containg {entity_type: EntityType.RELATIONSHIP,
+            'relationship_types': dict or 'characters': dict
+        }
         :type data: dict
         
         :rtype: None
         """
         entity_type = data.get('entity_type')
         rel_types = data.get('relationship_types')
-        if entity_type != EntityType.RELATIONSHIP or not rel_types: 
+        characters = data.get('characters')
+
+        if entity_type != EntityType.RELATIONSHIP: 
             return
-        
-        self.list_widget.clear()
-                
-        if rel_types:
+                        
+        if rel_types is not None:
+            self.list_widget.clear()
             for rel_type in rel_types:
-                type_id = rel_type['ID']
-                name = rel_type['Type_Name']
-                color = rel_type.get('Default_Color', '#000000') # Default to black
-                
-                # Create Item
-                item = QListWidgetItem(name)
-                # Store the Type ID and Color for later use
-                item.setData(self.RELATIONSHIP_TYPE_ID_ROLE, type_id)
-                # Store Visibility (Default True)
-                item.setData(Qt.ItemDataRole.UserRole + 2, True)
+                self._add_rel_type_item(rel_type)
+            
+        if characters is not None:
+            self.char_list_widget.clear()
+            for char in characters:
+                self._add_character_item(char)
 
-                # Create a custom widget for the row
-                row_widget = QWidget()
-                layout = QHBoxLayout(row_widget)
-                layout.setContentsMargins(5, 2, 5, 2)
+    def _add_rel_type_item(self, rel_type: dict) -> None:
+        """
+        Helper to add a Relationship Type Item to the 
+        Relationship Type List.
+        
+        :param rel_type: The dictionary of the Rel Type data.
+        :type rel_type: dict
 
-                # Label for Name
-                name_label = QLabel(name)
-                name_label.setStyleSheet(f"color: {color}; font-weight: bold;")
+        :rtype: None
+        """
+        type_id = rel_type['ID']
+        name = rel_type['Type_Name']
+        color = rel_type.get('Default_Color', '#000000') # Default to black
+        
+        # Create Item
+        item = QListWidgetItem(name)
+        # Store the Type ID and Color for later use
+        item.setData(self.RELATIONSHIP_TYPE_ID_ROLE, type_id)
+        # Store Visibility (Default True)
+        item.setData(Qt.ItemDataRole.UserRole + 2, True)
 
-                # Toggle Visibility Button
-                toggle_btn = QPushButton()
-                toggle_btn.setFixedSize(24, 24)
-                toggle_btn.setIcon(QIcon(":icons/visible-on.svg"))
+        # Create a custom widget for the row
+        row_widget = QWidget()
+        layout = QHBoxLayout(row_widget)
+        layout.setContentsMargins(5, 2, 5, 2)
 
-                toggle_btn.clicked.connect(lambda checked=False, i=item, b=toggle_btn: self._toggle_visibility(i, b))
+        # Label for Name
+        name_label = QLabel(name)
+        name_label.setStyleSheet(f"color: {color}; font-weight: bold;")
 
-                layout.addWidget(name_label)
-                layout.addStretch()
-                layout.addWidget(toggle_btn)
+        # Toggle Visibility Button
+        toggle_btn = QPushButton()
+        toggle_btn.setFixedSize(24, 24)
+        toggle_btn.setIcon(QIcon(":icons/visible-on.svg"))
 
-                item.setSizeHint(row_widget.sizeHint())
-                self.list_widget.addItem(item)
-                self.list_widget.setItemWidget(item, row_widget)
+        toggle_btn.clicked.connect(lambda checked=False, i=item, b=toggle_btn: self._toggle_visibility(i, b))
+
+        layout.addWidget(name_label)
+        layout.addStretch()
+        layout.addWidget(toggle_btn)
+
+        item.setSizeHint(row_widget.sizeHint())
+        self.list_widget.addItem(item)
+        self.list_widget.setItemWidget(item, row_widget)
+
+    def _add_character_item(self, char: dict) -> None:
+        """
+        Helper to add a Character Item to the 
+        Char List.
+        
+        :param rel_type: The dictionary of the Character data.
+        :type rel_type: dict
+
+        :rtype: None
+        """
+        char_id = char['ID']
+        name = char.get('Name', 'Unknown')
+
+        is_visible = not char.get('Is_Hidden', 0)
+        
+        item = QListWidgetItem(name)
+        item.setData(Qt.ItemDataRole.UserRole + 1, char_id)
+        item.setData(Qt.ItemDataRole.UserRole + 2, is_visible) # Default visible
+
+        row_widget = QWidget()
+        layout = QHBoxLayout(row_widget)
+        layout.setContentsMargins(5, 2, 5, 2)
+
+        name_label = QLabel(name)
+        
+        toggle_btn = QPushButton()
+        toggle_btn.setFixedSize(24, 24)
+        icon_path = ":icons/visible-on" if is_visible else ":icons/visible-off"
+        toggle_btn.setIcon(QIcon(icon_path))
+        
+        # Use a lambda that specifically targets the node visibility event
+        toggle_btn.clicked.connect(
+            lambda checked=False, i=item, b=toggle_btn: self._toggle_node_visibility(i, b)
+        )
+
+        layout.addWidget(name_label)
+        layout.addStretch()
+        layout.addWidget(toggle_btn)
+
+        item.setSizeHint(row_widget.sizeHint())
+        self.char_list_widget.addItem(item)
+        self.char_list_widget.setItemWidget(item, row_widget)
                                 
     # --- Internal Handlers ---
 
@@ -149,8 +242,33 @@ class RelationshipOutlineManager(QWidget):
         button.setIcon(QIcon(icon_path))
 
         type_id = item.data(self.RELATIONSHIP_TYPE_ID_ROLE)
-        bus.publish(Events.GRAPH_VISIBILITY_CHANGED, data={
+        bus.publish(Events.GRAPH_EDGE_VISIBILITY_CHANGED, data={
             'type_id': type_id, 'visible': new_state
+        })
+
+    def _toggle_node_visibility(self, item: QListWidgetItem, button: QPushButton) -> None:
+        """
+        Toggles the visibility of a Node.
+        
+        :param item: The item to toggle its visibility.
+        :type item: QListWidgetItem
+        :param button: The visibility button.
+        :type button: QPushButton
+
+        :rtype: None
+        """
+        current_state = item.data(Qt.ItemDataRole.UserRole + 2)
+        new_state = not current_state
+
+        item.setData(Qt.ItemDataRole.UserRole + 2, new_state)
+        icon_path = ":icons/visible-on" if new_state else ":icons/visible-off"
+        button.setIcon(QIcon(icon_path))
+
+        char_id = item.data(Qt.ItemDataRole.UserRole + 1)
+        
+        # Publish the event for the Graph/Coordinator to hide the Node
+        bus.publish(Events.GRAPH_NODE_VISIBILTY_CHANGED, data={
+            'ID': char_id, 'is_hidden': not new_state
         })
 
     def _show_context_menu(self, position: QPoint) -> None:
@@ -234,6 +352,7 @@ class RelationshipOutlineManager(QWidget):
             bus.publish(Events.NO_CHECK_SAVE_DATA_PROVIDED, data=save_data)
             bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': EntityType.RELATIONSHIP})
             bus.publish(Events.GRAPH_LOAD_REQUESTED)
+            bus.publish(Events.REL_CHAR_DATA_REQUESTED)
 
     def _create_new_type(self) -> None:
         """

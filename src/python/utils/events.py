@@ -61,13 +61,16 @@ class Events(str, Enum):
     # Relationship Graph Events
     GRAPH_LOAD_REQUESTED = "graph.load_requested"
     GRAPH_DATA_LOADED = "graph.data_loaded"
-    GRAPH_VISIBILITY_CHANGED = "graph.visibility_changed"
+    GRAPH_EDGE_VISIBILITY_CHANGED = "graph.edge_visibility_changed"
+    GRAPH_NODE_VISIBILTY_CHANGED = "graph.node_visibility_changed"
 
     NODE_SAVE_REQUESTED = "graph.node_save"
     REL_TYPES_REQUESTED = "graph.rel_types_requested"
     REL_TYPES_RECEIVED = "graph.rel_types_received"
     REL_TYPE_DETAILS_REQUESTED = "graph.rel_type_details_requested"
     REL_TYPE_DETAILS_RETURN = "graph.rel_types_details_return"
+    REL_CHAR_DATA_REQUESTED = "graph.rel_char_data_requested"
+    REL_CHAR_DATA_RETURN = "graph.rel_char_data_return"
 
     REL_CREATE_REQUESTED = "graph.rel_create"
     REL_UPDATE_REQUESTED = "graph.rel_update"

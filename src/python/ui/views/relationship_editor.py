@@ -261,6 +261,7 @@ class RelationshipEditor(QWidget):
             # Create and place Nodes (Characters)
             for node_data in graph_data.get('nodes', []):
                 char_id = node_data['id']
+                is_hidden = bool(node_data.get('is_hidden', 0))
 
                 # Create Node Item
                 node = CharacterNode (
@@ -271,6 +272,9 @@ class RelationshipEditor(QWidget):
                     color=node_data.get('color', '#60A5FA'),
                     shape=node_data.get('shape', 'Circle'),
                 )
+
+                node.setVisible(not is_hidden)
+                node.is_hidden = is_hidden
 
                 # Connect node's movement signal to the editor's save signal so every node movement is tracked and persisted
                 node.signals.node_moved.connect(self._save_node_positions)
@@ -286,6 +290,15 @@ class RelationshipEditor(QWidget):
                 # Only draw edges between loaded nodes
                 if source_id in self.nodes and target_id in self.nodes:
                     edge = RelationshipEdge(edge_data, self.nodes)
+
+                    # Hide edge if either the source or target node is hidden
+                    source_hidden = self.nodes[source_id].is_hidden
+                    target_hidden = self.nodes[target_id].is_hidden
+
+                    if source_hidden or target_hidden:
+                        edge.setVisible(False)
+                        edge.label_item.setVisible(False)
+
                     self.scene.addItem(edge)
                     self.edges.append(edge)
 
@@ -410,7 +423,7 @@ class RelationshipEditor(QWidget):
                 'node_shape': node_shape, 'is_hidden': is_hidden,
             })
 
-    @receiver(Events.GRAPH_VISIBILITY_CHANGED)
+    @receiver(Events.GRAPH_EDGE_VISIBILITY_CHANGED)
     def handle_type_visibility(self, data: dict) -> None:
         """
         Shows or hides all edges of a specific relationship type.
@@ -420,7 +433,6 @@ class RelationshipEditor(QWidget):
 
         :rtype: None
         """
-        print('handle_type_visibility', data)
         target_type_id = data.get('type_id')
         is_visible = data.get('visible')
 
@@ -431,6 +443,30 @@ class RelationshipEditor(QWidget):
             if edge.edge_data.get('type_id') == target_type_id:
                 edge.setVisible(is_visible)
                 edge.label_item.setVisible(is_visible)
+
+    @receiver(Events.GRAPH_NODE_VISIBILTY_CHANGED)
+    def handle_node_visibility(self, data: dict) -> None:
+        """
+        Shows or hides a character node.
+        
+        :param data: Dictionary containing {'ID': int, 'is_hidden': bool}
+        :type data: dict
+
+        :rtype: None
+        """
+        node_id = data.get('ID')
+        is_hidden = data.get('is_hidden')
+
+        if node_id in self.nodes:
+            is_visible = not is_hidden
+            node_item = self.nodes[node_id]
+            node_item.setVisible(is_visible)
+            
+            # Note: You may also want to hide connected edges 
+            # when a node is hidden, otherwise they will point to empty space.
+            for edge in self.edges:
+                if edge.source_node == node_item or edge.target_node == node_item:
+                    edge.setVisible(is_visible)
 
     # --- State Managers --- 
 

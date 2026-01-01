@@ -110,6 +110,7 @@ class ViewManager(QObject):
         if view == ViewType.RELATIONSHIP_GRAPH:
             bus.publish(Events.GRAPH_LOAD_REQUESTED)
             entity_type = EntityType.RELATIONSHIP
+            bus.publish(Events.REL_CHAR_DATA_REQUESTED)
 
         elif view == ViewType.CHAPTER_EDITOR:
             entity_type = EntityType.CHAPTER
