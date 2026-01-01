@@ -241,7 +241,20 @@ class AppCoordinator(QObject):
                 "Failed to create new character relationship in the database."
             )
             return False
+    
+    @receiver(Events.GRAPH_NODE_VISIBILTY_CHANGED)
+    def save_character_node_is_hidden(self, data: dict) -> None:
+        """
+        Docstring for save_character_node_is_hidden
         
+        :param self: Description
+        :param data: Description
+        :type data: dict
+        """
+        self.relationship_repo.update_node_is_hidden(char_id=data.get('ID'), is_hidden=data.get('is_hidden'))
+
+    # --- Update ---
+
     @receiver(Events.REL_UPDATE_REQUESTED)
     def update_relationship(self, data: dict) -> None:
         """
@@ -293,12 +306,41 @@ class AppCoordinator(QObject):
 
             case EntityType.RELATIONSHIP:
                 relationship_types = self.relationship_repo.get_all_relationship_types()
-                # self.relationship_types_available.emit(relationship_types)
                 bus.publish(Events.REL_TYPES_RECEIVED, data={'relationship_types': relationship_types})
                 return_data = {'entity_type': entity_type, 'relationship_types': relationship_types}
 
         self.current_entity_type = entity_type
         bus.publish(Events.OUTLINE_DATA_LOADED, return_data)
+
+    @receiver(Events.REL_CHAR_DATA_REQUESTED)
+    def load_relationship_characters(self, data: dict = None) -> None:
+        """
+        Loads the characters for the RelationshipOutlineManager.
+        
+        :param data: The data dictionary. Empty.
+        :type data: dict
+
+        :rtype: None
+        """ 
+        characters = self.character_repo.get_all_characters()
+        character_nodes =self.relationship_repo.get_all_node_positions()
+
+        # Mapping Character_ID -> Node Data
+        node_map = {node['Character_ID']: node for node in character_nodes}
+
+        # 3. Merge node data into the character dictionaries
+        merged_characters = []
+        for char in characters:
+            char_id = char.get('ID')
+            # Merge character dict with node dict if it exists
+            # This uses the | operator (Python 3.9+) to merge dictionaries
+            combined_data = char | node_map.get(char_id, {})
+            merged_characters.append(combined_data)
+
+        bus.publish(Events.REL_CHAR_DATA_RETURN, data={
+            'entity_type': self.current_entity_type,
+            'characters': merged_characters
+        })
 
     @receiver(Events.ITEM_SELECTED)
     def load_item(self, data: dict) -> None:

@@ -191,7 +191,6 @@ class RelationshipRepository:
             success = self.db._execute_commit(query, params)
             if success:
                 logger.info(f"Character relationship details updated: ID={relationship_id}.")
-            print(success)
             return success
 
         except DatabaseError as e:
@@ -265,7 +264,31 @@ class RelationshipRepository:
         except DatabaseError as e:
             logger.warning("Failed to save character node attributes", exc_info=True)
             raise e
-
+        
+    def update_node_is_hidden(self, char_id: int, is_hidden: int) -> bool:
+        """
+        Updates the is_hidden table attribute of a character node.
+        
+        :param char_id: The ID of the character node.
+        :type char_id: int
+        :param is_hidden: The new value of is_hidden attribute.
+        :type is_hidden: int
+        :return: True if successful otherwise False.
+        :rtype: bool
+        """
+        query = """
+        UPDATE Character_Node_Positions SET is_hidden = ? WHERE Character_ID = ?;
+        """
+        params = (is_hidden, char_id)
+        try:
+            success = self.db._execute_commit(query, params)
+            if success:
+                logger.info(f"Successfully saved new is_hidden attribute, Char_ID: {char_id}")
+            return success
+        except DatabaseError as e:
+            logger.warning("Failed to save character node new is_hidden attribute", exc_info=True)
+            raise e
+    
     # =========================================================================
     # Relationship Types (Configuration)
     # =========================================================================
