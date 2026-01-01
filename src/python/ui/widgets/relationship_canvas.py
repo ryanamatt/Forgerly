@@ -20,8 +20,6 @@ class RelationshipCanvas(QGraphicsView):
         """
         super().__init__(scene, parent)
 
-        bus.register_instance(self)
-
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
