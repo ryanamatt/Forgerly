@@ -17,8 +17,8 @@ class CharacterOutlineManager(BaseOutlineManager):
     """
     A custom widget for managing the outline and hierarchy of Characters.
     
-    It combines a search bar (:py:class:`~PyQt6.QtWidgets.QLineEdit`) and a 
-    tree structure (:py:class:`~PyQt6.QtWidgets.QTreeWidget`) for navigation.
+    It combines a search bar (:py:class:`~PySide6.QtWidgets.QLineEdit`) and a 
+    tree structure (:py:class:`~PySide6.QtWidgets.QTreeWidget`) for navigation.
     It interacts with the data layer via a :py:class:`.CharacterRepository`.
     """
 
@@ -55,7 +55,7 @@ class CharacterOutlineManager(BaseOutlineManager):
     def load_outline(self, data: dict) -> None:
         """
         Fetches all characters from the database and populates the 
-        :py:class:`~PyQt6.QtWidgets.QTreeWidget`.
+        :py:class:`~PySide6.QtWidgets.QTreeWidget`.
         
         It attempts to restore the selection if a character was previously selected.
         
@@ -103,9 +103,10 @@ class CharacterOutlineManager(BaseOutlineManager):
     @receiver(Events.OUTLINE_SEARCH_RETURN)
     def _handle_search_return(self, data: dict) -> None:
         """
-        Docstring for _handle_search_return
+        Handles the return of the neede search data.
         
-        :param data: Description
+        :param data: The return search data containing
+            {'entity_type': EntityType.CHARACTER, 'characters': dict}
         :type data: dict
 
         :rtype: None
@@ -129,7 +130,7 @@ class CharacterOutlineManager(BaseOutlineManager):
         The new name is saved to the database via the :py:class:`.CharacterRepository`.
         
         :param item: The renamed tree item.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :type item: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem`
         :param column: The column index.
         :type column: int
 
@@ -156,7 +157,7 @@ class CharacterOutlineManager(BaseOutlineManager):
         like 'Add New Character' and 'Delete Character'.
         
         :param pos: The position of the right-click relative to the widget.
-        :type pos: :py:class:`~PyQt6.QtCore.QPoint`
+        :type pos: :py:class:`~PySide6.QtCore.QPoint`
 
         :rtype: None
         """
@@ -244,7 +245,7 @@ class CharacterOutlineManager(BaseOutlineManager):
         entry in the database.
         
         :param item: The character item to be deleted.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :type item: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem`
 
         :rtype: None
         """
@@ -274,7 +275,7 @@ class CharacterOutlineManager(BaseOutlineManager):
         character is saved, then triggers the deletion process.
 
         :param item: The character item queued for deletion.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :type item: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem`
 
         :rtype: None
         """
@@ -283,14 +284,14 @@ class CharacterOutlineManager(BaseOutlineManager):
 
     def find_character_item_by_id(self, char_id: int) -> QTreeWidgetItem | None:
         """
-        Helper to find a character :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem` 
+        Helper to find a character :py:class:`~PySide6.QtWidgets.QTreeWidgetItem` 
         by its stored database ID.
         
         :param char_id: The unique ID of the character to find.
         :type char_id: int
 
         :returns: The matching item or None
-        :rtype: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem` or None
+        :rtype: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem` or None
         """
         iterator = QTreeWidgetItemIterator(self.tree_widget)
         while iterator.value():

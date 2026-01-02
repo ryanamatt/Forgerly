@@ -16,7 +16,7 @@ from ...utils.event_bus import bus, receiver
 
 class ChapterOutlineManager(BaseOutlineManager):
     """
-    A custom :py:class:`~PyQt6.QtWidgets.QWidget` dedicated to displaying the 
+    A custom :py:class:`~PySide6.QtWidgets.QWidget` dedicated to displaying the 
     hierarchical outline of Chapters and other narrative elements.
     
     It interacts with the data layer via a :py:class:`.ChapterRepository`.
@@ -53,7 +53,7 @@ class ChapterOutlineManager(BaseOutlineManager):
     def load_outline(self, data: dict) -> None:
         """
         Loads the outline structure by fetching all chapters from the database 
-        and populating the :py:class:`~PyQt6.QtWidgets.QTreeWidget`.
+        and populating the :py:class:`~PySide6.QtWidgets.QTreeWidget`.
         
         It attempts to select the first chapter upon successful load.
         
@@ -106,7 +106,7 @@ class ChapterOutlineManager(BaseOutlineManager):
         The new title is saved to the database via the :py:class:`.ChapterRepository`.
         
         :param item: The renamed tree item.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :type item: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem`
         :param column: The column index.
         :type column: int
 
@@ -133,7 +133,7 @@ class ChapterOutlineManager(BaseOutlineManager):
         like 'Add New Chapter', 'Rename Chapter', and 'Delete Chapter'.
         
         :param pos: The position of the right-click relative to the widget.
-        :type pos: :py:class:`~PyQt6.QtCore.QPoint`
+        :type pos: :py:class:`~PySide6.QtCore.QPoint`
 
         :rtype: None
         """
@@ -219,7 +219,7 @@ class ChapterOutlineManager(BaseOutlineManager):
         entry in the database.
         
         :param item: The chapter item to be deleted.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :type item: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem`
 
         :rtype: None
         """
@@ -249,7 +249,7 @@ class ChapterOutlineManager(BaseOutlineManager):
         chapter is saved, then triggers the deletion process.
 
         :param item: The chapter item queued for deletion.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :type item: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem`
 
         :rtype: None
         """
@@ -258,14 +258,14 @@ class ChapterOutlineManager(BaseOutlineManager):
 
     def find_chapter_item_by_id(self, chapter_id: int) -> QTreeWidgetItem | None:
         """
-        Helper to find a chapter :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem` 
+        Helper to find a chapter :py:class:`~PySide6.QtWidgets.QTreeWidgetItem` 
         by its stored database ID.
         
         :param chapter_id: The unique ID of the chapter to find.
         :type chapter_id: :py:obj:`int`
         
         :returns: The matching item or None.
-        :rtype: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem` or None
+        :rtype: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem` or None
         """
         iterator = QTreeWidgetItemIterator(self.tree_widget)
         while iterator.value():

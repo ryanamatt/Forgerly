@@ -23,7 +23,7 @@ class RelationshipCreationDialog(QDialog):
         :param char_b_name: The name of the second Charcter.
         :type char_b_name: str
         :param parent: The parent object.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
+        :type parent: :py:class:`~PySide6.QtWidgets.QWidget`
 
         :rtype: None
         """

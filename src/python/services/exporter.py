@@ -35,8 +35,8 @@ class Exporter(ABC):
         output location, fetching the necessary data using the provided IDs, and 
         calling :py:meth:`._write_file`.
 
-        :param parent: The parent Qt widget, used for modal dialogs like :py:class:`~PyQt6.QtWidgets.QFileDialog`.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
+        :param parent: The parent Qt widget, used for modal dialogs like :py:class:`~PySide6.QtWidgets.QFileDialog`.
+        :type parent: :py:class:`~PySide6.QtWidgets.QWidget`
         :param selected_ids: A list of unique IDs (e.g., chapter IDs, lore item IDs) 
             to be included in the export. Defaults to an empty list, meaning all 
             relevant items should be included if not specified.

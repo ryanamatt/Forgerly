@@ -83,7 +83,7 @@ class FileFormats:
 # Helper function for generating PyQt file filter strings
 def generate_file_filter(formats: list[str]) -> str:
     """
-    Generates a file filter string suitable for use with PyQt's :py:class:`~PyQt6.QtWidgets.QFileDialog`.
+    Generates a file filter string suitable for use with PyQt's :py:class:`~PySide6.QtWidgets.QFileDialog`.
     
     Example output for ['.md', '.txt'] is 'Markdown (*.md);;Plain Text (*.txt)'.
 

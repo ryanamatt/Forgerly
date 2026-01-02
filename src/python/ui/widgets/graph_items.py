@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem, QMenu
 )
 from PySide6.QtCore import Qt, QPointF, Signal, QRectF, QObject, QLineF, QEvent
-from PySide6.QtGui import QColor, QPen, QBrush, QFont, QMouseEvent, QCursor
+from PySide6.QtGui import QColor, QPen, QBrush, QFont, QMouseEvent, QCursor, QPainter
 import math
 from typing import Any, TYPE_CHECKING
 
@@ -19,12 +19,12 @@ class CharacterNodeSignals(QObject):
     Signal Emitter for :py:class:`.CharacterNode`.
     
     This is necessary because :py:class:`.CharacterNode` inherits from 
-    :py:class:`~PyQt6.QtWidgets.QGraphicsEllipseItem` and cannot be a 
-    direct subclass of :py:class:`~PyQt6.QtCore.QObject`.
+    :py:class:`~PySide6.QtWidgets.QGraphicsEllipseItem` and cannot be a 
+    direct subclass of :py:class:`~PySide6.QtCore.QObject`.
     """
     node_moved = Signal(int, float, float, str, str, int)
     """
-    :py:class:`~PyQt6.QtCore.Signal` (int, float, float, str, str, int): 
+    :py:class:`~PySide6.QtCore.Signal` (int, float, float, str, str, int): 
     Emitted when a node is dragged and released.
     
     Carries the (Character ID, new X position, new Y position, Name, Color, 
@@ -54,7 +54,7 @@ class CharacterNode(QGraphicsEllipseItem):
         :param shape: The shape type for the node (e.g., "ellipse").
         :type shape: str
         :param parent: The parent Qt item.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QGraphicsItem` or None
+        :type parent: :py:class:`~PySide6.QtWidgets.QGraphicsItem` or None
 
         :rtype: None
         """
@@ -108,7 +108,7 @@ class CharacterNode(QGraphicsEllipseItem):
         Changes cursor to drag cursor when hovering over the node.
         
         :param event: The hover event.
-        :type event: :py:class:`~PyQt6.QtWidgets.QGraphicsSceneHoverEvent`
+        :type event: :py:class:`~PySide6.QtWidgets.QGraphicsSceneHoverEvent`
         
         :rtype: None
         """
@@ -120,7 +120,7 @@ class CharacterNode(QGraphicsEllipseItem):
         Restores default cursor when leaving the node.
         
         :param event: The hover event.
-        :type event: :py:class:`~PyQt6.QtWidgets.QGraphicsSceneHoverEvent`
+        :type event: :py:class:`~PySide6.QtWidgets.QGraphicsSceneHoverEvent`
         
         :rtype: None
         """
@@ -135,7 +135,7 @@ class CharacterNode(QGraphicsEllipseItem):
         and updates connected edges.
 
         :param change: The type of state change.
-        :type change: :py:class:`~PyQt6.QtWidgets.QGraphicsItem.GraphicsItemChange`
+        :type change: :py:class:`~PySide6.QtWidgets.QGraphicsItem.GraphicsItemChange`
         :param value: The new value for the state change.
         :type value: Any
         
@@ -167,7 +167,7 @@ class CharacterNode(QGraphicsEllipseItem):
         signal if the node has been dragged from its original position.
         
         :param event: The mouse event.
-        :type event: :py:class:`~PyQt6.QtGui.QGraphicsSceneMouseEvent`
+        :type event: :py:class:`~PySide6.QtGui.QGraphicsSceneMouseEvent`
 
         :rtype: None
         """
@@ -211,7 +211,7 @@ class CharacterNode(QGraphicsEllipseItem):
         the selection logic for relationship creation.
         
         :param event: The mouse event.
-        :type event: :py:class:`~PyQt6.QtGui.QGraphicsSceneMouseEvent`
+        :type event: :py:class:`~PySide6.QtGui.QGraphicsSceneMouseEvent`
 
         :rtype: None
         """
@@ -267,7 +267,7 @@ class RelationshipEdge(QGraphicsLineItem):
         :param nodes: A dictionary mapping character IDs to :py:class:`.CharacterNode` objects.
         :type nodes: dict[int, :py:class:`.CharacterNode`]
         :param parent: The parent Qt item.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QGraphicsItem` or None
+        :type parent: :py:class:`~PySide6.QtWidgets.QGraphicsItem` or None
 
         :rtype: None
         """
@@ -372,14 +372,16 @@ class RelationshipEdge(QGraphicsLineItem):
         self.label_item.setTransformOriginPoint(label_rect.width() / 2, label_rect.height() / 2)
         self.label_item.setPos(mid_point.x() - label_rect.width() / 2, mid_point.y() - label_rect.height() / 2)
 
-    def paint(self, painter, option, widget) -> None:
+    def paint(self, painter: QPainter, option, widget) -> None:
         """
-        Docstring for paint
+        Paints the RelationshipEdge.
         
-        :param self: Description
-        :param painter: Description
-        :param option: Description
-        :param widget: Description
+        :param painter: The QPainter object.
+        :type painter: QPainter
+        :param option: The option.
+        :param widget: The Widget to apply to.
+
+        :rtype: None
         """
         self.update_position()
         super().paint(painter, option, widget)
@@ -389,10 +391,10 @@ class RelationshipEdge(QGraphicsLineItem):
         Calculates the angle of the line for rotating the label. Flips the
         angle by 180 degrees if the text would otherwise be upside down.
         
-        :param p1: The first point (:py:class:`~PyQt6.QtCore.QPointF`).
-        :type p1: :py:class:`~PyQt6.QtCore.QPointF`
-        :param p2: The second point (:py:class:`~PyQt6.QtCore.QPointF`).
-        :type p2: :py:class:`~PyQt6.QtCore.QPointF`
+        :param p1: The first point (:py:class:`~PySide6.QtCore.QPointF`).
+        :type p1: :py:class:`~PySide6.QtCore.QPointF`
+        :param p2: The second point (:py:class:`~PySide6.QtCore.QPointF`).
+        :type p2: :py:class:`~PySide6.QtCore.QPointF`
 
         :returns: Returns the value of the angle in degrees, used to align the label with the edge.
         :rtype: float
@@ -409,10 +411,10 @@ class RelationshipEdge(QGraphicsLineItem):
 
     def contextMenuEvent(self, event: QEvent) -> None:
         """
-        Docstring for contextMenuEvent
+        Displays the custom context menu for RelationshipEdge.
         
         :param event: The event.
-        :type event: :py:class:`~PyQt6.QtCore.QEvent`
+        :type event: :py:class:`~PySide6.QtCore.QEvent`
 
         :rtype: None
         """

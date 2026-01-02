@@ -15,7 +15,7 @@ from ...utils.event_bus import bus, receiver
 
 class CharacterEditor(BaseEditor):
     """
-    A composite :py:class:`~PyQt6.QtWidgets.QWidget` for editing a Character's details 
+    A composite :py:class:`~PySide6.QtWidgets.QWidget` for editing a Character's details 
     (Name, Status, Description).
     
     This is a pure UI component designed to be managed by an external controller 
@@ -40,7 +40,7 @@ class CharacterEditor(BaseEditor):
         Initializes the :py:class:`.CharacterEditor` widget.
         
         :param parent: The parent widget. Defaults to ``None``.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`, optional
+        :type parent: :py:class:`~PySide6.QtWidgets.QWidget`, optional
 
         :rtype: None
         """
@@ -221,7 +221,7 @@ class CharacterEditor(BaseEditor):
         Handler for UI input. 
         
         This method is connected to signals from various input widgets (like 
-        :py:class:`~PyQt6.QtWidgets.QLineEdit` and :py:class:`~PyQt6.QtWidgets.QComboBox`) 
+        :py:class:`~PySide6.QtWidgets.QLineEdit` and :py:class:`~PySide6.QtWidgets.QComboBox`) 
         to track when user interaction occurs.
         
         :rtype: None
@@ -311,7 +311,7 @@ class CharacterEditor(BaseEditor):
     def _emit_name_change(self) -> None:
         """
         Emits the :py:attr:`.char_name_changed` signal after the user finishes 
-        editing the name (e.g., focus leaves the :py:class:`~PyQt6.QtWidgets.QLineEdit`).
+        editing the name (e.g., focus leaves the :py:class:`~PySide6.QtWidgets.QLineEdit`).
         
         :rtype: None
         """

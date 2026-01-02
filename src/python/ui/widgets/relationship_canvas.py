@@ -7,14 +7,14 @@ from PySide6.QtGui import QWheelEvent, QPainter, QMouseEvent, QPen, QColor, QCur
 class RelationshipCanvas(QGraphicsView):
     """
     A custom QGraphicsView that handles zooming, panning, and background drawing.
-    This replaces the raw QGraphicsView inside RelationshipEditor.
+    This forms the backbone of the Relationship Graph.
     """
     def __init__(self, scene, parent=None) -> None:
         """
         Instantiate a RelationshipCanvas
 
         :param parent: The parent widget. Default is None:
-        :type: :py:class:`~PyQt6.QtWidgets.QWidget`
+        :type: :py:class:`~PySide6.QtWidgets.QWidget`
 
         :rtype: None
         """
@@ -37,9 +37,9 @@ class RelationshipCanvas(QGraphicsView):
         Draws a coordinate grid background.
         
         :param painter: The QPainter
-        :type painter: :py:class:`~PyQt6.QtGui.QPainter`
+        :type painter: :py:class:`~PySide6.QtGui.QPainter`
         :param rect: The rectangle
-        :type rect: :py:class:`~PyQt6.QtGui.QRectF`
+        :type rect: :py:class:`~PySide6.QtGui.QRectF`
 
         :rtype: None
         """
@@ -90,7 +90,7 @@ class RelationshipCanvas(QGraphicsView):
         the scroll wheel.
         
         :param event: The scrool event.
-        :type event: :py:class:`~PyQt6.QtGui.QWheelEvent`
+        :type event: :py:class:`~PySide6.QtGui.QWheelEvent`
 
         :rtype: None
         """

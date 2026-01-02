@@ -15,7 +15,7 @@ from ...utils.event_bus import bus, receiver
 
 class ChapterEditor(BaseEditor):
     """
-    A composite :py:class:`PyQt6.QtWidgets.QWidget` that serves as the main 
+    A composite :py:class:`PySide6.QtWidgets.QWidget` that serves as the main 
     editing panel for a chapter.
 
     It combines a :py:class:`~.RichTextEditor` for content and a 
@@ -39,7 +39,7 @@ class ChapterEditor(BaseEditor):
                                  including 'words_per_minute'.
         :type current_settings: dict
         :param parent: The parent widget. Defaults to ``None``.
-        :type parent: :py:class:`PyQt6.QtWidgets.QWidget`, optional
+        :type parent: :py:class:`PySide6.QtWidgets.QWidget`, optional
 
         :rtype: None
         """

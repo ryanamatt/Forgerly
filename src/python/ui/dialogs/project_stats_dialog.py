@@ -24,7 +24,7 @@ class ProjectStatsDialog(QDialog):
         :param wpm: Words Per Minute setting, used for read time calculation.
         :type wpm: int
         :param parent: The parent Qt widget.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget` or None
+        :type parent: :py:class:`~PySide6.QtWidgets.QWidget` or None
         
         :rtype: None
         """

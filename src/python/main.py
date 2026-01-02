@@ -21,7 +21,7 @@ class ApplicationFlowManager:
         Instatiates the ApplicationFlowManager Class.
         
         :param app: Description
-        :type app: :py:class:`~PyQt6.QtWidgets.QApplication`
+        :type app: :py:class:`~PySide6.QtWidgets.QApplication`
 
         :rtype: None
         """ 

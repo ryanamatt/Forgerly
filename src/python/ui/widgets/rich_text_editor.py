@@ -24,7 +24,7 @@ class RichTextEditor(BasicTextEditor):
     A Custom QWidget containing a QTextEdit and a formatting toolbar.
 
     Inherits from :py:class:`~.BasicTextEditor` and extends it by adding
-    rich text formatting capabilities via a :py:class:`PyQt6.QtWidgets.QToolBar`.
+    rich text formatting capabilities via a :py:class:`PySide6.QtWidgets.QToolBar`.
 
     This class handles all rich text formatting actions such as font selection,
     size, bold, italic, underline, color, highlighting, lists, alignment, and
@@ -32,9 +32,9 @@ class RichTextEditor(BasicTextEditor):
     based on the current cursor position or selection.
 
     :ivar toolbar: The formatting toolbar containing all controls and actions.
-    :vartype toolbar: :py:class:`PyQt6.QtWidgets.QToolBar`
+    :vartype toolbar: :py:class:`PySide6.QtWidgets.QToolBar`
     :ivar editor: The core text editor component inherited from BasicTextEditor.
-    :vartype editor: :py:class:`PyQt6.QtWidgets.QTextEdit`
+    :vartype editor: :py:class:`PySide6.QtWidgets.QTextEdit`
     """
 
     def __init__(self, parent=None) -> None:
@@ -42,7 +42,7 @@ class RichTextEditor(BasicTextEditor):
         Initializes the RichTextEditor and connects its signals
 
         :param parent: The parent widget. Defaults to ``None``.
-        :type parent: :py:class:`PyQt6.QtWidgets.QWidget`
+        :type parent: :py:class:`PySide6.QtWidgets.QWidget`
 
         :rtype: None
         """
@@ -266,7 +266,7 @@ class RichTextEditor(BasicTextEditor):
         or cursor if no selected text.
         
         :param font: The selected font to change the text to.
-        :type font: :py:class:`PyQt6.QtGui.QFont`
+        :type font: :py:class:`PySide6.QtGui.QFont`
 
         :rtype: None
         """
@@ -417,7 +417,7 @@ class RichTextEditor(BasicTextEditor):
         Toggles the current paragraph(s) into a list format in the editor.
         
         :param list_style: The style of list that is selected (order or unordered).
-        :type list_style: :py:class:'PyQt6.QtGui.QTextListFormat.Style'
+        :type list_style: :py:class:'PySide6.QtGui.QTextListFormat.Style'
 
         :rtype: None
         """
@@ -484,7 +484,7 @@ class RichTextEditor(BasicTextEditor):
         Sets the alignment of the current text block(s) and marks content as dirty.
         
         :param alignment: The alignment flag that sets the editor to the correct alignment
-        :type alignment: :py:class:'PyQt6.QtCore.Qt.AlignmentFlag'
+        :type alignment: :py:class:'PySide6.QtCore.Qt.AlignmentFlag'
 
         :rtype: None
         """
@@ -641,7 +641,7 @@ class RichTextEditor(BasicTextEditor):
         Overrides the key press event to detect the inter-entry lookup shortcut.
         
         :param event: The key event object.
-        :type event: :py:class:`PyQt6.QtGui.QKeyEvent`
+        :type event: :py:class:`PySide6.QtGui.QKeyEvent`
         :rtype: None
         """
         try:

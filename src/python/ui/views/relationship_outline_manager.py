@@ -15,7 +15,7 @@ from ...utils.event_bus import bus, receiver
 
 class RelationshipOutlineManager(QWidget):
     """
-    A custom :py:class:`~PyQt6.QtWidgets.QWidget` dedicated to displaying 
+    A custom :py:class:`~PySide6.QtWidgets.QWidget` dedicated to displaying 
     and managing the list of Relationship Types. 
     
     It interacts with the data layer via :py:class:`~app.repository.relationship_repository.RelationshipRepository`.
@@ -102,7 +102,7 @@ class RelationshipOutlineManager(QWidget):
     def load_outline(self, data: dict) -> None:
         """
         Loads all relationship types from the database via the repository and 
-        populates the internal :py:class:`~PyQt6.QtWidgets.QListWidget`.
+        populates the internal :py:class:`~PySide6.QtWidgets.QListWidget`.
         
         Each item is set with the name as text and its ID and color in the data roles.
 
@@ -224,7 +224,7 @@ class RelationshipOutlineManager(QWidget):
         Handles a single click on a list item.
         
         :param item: The list item that was clicked.
-        :type item: :py:class:`~PyQt6.QtWidgets.QListWidgetItem`
+        :type item: :py:class:`~PySide6.QtWidgets.QListWidgetItem`
         
         :rtype: None
         """
@@ -317,7 +317,7 @@ class RelationshipOutlineManager(QWidget):
         is clicked, "Edit Type Properties..." and "Delete Type".
 
         :param position: The position where the right-click occurred, relative to the list widget.
-        :type position: :py:class:`~PyQt6.QtCore.QPoint`
+        :type position: :py:class:`~PySide6.QtCore.QPoint`
         
         :rtype: None
         """
@@ -442,7 +442,7 @@ class RelationshipOutlineManager(QWidget):
         that all relationships of this type will also be deleted.
 
         :param item: The list item corresponding to the Relationship Type to be deleted.
-        :type item: :py:class:`~PyQt6.QtWidgets.QListWidgetItem`
+        :type item: :py:class:`~PySide6.QtWidgets.QListWidgetItem`
         
         :rtype: None
         """

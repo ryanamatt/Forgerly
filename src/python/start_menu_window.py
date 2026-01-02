@@ -29,7 +29,7 @@ class StartMenuWindow(QMainWindow):
     """
 
     project_opened = Signal(str)
-    """:py:class:`~PyQt6.QtCore.Signal` Emitted when a project path is successfully selected.
+    """:py:class:`~PySide6.QtCore.Signal` Emitted when a project path is successfully selected.
                           It carries the string path of the selected project folder.
     """
 

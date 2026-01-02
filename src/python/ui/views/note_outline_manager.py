@@ -19,7 +19,7 @@ from ...services.app_coordinator import AppCoordinator
 
 class NoteOutlineManager(BaseOutlineManager):
     """
-    A custom :py:class:`~PyQt6.QtWidgets.QWidget` dedicated to displaying the 
+    A custom :py:class:`~PySide6.QtWidgets.QWidget` dedicated to displaying the 
     hierarchical outline of Notes and other narrative elements.
     
     It interacts with the data layer via a :py:class:`.NoteRepository`.
@@ -122,9 +122,10 @@ class NoteOutlineManager(BaseOutlineManager):
     @receiver(Events.OUTLINE_SEARCH_RETURN)
     def _handle_search_return(self, data: dict) -> None:
         """
-        Docstring for _handle_search_return
+        Handles the return of the search query data.
         
-        :param data: Description
+        :param data: The return data in the form {'entity_type': EntityType.NOTE,
+            'notes': dict}
         :type data: dict
 
         :rtype: None
@@ -148,7 +149,7 @@ class NoteOutlineManager(BaseOutlineManager):
         The new name is saved to the database via the :py:class:`.NoteRepository`.
         
         :param item: The renamed tree item.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :type item: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem`
         :param column: The column index.
         :type column: int
 
@@ -188,7 +189,7 @@ class NoteOutlineManager(BaseOutlineManager):
         like 'Add New Note' and 'Delete Note'.
         
         :param pos: The position of the right-click relative to the widget.
-        :type pos: :py:class:`~PyQt6.QtCore.QPoint`
+        :type pos: :py:class:`~PySide6.QtCore.QPoint`
 
         :rtype: None
         """
@@ -274,7 +275,7 @@ class NoteOutlineManager(BaseOutlineManager):
         entry in the database.
         
         :param item: The Note item to be deleted.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :type item: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem`
 
         :rtype: None
         """
@@ -304,7 +305,7 @@ class NoteOutlineManager(BaseOutlineManager):
         Note is saved, then triggers the deletion process.
 
         :param item: The Note item queued for deletion.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :type item: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem`
 
         :rtype: None
         """
@@ -313,14 +314,14 @@ class NoteOutlineManager(BaseOutlineManager):
 
     def find_note_item_by_id(self, note_id: int) -> QTreeWidgetItem | None:
         """
-        Helper to find a Note :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem` 
+        Helper to find a Note :py:class:`~PySide6.QtWidgets.QTreeWidgetItem` 
         by its stored database ID.
         
         :param char_id: The unique ID of the Note to find.
         :type char_id: int
 
         :returns: The matching item or None
-        :rtype: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem` or None
+        :rtype: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem` or None
         """
         iterator = QTreeWidgetItemIterator(self.tree_widget)
         while iterator.value():

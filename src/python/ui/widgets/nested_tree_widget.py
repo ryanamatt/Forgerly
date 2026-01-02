@@ -10,17 +10,17 @@ logger = get_logger(__name__)
 
 class NestedTreeWidget(QTreeWidget):
     """
-    A custom :py:class:`~PyQt6.QtWidgets.TreeWidget` that is used to manage
+    A custom :py:class:`~PySide6.QtWidgets.TreeWidget` that is used to manage
     the Tree layout of items.
 
     It allows to drag-and-drop setting of items in a hierachical fashin.
     """
 
     item_parent_id_updated = Signal(int, object)
-    """:py:class:`~PyQt6.QtCore.Signal` (int, object): Signal to connect back to the OutlineManager"""
+    """:py:class:`~PySide6.QtCore.Signal` (int, object): Signal to connect back to the OutlineManager"""
 
     item_hierarchy_updated = Signal(int, object)
-    """:py:class:`~PyQt6.QtCore.Signal` (int, object): Signal to connect back to the OutlineManager"""
+    """:py:class:`~PySide6.QtCore.Signal` (int, object): Signal to connect back to the OutlineManager"""
 
     def __init__(self, id_role: int, parent=None):
         """
@@ -29,7 +29,7 @@ class NestedTreeWidget(QTreeWidget):
         :param id_role: The ID of the current entry.
         :type id_role: int
         :param parent: The parent widget.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`, optional
+        :type parent: :py:class:`~PySide6.QtWidgets.QWidget`, optional
         """
         super().__init__(parent)
 
@@ -47,7 +47,7 @@ class NestedTreeWidget(QTreeWidget):
         Handles the drop event: moves the item visually and updates the database.
 
         :param event: The event.
-        :type event: :py:class:`~PyQt6.QtCore.QDropEvent`
+        :type event: :py:class:`~PySide6.QtCore.QDropEvent`
 
         :rtype: None
         """

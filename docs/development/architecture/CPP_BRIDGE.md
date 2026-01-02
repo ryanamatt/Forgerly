@@ -6,7 +6,7 @@ This document serves as the technical reference for the bridge between the **Pyt
 
 Narrative Forge uses a hybrid architecture to balance UI flexibility with computational performance.
 
-* **Frontend (Python/PyQt6):** Handles user interaction, database management, and UI rendering.  
+* **Frontend (Python/PySide6):** Handles user interaction, database management, and UI rendering.  
 * **Bridge (nf\_core\_wrapper.py):** Uses cffi to load the shared library and map C-style structs to Python objects.  
 * **Core (C++17):** High-performance engines for graph theory (Relationship Layout) and text analysis (Statistics).
 
