@@ -1,8 +1,8 @@
 # src/python/ui/widgets/relationship_canvas.py
 
 from PySide6.QtWidgets import QGraphicsView
-from PySide6.QtCore import QLineF, QRectF
-from PySide6.QtGui import QWheelEvent, QPainter, QMouseEvent, QPen, QColor
+from PySide6.QtCore import QLineF, QRectF, Qt
+from PySide6.QtGui import QWheelEvent, QPainter, QMouseEvent, QPen, QColor, QCursor
 
 class RelationshipCanvas(QGraphicsView):
     """
@@ -24,6 +24,8 @@ class RelationshipCanvas(QGraphicsView):
         self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.MinimalViewportUpdate)
+
+        self.viewport().setCursor(QCursor(Qt.CursorShape.ArrowCursor))
 
         # Grid Settings
         self.grid_size = 20
@@ -63,6 +65,8 @@ class RelationshipCanvas(QGraphicsView):
         
         :param enabled: True to enable the grid otherwise False.
         :type enabled: bool
+
+        :rtype: None
         """
         self.show_grid = enabled
         self.viewport().update()
@@ -99,10 +103,12 @@ class RelationshipCanvas(QGraphicsView):
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         """
-        Docstring for mouseMoveEvent
+        Handles what the moust moves and a Node A is selected.
         
-        :param self: Description
-        :param event: Description
+        :param event: The Mouse event.
+        :type event: QMouseEvent
+
+        :rtype: None
         """
         editor = self.parent()
         if hasattr(editor, 'temp_line') and editor.temp_line and editor.selected_node_a:

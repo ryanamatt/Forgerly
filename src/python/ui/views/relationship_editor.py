@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QFrame, QDialog, QToolBar
 )
 from PySide6.QtCore import Qt, QLineF
-from PySide6.QtGui import QPen, QAction, QIcon
+from PySide6.QtGui import QPen, QAction, QIcon, QCursor
 from typing import Any
 
 from ...resources_rc import *

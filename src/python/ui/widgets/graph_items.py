@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem, QMenu
 )
 from PySide6.QtCore import Qt, QPointF, Signal, QRectF, QObject, QLineF, QEvent
-from PySide6.QtGui import QColor, QPen, QBrush, QFont, QMouseEvent
+from PySide6.QtGui import QColor, QPen, QBrush, QFont, QMouseEvent, QCursor
 import math
 from typing import Any, TYPE_CHECKING
 
@@ -76,6 +76,8 @@ class CharacterNode(QGraphicsEllipseItem):
         # set up dragging
         self.setFlag(QGraphicsEllipseItem.GraphicsItemFlag.ItemIsMovable, True)
         self.setFlag(QGraphicsEllipseItem.GraphicsItemFlag.ItemSendsGeometryChanges, True)
+        
+        self.setAcceptHoverEvents(True)
 
         # Add a name label
         self.label = QGraphicsTextItem(name, self)
@@ -100,6 +102,30 @@ class CharacterNode(QGraphicsEllipseItem):
         
         self.setBrush(brush)
         self.setPen(pen)
+
+    def hoverEnterEvent(self, event) -> None:
+        """
+        Changes cursor to drag cursor when hovering over the node.
+        
+        :param event: The hover event.
+        :type event: :py:class:`~PyQt6.QtWidgets.QGraphicsSceneHoverEvent`
+        
+        :rtype: None
+        """
+        self.setCursor(QCursor(Qt.CursorShape.SizeAllCursor))
+        super().hoverEnterEvent(event)
+
+    def hoverLeaveEvent(self, event) -> None:
+        """
+        Restores default cursor when leaving the node.
+        
+        :param event: The hover event.
+        :type event: :py:class:`~PyQt6.QtWidgets.QGraphicsSceneHoverEvent`
+        
+        :rtype: None
+        """
+        self.unsetCursor()
+        super().hoverLeaveEvent(event)
 
     def itemChange(self, change: QGraphicsEllipseItem.GraphicsItemChange, value: Any) -> Any:
         """
