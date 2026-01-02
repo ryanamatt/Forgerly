@@ -15,7 +15,7 @@ from ...utils.event_bus import bus, receiver
 
 class LoreOutlineManager(BaseOutlineManager):
     """
-    A custom :py:class:`~PyQt6.QtWidgets.QWidget` dedicated to displaying the 
+    A custom :py:class:`~PySide6.QtWidgets.QWidget` dedicated to displaying the 
     hierarchical outline of Lore Entries and other narrative elements.
     
     Inherits from BaseOutlineManager.
@@ -53,10 +53,12 @@ class LoreOutlineManager(BaseOutlineManager):
     @receiver(Events.OUTLINE_DATA_LOADED)
     def load_outline(self, lore_data: dict) -> None:
         """
-        Docstring for load_outline_bus
+        Loads the Lore Entries onto the Tree Widget.
         
-        :param lore_data: Description
+        :param lore_data: The data to load onto the Tree Widget.
         :type lore_data: dict
+
+        :rtype: None
         """
         entity_type = lore_data.get('entity_type')
         lore_entries = lore_data.get('lore_entries')
@@ -112,9 +114,10 @@ class LoreOutlineManager(BaseOutlineManager):
     @receiver(Events.OUTLINE_SEARCH_RETURN)
     def _handle_search_return(self, data: dict) -> None:
         """
-        Docstring for _handle_search_return
+        Handles the return of the search query data.
         
-        :param data: Description
+        :param data: The search data in the form {'entity_type': EntityType.LORE,
+            'lore_entries': dict}
         :type data: dict
 
         :rtype: None
@@ -138,7 +141,7 @@ class LoreOutlineManager(BaseOutlineManager):
         The new name is saved to the database via the :py:class:`.LoreRepository`.
         
         :param item: The renamed tree item.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :type item: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem`
         :param column: The column index.
         :type column: int
 
@@ -181,7 +184,7 @@ class LoreOutlineManager(BaseOutlineManager):
         like 'Add New Lore Entry' and 'Delete Lore Entry'.
         
         :param pos: The position of the right-click relative to the widget.
-        :type pos: :py:class:`~PyQt6.QtCore.QPoint`
+        :type pos: :py:class:`~PySide6.QtCore.QPoint`
 
         :rtype: None
         """
@@ -265,7 +268,7 @@ class LoreOutlineManager(BaseOutlineManager):
         entry in the database.
         
         :param item: The Lore Entry item to be deleted.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :type item: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem`
 
         :rtype: None
         """
@@ -295,7 +298,7 @@ class LoreOutlineManager(BaseOutlineManager):
         Lore Entry is saved, then triggers the deletion process.
 
         :param item: The Lore Entry item queued for deletion.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :type item: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem`
 
         :rtype: None
         """
@@ -304,14 +307,14 @@ class LoreOutlineManager(BaseOutlineManager):
 
     def find_lore_item_by_id(self, lore_id: int) -> QTreeWidgetItem | None:
         """
-        Helper to find a Lore Entry :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem` 
+        Helper to find a Lore Entry :py:class:`~PySide6.QtWidgets.QTreeWidgetItem` 
         by its stored database ID.
         
         :param lore_id: The unique ID of the Lore Entry to find.
         :type lore_id: int
 
         :returns: The matching item or None
-        :rtype: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem` or None
+        :rtype: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem` or None
         """
         iterator = QTreeWidgetItemIterator(self.tree_widget)
         while iterator.value():

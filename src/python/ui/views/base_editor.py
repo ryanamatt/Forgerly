@@ -20,7 +20,7 @@ class BaseEditor(QWidget):
         Instaniates the BaseEditor class.
         
         :param parent: Description
-        :type parent: :py:class:`~PyQy6.QtWidgets.QWidget`
+        :type parent: :py:class:`~PySide6.QtWidgets.QWidget`
 
         :rtype: None
         """

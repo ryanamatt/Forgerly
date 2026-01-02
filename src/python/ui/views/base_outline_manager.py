@@ -36,7 +36,7 @@ class BaseOutlineManager(QWidget):
             False if not nested (Utilizing QTreeWidget). Default is False.
         :type is_nested_tree: bool
         :param parent: The parent object.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
+        :type parent: :py:class:`~PySide6.QtWidgets.QWidget`
 
         :rtype: None
         """
@@ -118,7 +118,7 @@ class BaseOutlineManager(QWidget):
         followed by :py:attr:`.item_selected`.
 
         :param item: The clicked tree item.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :type item: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem`
         :param column: The column index clicked.
         :type column: int
 
@@ -166,7 +166,7 @@ class BaseOutlineManager(QWidget):
         A method to show the context menu.
         
         :param position: The Point on the OutlineManager clicked on.
-        :type pos: :py:class:`~PyQt6.QtCore.QPoint`
+        :type pos: :py:class:`~PySide6.QtCore.QPoint`
         """
         raise NotImplementedError("Subclasses must implement _show_context_menu")
 
@@ -175,7 +175,7 @@ class BaseOutlineManager(QWidget):
         Handles the signal emitted when a tree item has been successfully renamed.
                 
         :param item: The renamed tree item.
-        :type item: :py:class:`~PyQt6.QtWidgets.QTreeWidgetItem`
+        :type item: :py:class:`~PySide6.QtWidgets.QTreeWidgetItem`
         :param column: The column index.
         :type column: int
 

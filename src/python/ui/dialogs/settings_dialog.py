@@ -27,7 +27,7 @@ class SettingsDialog(QDialog):
         :param settings_manager: The service object responsible for loading and saving settings.
         :type settings_manager: :py:class:`~app.services.settings_manager.SettingsManager`
         :param parent: The parent Qt widget.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget` or None
+        :type parent: :py:class:`~PySide6.QtWidgets.QWidget` or None
 
         :rtype: None
         """
@@ -173,7 +173,7 @@ class SettingsDialog(QDialog):
 
         It reads the current values from all UI controls, updates the internal 
         :py:attr:`._new_settings` dictionary, and closes the dialog with the 
-        :py:meth:`~PyQt6.QtWidgets.QDialog.accept` result code.
+        :py:meth:`~PySide6.QtWidgets.QDialog.accept` result code.
 
         :rtype: None
         """
@@ -224,7 +224,7 @@ class SettingsDialog(QDialog):
         Retrieves the settings dictionary that contains the values the user selected in the dialog.
         
         This method is typically called by the dialog's caller (e.g., :py:class:`~app.ui.main_window.MainWindow`)
-        after the dialog has closed with an :py:attr:`~PyQt6.QtWidgets.QDialog.DialogCode.Accepted` result.
+        after the dialog has closed with an :py:attr:`~PySide6.QtWidgets.QDialog.DialogCode.Accepted` result.
 
         :returns: A dictionary of the proposed new settings.
         :rtype: dict

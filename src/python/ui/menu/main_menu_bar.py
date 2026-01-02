@@ -29,7 +29,7 @@ class MainMenuBar(QMenuBar):
         :param is_macos: Flag indicating if the application is running on macOS to set the correct modifier key (Cmd vs Ctrl).
         :type is_macos: bool
         :param parent: The parent Qt widget.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget` or None
+        :type parent: :py:class:`~PySide6.QtWidgets.QWidget` or None
 
         :rtype: None
         """
@@ -187,7 +187,7 @@ class MainMenuBar(QMenuBar):
 
     def _show_about_dialog(self) -> None:
         """
-        Displays the application's About dialog using :py:class:`~PyQt6.QtWidgets.QMessageBox.about`.
+        Displays the application's About dialog using :py:class:`~PySide6.QtWidgets.QMessageBox.about`.
         
         It presents the application name, version number, and a brief description.
         
@@ -200,7 +200,7 @@ class MainMenuBar(QMenuBar):
             f"<h2>The Narrative Forge</h2>"
             f"<p>Version: {self.app_version}</p>"
             f"<p>A writing application designed for worldbuilders and novel writers.</p>"
-            f"<p>Built with Python and PyQt6.</p>"
+            f"<p>Built with Python and PySide6.</p>"
         )
 
     @receiver(Events.VIEW_CHANGED)

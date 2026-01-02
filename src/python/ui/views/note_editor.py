@@ -11,7 +11,7 @@ from ...utils.event_bus import bus, receiver
 
 class NoteEditor(BaseEditor):
     """
-    A composite :py:class:`PyQt6.QtWidgets.QWidget` that serves as the main 
+    A composite :py:class:`PySide6.QtWidgets.QWidget` that serves as the main 
     editing panel for a note.
 
     It combines a :py:class:`~.BasicTextEditor` for content and a 
@@ -32,7 +32,7 @@ class NoteEditor(BaseEditor):
         :param current_settings: A dictionary containing initial application settings.
         :type current_settings: dict
         :param parent: The parent widget. Defaults to ``None``.
-        :type parent: :py:class:`PyQt6.QtWidgets.QWidget`, optional
+        :type parent: :py:class:`PySide6.QtWidgets.QWidget`, optional
 
         :rtype: None
         """

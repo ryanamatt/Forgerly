@@ -15,14 +15,14 @@ class TagLabel(QWidget):
     """
     A small, removable pill-style widget for displaying a single tag.
     
-    This widget consists of a :py:class:`~PyQt6.QtWidgets.QLabel` for the tag name 
-    and a :py:class:`~PyQt6.QtWidgets.QPushButton` for removal.
+    This widget consists of a :py:class:`~PySide6.QtWidgets.QLabel` for the tag name 
+    and a :py:class:`~PySide6.QtWidgets.QPushButton` for removal.
     It emits a signal when the remove button is clicked.
     """
     
     tag_removed = Signal(str)
     """
-    :py:class:`~PyQt6.QtCore.Signal` (str): Emitted when the tag is removed carrying the tag's name.
+    :py:class:`~PySide6.QtCore.Signal` (str): Emitted when the tag is removed carrying the tag's name.
     """
 
     def __init__(self, tag_name: str, parent=None) -> None:
@@ -32,7 +32,7 @@ class TagLabel(QWidget):
         :param tag_name: The text content of the tag.
         :type tag_name: :py:class:`str`
         :param parent: The parent widget. Defaults to ``None``.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`, optional
+        :type parent: :py:class:`~PySide6.QtWidgets.QWidget`, optional
 
         :rtype: None
         """
@@ -89,16 +89,16 @@ class TagLabel(QWidget):
 
 class TagManagerWidget(QWidget):
     """
-    A complete :py:class:`~PyQt6.QtWidgets.QWidget` for managing a list of tags. 
+    A complete :py:class:`~PySide6.QtWidgets.QWidget` for managing a list of tags. 
     
-    It provides a :py:class:`~PyQt6.QtWidgets.QLineEdit` for input and displays 
+    It provides a :py:class:`~PySide6.QtWidgets.QLineEdit` for input and displays 
     the current tags using a :py:class:`.QFlowLayout`, allowing them to wrap dynamically. 
     Tags are stored as a unique set (case-insensitive, converted to lowercase).
     """
 
     tags_changed = Signal(list)
     """
-    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the list of tags has been modified.
+    :py:class:`~PySide6.QtCore.Signal`: Emitted when the list of tags has been modified.
     """
 
     def __init__(self, initial_tags: list[str] = None, parent=None) -> None:
@@ -108,7 +108,7 @@ class TagManagerWidget(QWidget):
         :param initial_tags: A list of tag strings to initialize the widget with.
         :type initial_tags: :py:obj:`list[str]`, optional
         :param parent: The parent widget. Defaults to ``None``.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`, optional
+        :type parent: :py:class:`~PySide6.QtWidgets.QWidget`, optional
 
         :rtype: None
         """

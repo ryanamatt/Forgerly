@@ -15,7 +15,7 @@ from ...utils.event_bus import bus, receiver
 
 class LoreEditor(BaseEditor):
     """
-    A composite :py:class:`~PyQt6.QtWidgets.QWidget` for editing a Lore Entry's details 
+    A composite :py:class:`~PySide6.QtWidgets.QWidget` for editing a Lore Entry's details 
     (Title, Content, Category).
     
     This is a pure UI component designed to be managed by an external controller 
@@ -32,7 +32,7 @@ class LoreEditor(BaseEditor):
         Initializes the :py:class:`.LoreEditor` widget.
         
         :param parent: The parent widget.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`, optional
+        :type parent: :py:class:`~PySide6.QtWidgets.QWidget`, optional
 
         :rtype: None
         """

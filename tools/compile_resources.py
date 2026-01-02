@@ -7,7 +7,7 @@ import re
 def compile_resources():
     """
     Compiles the .qrc file into a Python resource file and patches
-    it for PyQt6 compatibility.
+    it for PySide6 compatibility.
     """
     # Define paths relative to the project root
     # Project structure: tools/compile_resources.py -> ../

@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 class BasicTextEditor(QWidget):
     """
-    A composite :py:class:`~PyQt6.QtWidgets.QWidget` that serves as a basic
+    A composite :py:class:`~PySide6.QtWidgets.QWidget` that serves as a basic
     text editing widget.
 
     The Widget contains a text editing editor with basic signals for saving
@@ -24,12 +24,12 @@ class BasicTextEditor(QWidget):
     # Signal to notify listeners (like ChapterEditor/LoreEditor) of content changes
     # content_changed = Signal()
     # """
-    # :py:class:`~PyQt6.QtCore.Signal`: Emitted when the content of the editor changes.
+    # :py:class:`~PySide6.QtCore.Signal`: Emitted when the content of the editor changes.
     # """
 
     selection_changed = Signal()
     """
-    :py:class:`~PyQt6.QtCore.Signal`: Emitted when the selection has changed..
+    :py:class:`~PySide6.QtCore.Signal`: Emitted when the selection has changed..
     """
 
     def __init__(self, parent=None) -> None:
@@ -37,7 +37,7 @@ class BasicTextEditor(QWidget):
         Initializes the BasicTextEditor and connects its signals
 
         :param parent: The parent widget. Defaults to ``None``.
-        :type parent: :py:class:`PyQt6.QtWidgets.QWidget`
+        :type parent: :py:class:`PySide6.QtWidgets.QWidget`
 
         :rtype: None
         """

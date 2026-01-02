@@ -9,12 +9,12 @@ logger = get_logger(__name__)
 
 class QFlowLayout(QLayout):
     """
-    A custom :py:class:`~PyQt6.QtWidgets.QLayout` that arranges items in a flow, 
+    A custom :py:class:`~PySide6.QtWidgets.QLayout` that arranges items in a flow, 
     wrapping to the next line when the row is full. 
     
     This layout is essential for dynamic content like a tag list where widgets 
     need to utilize horizontal space efficiently and wrap dynamically.
-    It implements the core :py:class:`~PyQt6.QtWidgets.QLayout` methods 
+    It implements the core :py:class:`~PySide6.QtWidgets.QLayout` methods 
     required for dynamic resizing and flow control.
     """
     def __init__(self, parent=None, margin=0, spacing=-1) -> None:
@@ -22,7 +22,7 @@ class QFlowLayout(QLayout):
         Initializes the :py:class:`.QFlowLayout`.
         
         :param parent: The parent widget.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`, optional
+        :type parent: :py:class:`~PySide6.QtWidgets.QWidget`, optional
         :param margin: The margin around the content.
         :type margin: :py:obj:`int`
         :param spacing: The spacing between items. Defaults to -1 (parent's style).
@@ -56,7 +56,7 @@ class QFlowLayout(QLayout):
         Adds a layout item to the end of the layout.
         
         :param item: The layout item to add.
-        :type item: :py:class:`~PyQt6.QtWidgets.QLayoutItem`
+        :type item: :py:class:`~PySide6.QtWidgets.QLayoutItem`
 
         :rtype: None
         """
@@ -88,7 +88,7 @@ class QFlowLayout(QLayout):
         :type index: int
 
         :returns: The layout item at the index, or None if the index is out of bounds.
-        :rtype: :py:class:`~PyQt6.QtWidgets.QLayoutItem` or None
+        :rtype: :py:class:`~PySide6.QtWidgets.QLayoutItem` or None
         """
         if 0 <= index < len(self.item_list):
             return self.item_list[index]
@@ -101,7 +101,7 @@ class QFlowLayout(QLayout):
         :param index: The index of the item to remove.
         :type index: :py:obj:`int`
         :returns: The removed layout item, or None if the index is out of bounds.
-        :rtype: :py:class:`~PyQt6.QtWidgets.QLayoutItem` or None
+        :rtype: :py:class:`~PySide6.QtWidgets.QLayoutItem` or None
         """
         if 0 <= index < len(self.item_list):
             item = self.item_list.pop(index)
@@ -119,7 +119,7 @@ class QFlowLayout(QLayout):
         Indicates that the layout can expand both horizontally and vertically.
         
         :returns: The orientation flags.
-        :rtype: :py:class:`~PyQt6.QtCore.Qt.Orientation`
+        :rtype: :py:class:`~PySide6.QtCore.Qt.Orientation`
         """
         return Qt.Orientation.Horizontal | Qt.Orientation.Vertical
 
@@ -151,7 +151,7 @@ class QFlowLayout(QLayout):
         Sets the geometry of the layout and performs the actual layout of items.
         
         :param rect: The rectangle defining the layout's new geometry.
-        :type rect: :py:class:`~PyQt6.QtCore.QRect`
+        :type rect: :py:class:`~PySide6.QtCore.QRect`
         
         :rtype: None
         """
@@ -166,7 +166,7 @@ class QFlowLayout(QLayout):
         to fit them all with a reasonable width.
         
         :returns: The suggested size.
-        :rtype: :py:class:`~PyQt6.QtCore.QSize`
+        :rtype: :py:class:`~PySide6.QtCore.QSize`
         """
         logger.debug("Calculating size hint.")
         
@@ -206,7 +206,7 @@ class QFlowLayout(QLayout):
         Returns the minimum size required by the layout.
         
         :returns: The minimum size.
-        :rtype: :py:class:`~PyQt6.QtCore.QSize`
+        :rtype: :py:class:`~PySide6.QtCore.QSize`
         """
         min_size = self.sizeHint()
         logger.debug(f"Minimum size calculated: {min_size.width()}x{min_size.height()}.")
@@ -217,7 +217,7 @@ class QFlowLayout(QLayout):
         Performs the actual layout calculation, determining item positions and wrapping.
         
         :param rect: The available rectangle for layout.
-        :type rect: :py:class:`~PyQt6.QtCore.QRect`
+        :type rect: :py:class:`~PySide6.QtCore.QRect`
         :param test_only: If True, only calculates the height without moving items.
         :type test_only: bool
 

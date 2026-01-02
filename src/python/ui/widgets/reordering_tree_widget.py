@@ -6,7 +6,7 @@ from PySide6.QtCore import Signal
 
 class ReorderingTreeWidget(QTreeWidget):
     """
-    A specialized :py:class:`~PyQt6.QtWidgets.QTreeWidget` that handles the 
+    A specialized :py:class:`~PySide6.QtWidgets.QTreeWidget` that handles the 
     visual representation and drag-and-drop reordering of items.
 
     This widget is designed to work in tandem with a parent editor to ensure that 
@@ -16,7 +16,7 @@ class ReorderingTreeWidget(QTreeWidget):
 
     order_changed = Signal()
     """
-    :py:class:`~PyQt6.QtCore.Signal` (): Emitted to notify a 
+    :py:class:`~PySide6.QtCore.Signal` (): Emitted to notify a 
     successfuly drop to the manager.
     """
 
@@ -25,7 +25,7 @@ class ReorderingTreeWidget(QTreeWidget):
         Initializes the ChapterTree.
         
         :param parent: The parent. Default None
-        :type editor: :py:class:`~PyQt6.QtWidgets.QWidget``, optional
+        :type editor: :py:class:`~PySide6.QtWidgets.QWidget``, optional
         """
         super().__init__(parent)
         self.setDragEnabled(True)
@@ -43,7 +43,7 @@ class ReorderingTreeWidget(QTreeWidget):
         consistency.
 
         :param event: The drop event containing information about the operation.
-        :type event: :py:class:`~PyQt6.QtGui.QDropEvent`
+        :type event: :py:class:`~PySide6.QtGui.QDropEvent`
         
         :rtype: None
         """

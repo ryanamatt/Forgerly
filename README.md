@@ -1,6 +1,6 @@
 # **✍️ Narrative Forge**
 
-Narrative Forge is a comprehensive desktop application designed to assist **authors, storytellers, and worldbuilders** in organizing and developing their fictional universes. Built using **Python** and **PyQt6**, it provides dedicated tools for managing chapters, characters, lore, and the relationships between them.
+Narrative Forge is a comprehensive desktop application designed to assist **authors, storytellers, and worldbuilders** in organizing and developing their fictional universes. Built using **Python** and **PySide6**, it provides dedicated tools for managing chapters, characters, lore, and the relationships between them.
 
 ![Screenshot of Narrative Forge Main Interface](docs/user/screenshots/character_editor.png)
 

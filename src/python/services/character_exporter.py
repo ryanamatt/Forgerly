@@ -41,8 +41,8 @@ class CharacterExporter(Exporter):
         It guides the user through selecting a file path and format, fetches the 
         character data, and calls the private file writing method.
 
-        :param parent: The parent Qt widget, used for modal dialogs like :py:class:`~PyQt6.QtWidgets.QFileDialog`.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget`
+        :param parent: The parent Qt widget, used for modal dialogs like :py:class:`~PySide6.QtWidgets.QFileDialog`.
+        :type parent: :py:class:`~PySide6.QtWidgets.QWidget`
         :param selected_ids: A list of character IDs to export. If empty, all characters are exported.
         :type selected_ids: list[int]
         

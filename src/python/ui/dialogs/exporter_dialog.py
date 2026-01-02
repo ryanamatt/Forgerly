@@ -25,13 +25,13 @@ class ExporterDialog(QDialog):
     
     This dialog allows the user to select the type of content to export (e.g., Story, 
     Lore, Character data) and choose the specific items to include. It uses a 
-    :py:class:`~PyQt6.QtWidgets.QStackedWidget` to switch between content-specific 
+    :py:class:`~PySide6.QtWidgets.QStackedWidget` to switch between content-specific 
     selection widgets.
     """
 
     export_requested = Signal(str, list) # (export_type, selected_ids)
     """
-    :py:class:`~PyQt6.QtCore.Signal` (str, list): Emitted when the user confirms 
+    :py:class:`~PySide6.QtCore.Signal` (str, list): Emitted when the user confirms 
     the export. Carries the selected export type (str) and a list of selected 
     item IDs (list[int]).
     """
@@ -43,7 +43,7 @@ class ExporterDialog(QDialog):
         :param coordinator: The application coordinator for data access and export logic.
         :type coordinator: :py:class:`~services.app_coordinator.AppCoordinator`
         :param parent: The parent Qt widget.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget` or None
+        :type parent: :py:class:`~PySide6.QtWidgets.QWidget` or None
         
         :rtype: None
         """
@@ -193,11 +193,11 @@ class LoreSelector(QWidget):
     """Widget to display and select Lore Entries."""
     def __init__(self, coordinator, parent=None) -> None:
         """
-        A custom :py:class:`~PyQt6.QtWidgets.QWidget` dedicated to displaying 
+        A custom :py:class:`~PySide6.QtWidgets.QWidget` dedicated to displaying 
         and selecting Lore Entries for export.
         
         This widget is designed to be placed inside the 
-        :py:class:`~PyQt6.QtWidgets.QStackedWidget` of :py:class:`.ExporterDialog`.
+        :py:class:`~PySide6.QtWidgets.QStackedWidget` of :py:class:`.ExporterDialog`.
         """
         super().__init__(parent)
         self.coordinator = coordinator
@@ -214,7 +214,7 @@ class LoreSelector(QWidget):
     def load_data(self):
         """
         Fetches all Lore entries from the repository and populates the 
-        :py:class:`~PyQt6.QtWidgets.QListWidget` with their titles.
+        :py:class:`~PySide6.QtWidgets.QListWidget` with their titles.
         
         :rtype: None
         """
@@ -243,11 +243,11 @@ class CharacterSelector(QWidget):
     """Widget to display and select Characters."""
     def __init__(self, coordinator, parent=None) -> None:
         """
-        A custom :py:class:`~PyQt6.QtWidgets.QWidget` dedicated to displaying 
+        A custom :py:class:`~PySide6.QtWidgets.QWidget` dedicated to displaying 
         and selecting Characters for export.
         
         This widget is designed to be placed inside the 
-        :py:class:`~PyQt6.QtWidgets.QStackedWidget` of :py:class:`.ExporterDialog`.
+        :py:class:`~PySide6.QtWidgets.QStackedWidget` of :py:class:`.ExporterDialog`.
         """
         super().__init__(parent)
         self.coordinator = coordinator
@@ -264,7 +264,7 @@ class CharacterSelector(QWidget):
     def load_data(self):
         """
         Fetches all character entries from the repository and populates the 
-        :py:class:`~PyQt6.QtWidgets.QListWidget` with their names.
+        :py:class:`~PySide6.QtWidgets.QListWidget` with their names.
         
         :rtype: None
         """
@@ -292,11 +292,11 @@ class CharacterSelector(QWidget):
 
 class ChapterSelector(QWidget):
     """
-    A custom :py:class:`~PyQt6.QtWidgets.QWidget` dedicated to displaying 
+    A custom :py:class:`~PySide6.QtWidgets.QWidget` dedicated to displaying 
     and selecting Chapters for export.
     
     This widget is designed to be placed inside the 
-    :py:class:`~PyQt6.QtWidgets.QStackedWidget` of :py:class:`.ExporterDialog`.
+    :py:class:`~PySide6.QtWidgets.QStackedWidget` of :py:class:`.ExporterDialog`.
     """
     def __init__(self, coordinator, parent=None) -> None:
         """
@@ -305,7 +305,7 @@ class ChapterSelector(QWidget):
         :param coordinator: The application coordinator to access the chapter repository.
         :type coordinator: :py:class:`~services.app_coordinator.AppCoordinator`
         :param parent: The parent Qt widget.
-        :type parent: :py:class:`~PyQt6.QtWidgets.QWidget` or None
+        :type parent: :py:class:`~PySide6.QtWidgets.QWidget` or None
         
         :rtype: None
         """
@@ -324,7 +324,7 @@ class ChapterSelector(QWidget):
     def load_data(self):
         """
         Fetches all chapter entries from the repository and populates the 
-        :py:class:`~PyQt6.QtWidgets.QListWidget` with their titles and sort order.
+        :py:class:`~PySide6.QtWidgets.QListWidget` with their titles and sort order.
         
         :rtype: None
         """

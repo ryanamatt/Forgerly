@@ -56,10 +56,10 @@ class AppCoordinator(QObject):
     @receiver(Events.DATA_LOADED)
     def set_state_tracking(self, data: dict) -> None:
         """
-        Docstring for set_state_tracking
+        Sets the current state of ID and EntityType.
         
-        :param self: Description
-        :param data: Description
+        :param data: The data needed to set the state variables containing
+            {'entity_type': EntityType, 'ID': int}
         :type data: dict
         """
         self.current_item_id = data.get('ID')
@@ -245,11 +245,13 @@ class AppCoordinator(QObject):
     @receiver(Events.GRAPH_NODE_VISIBILTY_CHANGED)
     def save_character_node_is_hidden(self, data: dict) -> None:
         """
-        Docstring for save_character_node_is_hidden
+        Saves the status of a change is_hidden attribute.
         
-        :param self: Description
-        :param data: Description
+        :param data: A dictionary of the data containing {'ID': int,
+            'is_hidden': bool}
         :type data: dict
+
+        :rtype: None
         """
         self.relationship_repo.update_node_is_hidden(char_id=data.get('ID'), is_hidden=data.get('is_hidden'))
 
@@ -395,9 +397,10 @@ class AppCoordinator(QObject):
     @receiver(Events.NEW_ITEM_REQUESTED)
     def _check_save_before_new_item(self, data: dict) -> None:
         """
-        Docstring for _check_save_before_new_item
+        Recieves NEW_ITEM_REQUESTED Event and emits PRE_ITEM_CHANGE
+        to ensure data is saved or not before creating the new item.
         
-        :param data: Description
+        :param data: The data needed.
         :type data: dict
 
         :rtype: None
@@ -486,9 +489,11 @@ class AppCoordinator(QObject):
     @receiver(Events.OUTLINE_SEARCH_REQUESTED)
     def _search_outline(self, data: dict) -> None:
         """
-        Docstring for _search_outline
+        Handles the OUTLINE_SEARCH_REQUESTED Event by gathering the data
+        from the search query and emitting the OUTLINE_SEARCH_RETURN event.
         
-        :param data: Description
+        :param data: The needed data containing {'entity_type': EntityType,
+            'query': str}
         :type data: dict
         """
         entity_type = data.get('entity_type', '')
@@ -519,10 +524,10 @@ class AppCoordinator(QObject):
     @receiver(Events.OUTLINE_PARENT_UPDATE)
     def update_outline_parent_id(self, data: dict) -> None:
         """
-        Docstring for update_outline_parent_id
+        Updates the parent ID of the outline item.
         
-        :param self: Description
-        :param data: Description
+        :param data: The data needed to update the new parent ID containing
+            {'entity_type': EntityType, 'ID': int, 'new_parent_id': int}
         :type data: dict
 
         :rtype: None
