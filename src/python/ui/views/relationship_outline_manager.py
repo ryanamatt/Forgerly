@@ -2,7 +2,7 @@
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
-    QPushButton, QMenu, QMessageBox, QDialog, QLabel, QTabWidget
+    QPushButton, QMenu, QMessageBox, QDialog, QLabel, QTabWidget, QFrame
 )
 from PySide6.QtCore import Qt, QPoint
 from PySide6.QtGui import QColor, QIcon
@@ -75,10 +75,21 @@ class RelationshipOutlineManager(QWidget):
         char_tab_layout.addWidget(char_tab_label)
         char_tab_layout.addWidget(self.char_list_widget)
 
-        # Main Layout
+        # 1. Create the Frame
+        self.container_frame = QFrame()
+        self.container_frame.setFrameShape(QFrame.StyledPanel)
+        self.container_frame.setFrameShadow(QFrame.Raised)
+
+        # 2. Put the tabs inside the frame's layout
+        frame_layout = QVBoxLayout(self.container_frame)
+        frame_layout.setContentsMargins(1, 1, 1, 1) # Control thickness of the "padding"
+        frame_layout.addWidget(self.tabs)
+
+        # 3. Add the frame to the main layout
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.addWidget(self.tabs)
+        main_layout.addWidget(self.container_frame)
+
 
         # --- Connections ---
         self.new_button.clicked.connect(self._create_new_type)
