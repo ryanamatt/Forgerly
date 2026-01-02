@@ -129,7 +129,7 @@ class SettingsDialog(QDialog):
         available_themes = get_available_themes()
         self.theme_combo.addItems(available_themes)
 
-        current_theme_name = self._new_settings.get('theme', 'Light')
+        current_theme_name = self._new_settings.get('theme', 'Blue')
         
         # Set the combo box to the current theme
         index = self.theme_combo.findText(current_theme_name)
@@ -212,7 +212,7 @@ class SettingsDialog(QDialog):
             self._new_settings = default_settings.copy()
             
             # 3. Update the UI controls
-            new_theme = default_settings.get('theme', 'Light')
+            new_theme = default_settings.get('theme', 'Blue')
             index = self.theme_combo.findText(new_theme)
             if index != -1:
                 self.theme_combo.setCurrentIndex(index)
