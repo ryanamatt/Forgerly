@@ -107,8 +107,7 @@ class RelationshipOutlineManager(QWidget):
         Each item is set with the name as text and its ID and color in the data roles.
 
         :param data: A dictionary of the needed data containg {entity_type: EntityType.RELATIONSHIP,
-            'relationship_types': dict or 'characters': dict
-        }
+            'relationship_types': dict or 'characters': dict}
         :type data: dict
         
         :rtype: None
