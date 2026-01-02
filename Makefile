@@ -1,49 +1,44 @@
+# --- Environment Detection ---
+# Detect OS to set appropriate file extensions and flags
+ifeq ($(OS),Windows_NT)
+    DETECTED_OS := Windows
+    LIB_EXT     := .dll
+    DLL_LINK_FLAGS := -Wl,--out-implib,$(SRC_DIR)/libnf_core.a
+    STATIC_FLAGS   := -static-libstdc++ -static-libgcc -static
+else
+    DETECTED_OS := $(shell uname -s)
+    LIB_EXT     := .so
+    DLL_LINK_FLAGS := 
+    # Static linking flags often differ or are unnecessary on Linux depending on the distro
+    STATIC_FLAGS   := -fPIC 
+endif
+
 # --- Variables ---
-
-# Compiler and Flags
 CXX         = g++
-CXXFLAGS    = -std=c++17 -Wall -Wextra -Wpedantic
+CXXFLAGS    = -std=c++17 -Wall -Wextra -Wpedantic $(STATIC_FLAGS)
 LDFLAGS     = -shared
-# Flags to statically link libstdc++ and libgcc
-STATIC_LIBS = -Isrc/c_lib -std=c++17     -Wl,--out-implib,src/c_lib/libnf_core.a     -static-libstdc++ -static-libgcc -static
-
-# Source and Output Paths
 SRC_DIR     = src/c_lib
-# List ALL C++ source files to be compiled into the single library
-SRC_FILES   = $(SRC_DIR)/text_stats/text_stats_engine.cpp \
-			  $(SRC_DIR)/graph_layout/graph_layout_engine.cpp \
-              $(SRC_DIR)/nf_c_api.cpp
-              
-# New, generic library names
-DLL_NAME    = nf_core_lib.dll
-IMPORT_LIB  = libnf_core.a
-OUTPUT_DLL  = $(SRC_DIR)/$(DLL_NAME)
-OUTPUT_LIB  = $(SRC_DIR)/$(IMPORT_LIB)
 
-# Include path for the header files. -I$(SRC_DIR) is crucial for finding 
-# both text_stats_engine.h and the spell_check/ headers.
+# Source Files
+SRC_FILES   = $(SRC_DIR)/text_stats/text_stats_engine.cpp \
+              $(SRC_DIR)/graph_layout/graph_layout_engine.cpp \
+              $(SRC_DIR)/nf_c_api.cpp
+
+# Output Naming
+LIB_NAME    = nf_core_lib$(LIB_EXT)
+OUTPUT_LIB  = $(SRC_DIR)/$(LIB_NAME)
 INCLUDES    = -I$(SRC_DIR)
 
-# Linker flags specific to creating a DLL and its import library
-DLL_LINK_FLAGS = -Wl,--out-implib,$(OUTPUT_LIB)
-
 # --- Targets ---
-
 .PHONY: all clean
 
-# Default target: builds the DLL and import library
-all: $(OUTPUT_DLL)
+all: $(OUTPUT_LIB)
 
-# Rule to compile ALL source files into the shared library (DLL)
-$(OUTPUT_DLL): $(SRC_FILES)
-	@echo "--- Building C Shared Library: $(DLL_NAME) ---"
-	$(CXX) $(LDFLAGS) -o $@ $^ $(INCLUDES) $(CXXFLAGS) $(DLL_LINK_FLAGS) $(STATIC_LIBS)
-	@echo "Successfully created: $(OUTPUT_DLL) and $(OUTPUT_LIB)"
+$(OUTPUT_LIB): $(SRC_FILES)
+	@echo "--- Building for $(DETECTED_OS): $(LIB_NAME) ---"
+	$(CXX) $(LDFLAGS) -o $@ $^ $(INCLUDES) $(CXXFLAGS) $(DLL_LINK_FLAGS)
+	@echo "Successfully created: $(OUTPUT_LIB)"
 
-# Clean up build artifacts
 clean:
-	@echo "--- Cleaning C Library build files ---"
-	# Check if files exist before trying to remove them to avoid errors
-	-rm -f $(OUTPUT_DLL) $(OUTPUT_LIB)
-	# Also remove the old build files just in case
-	-rm -f $(SRC_DIR)/text_stats_engine_lib.dll $(SRC_DIR)/libtext_stats_engine.a
+	@echo "--- Cleaning build files ---"
+	rm -f $(SRC_DIR)/*.dll $(SRC_DIR)/*.so $(SRC_DIR)/*.a $(SRC_DIR)/*.o
