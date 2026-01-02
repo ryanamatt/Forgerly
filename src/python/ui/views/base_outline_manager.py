@@ -18,24 +18,6 @@ class BaseOutlineManager(QWidget):
     Consolidates UI setup, search, and common tree interactions.
     """
 
-    # item_selected = Signal(int)
-    # """
-    # :py:class:`~PyQt6.QtCore.Signal` (int): Emitted when an item is 
-    # selected, carrying the item ID.
-    # """
-
-    # new_item_created = Signal()
-    # """
-    # :py:class:`~PyQt6.QtCore.Signal`: Emmited when a new item is created
-    # telling MainWindow to switch the view.
-    # """
-
-    # pre_item_change = Signal()
-    # """
-    # :py:class:`~PyQt6.QtCore.Signal` (): Emitted before a new item is 
-    # selected, allowing the main window to save the current item state.
-    # """
-
     def __init__(self, project_title: str, header_text: str, id_role: int,
                  search_placeholder: str = "Search...", is_nested_tree: bool = False,
                  type: EntityType = None, parent = None) -> None:
