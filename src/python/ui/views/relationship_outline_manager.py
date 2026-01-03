@@ -152,8 +152,10 @@ class RelationshipOutlineManager(QWidget):
 
         # Create a custom widget for the row
         row_widget = QWidget()
+        row_widget.setFixedHeight(36)
         layout = QHBoxLayout(row_widget)
-        layout.setContentsMargins(5, 2, 5, 2)
+        layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        layout.setContentsMargins(4, 4, 4, 4)
 
         # Label for Name
         name_label = QLabel(name)
@@ -162,6 +164,13 @@ class RelationshipOutlineManager(QWidget):
         # Toggle Visibility Button
         toggle_btn = QPushButton()
         toggle_btn.setFixedSize(24, 24)
+        toggle_btn.setStyleSheet("""
+            QPushButton {
+                background: transparent; 
+                padding: 0px; 
+                margin: 0px;
+            }
+        """)
         toggle_btn.setIcon(QIcon(":icons/visible-on.svg"))
 
         toggle_btn.clicked.connect(lambda checked=False, i=item, b=toggle_btn: self._toggle_visibility(i, b))
@@ -194,13 +203,21 @@ class RelationshipOutlineManager(QWidget):
         item.setData(Qt.ItemDataRole.UserRole + 2, is_visible) # Default visible
 
         row_widget = QWidget()
+        row_widget.setFixedHeight(36)
         layout = QHBoxLayout(row_widget)
-        layout.setContentsMargins(5, 2, 5, 2)
+        layout.setContentsMargins(4, 4, 4, 4)
 
         name_label = QLabel(name)
         
         toggle_btn = QPushButton()
         toggle_btn.setFixedSize(24, 24)
+        toggle_btn.setStyleSheet("""
+            QPushButton {
+                background: transparent; 
+                padding: 0px; 
+                margin: 0px;
+            }
+        """)
         icon_path = ":icons/visible-on" if is_visible else ":icons/visible-off"
         toggle_btn.setIcon(QIcon(icon_path))
         
