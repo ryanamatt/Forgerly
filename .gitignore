@@ -12,4 +12,5 @@ src/python/resources_rc.pyclear
 *.obj
 *.a
 *.dll
+*.so
 *.exe

@@ -164,6 +164,7 @@ QTreeWidget, QTreeView {
     selection-background-color: #005080; /* Will be overridden by accent */
     selection-color: #ffffff;
     show-decoration-selected: 1;
+    outline: none;
 }
 
 QTreeWidget::item, QTreeView::item {
@@ -192,10 +193,12 @@ QTableWidget, QListWidget {
     border: 1px solid #555555;
     selection-background-color: #005080; /* Will be overridden by accent */
     selection-color: #ffffff;
+    outline: none;
 }
 
 QTableWidget::item, QListWidget::item {
     padding: 3px;
+    min-height: 32px;
 }
 
 QTableWidget::item:hover, QListWidget::item:hover {
