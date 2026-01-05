@@ -82,6 +82,9 @@ class Events(str, Enum):
     
     # Export Events
     EXPORT_REQUESTED = "export.requested"
+    EXPORT_PERFORM = "export.perform"
+    EXPORT_DATA_REQUESTED = "export.data_requested"
+    EXPORT_DATA_RETURN = "export.data_return"
     
     # Settings Events
     SETTINGS_REQUESTED = "settings.requested"

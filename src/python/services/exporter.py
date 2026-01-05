@@ -12,7 +12,7 @@ class Exporter(ABC):
     will implement the core logic for selecting a file destination, fetching content, 
     and writing that content to a file in a specific format (e.g., DOCX, Markdown).
     """
-    def __init__(self, coordinator: AppCoordinator, project_title: str) -> None:
+    def __init__(self, coordinator: AppCoordinator = None, project_title: str = "Project Title") -> None:
         """
         Initializes the base exporter.
 

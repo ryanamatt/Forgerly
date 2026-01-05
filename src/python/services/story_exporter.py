@@ -4,12 +4,13 @@ from ebooklib import epub
 from xhtml2pdf import pisa
 import json
 import yaml
-
 from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
 from PySide6.QtGui import QTextDocument
 
 from ..services.exporter import Exporter
-from ..utils.constants import FileFormats, generate_file_filter
+from ..utils.constants import FileFormats, generate_file_filter, ExportType
+from ..utils.events import Events
+from ..utils.event_bus import bus, receiver
 
 from typing import TextIO
 from ..services.app_coordinator import AppCoordinator
@@ -22,7 +23,7 @@ class StoryExporter(Exporter):
     It is a concrete implementation of :py:class:`~app.services.exporter.Exporter` 
     and supports exporting to multiple formats including html, md, txt, epub, PDF, JSON, and YAML.
     """
-    def __init__(self, coordinator: AppCoordinator, project_title: str) -> None:
+    def __init__(self, project_title: str) -> None:
         """
         Initializes the :py:class:`.StoryExporter`.
 
@@ -33,14 +34,13 @@ class StoryExporter(Exporter):
         
         :rtype: None
         """
-        super().__init__(coordinator=coordinator, project_title=project_title)
+        super().__init__(project_title=project_title)
+
+        bus.register_instance(self)
 
     def export(self, parent: QWidget, selected_ids: list[int] = []) -> bool:
         """
-        The main public method to initiate the story export process.
-        
-        It guides the user through selecting a file path and format, fetches the 
-        chapter data, and calls the private file writing method.
+        Publishes the event to get the export data.
 
         :param parent: The parent Qt widget, used for modal dialogs like :py:class:`~PySide6.QtWidgets.QFileDialog`.
         :type parent: :py:class:`~PySide6.QtWidgets.QWidget`
@@ -50,8 +50,29 @@ class StoryExporter(Exporter):
         :returns: True if the export was successful, False otherwise.
         :rtype: bool
         """
+        bus.publish(Events.EXPORT_DATA_REQUESTED, data={
+            'parent': parent, 'export_type': ExportType.CHAPTERS, 'selected_ids': selected_ids
+        })
+
+    @receiver(Events.EXPORT_DATA_RETURN)
+    def _perform_export(self, data: dict) -> None:
+        """
+        Performs the Actual Export with the returniong export data.
         
-        # 1. Prompt user for file path and format
+        :param data: The needed export data including {'export_type': ExportType.CHAPTERS,
+            'parent': parent widget, 'chapters' list of all chapters to export}
+        :type data: dict
+        :rtype: None
+        """
+        if data.get('export_type') != ExportType.CHAPTERS:
+            return
+        
+        parent = data.get('parent', self)
+        chapters_data = data.get('chapters')
+
+        if not chapters_data or not parent:
+            return
+
         file_filter = generate_file_filter(FileFormats.ALL)
         file_path, selected_filter = QFileDialog.getSaveFileName(
             parent, "Export Story", "Story.html", file_filter
@@ -60,33 +81,18 @@ class StoryExporter(Exporter):
         if not file_path:
             return False
 
-        # Determine the export format
-        if 'html' in selected_filter.lower():
-            file_format = "html"
-        elif 'md' in selected_filter.lower():
-            file_format = "markdown"
-        elif 'txt' in selected_filter.lower():
-            file_format = 'txt'
-        elif 'epub' in selected_filter.lower():
-            file_format = 'epub'
-        elif 'pdf' in selected_filter.lower():
-            file_format = 'pdf'
-        elif 'json' in selected_filter.lower():
-            file_format = 'json'
-        elif 'yaml' in selected_filter.lower():
-            file_format = 'yaml'
-        else: # Default is html
-            file_format = "html"
+        match selected_filter.lower():
+            case 'html': file_format = 'html'
+            case 'txt': file_format = 'txt'
+            case 'epub': file_format = 'epub'
+            case 'pdf': file_format = 'pdf'
+            case 'json': file_format = 'json'
+            case 'yaml': file_format = 'yaml'
+            case _: file_format = 'html'
 
-        try:
-            # 2. Fetch all required data from the coordinator
-            if selected_ids:
-                all_chapters_data = self.coordinator.get_chapter_data_for_export(chapter_ids=selected_ids)
-            else:
-                all_chapters_data = self.coordinator.get_chapter_data_for_export()
-            
-            # 3. Write content to file
-            self._write_file(file_path, file_format, all_chapters_data, parent)
+        try:            
+            # Write content to file
+            self._write_file(file_path, file_format, chapters_data, parent)
 
             # Success message is handled by MainWindow/calling context
             return True

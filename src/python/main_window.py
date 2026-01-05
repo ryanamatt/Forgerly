@@ -17,13 +17,11 @@ from .ui.dialogs.project_stats_dialog import ProjectStatsDialog
 
 from .services.settings_manager import SettingsManager
 from .services.app_coordinator import AppCoordinator
-from .services.story_exporter import StoryExporter
-from .services.character_exporter import CharacterExporter
-from .services.lore_exporter import LoreExporter
+from .services.export_service import ExportService
 
 from .utils._version import __version__
 from .utils.theme_utils import apply_theme
-from .utils.constants import ViewType, ExportType, EntityType
+from .utils.constants import ViewType, EntityType
 from .utils.events import Events
 from .utils.event_bus import bus, receiver
 from .utils.logger import get_logger
@@ -103,10 +101,7 @@ class MainWindow(QMainWindow):
         self.coordinator = AppCoordinator(self.db_connector)
         logger.debug("AppCoordinator initialized.")
 
-        self.story_exporter = StoryExporter(self.coordinator, self.project_title)
-        self.character_exporter = CharacterExporter(self.coordinator, self.project_title)
-        self.lore_exporter = LoreExporter(self.coordinator, self.project_title)
-        logger.debug("Exporters initialized.")
+        self.export_service = ExportService(coordinator=self.coordinator, project_title=self.project_title)
 
         # --- Settings and Theme Management ---
         self.settings_manager = settings_manager
@@ -277,9 +272,6 @@ class MainWindow(QMainWindow):
     def _export(self, data: dict = None) -> None:
         """
         Opens the :py:class:`~app.ui.dialogs.ExporterDialog`. 
-        
-        If accepted, it delegates the export logic to the appropriate exporter 
-        class (:py:class:`~app.services.story_exporter.StoryExporter`, etc.).
 
         :param data: Data dictionary, Empty as function doesn't need it.
         :type data: dict
@@ -288,7 +280,6 @@ class MainWindow(QMainWindow):
         """
         logger.info("Export process initiated.")
         
-        # 1. Check for unsaved changes before exporting. 
         # If check_and_save_dirty returns False, the user canceled the operation.
         if not self.save_helper():
             logger.info("Export canceled by user during unsaved changes check.")
@@ -297,101 +288,12 @@ class MainWindow(QMainWindow):
 
         logger.debug("All data is saved or discarded. Proceeding to ExporterDialog.")
             
-        # 2. Open the new ExporterDialog
+        # Open the ExporterDialog
         try:
             dialog = ExporterDialog(coordinator=self.coordinator, parent=self)
-            
-            # Connect the signal from the dialog to a slot in the main window.
-            # This slot (e.g., `_perform_export`) will execute the export logic 
-            # when the user clicks 'Export' and the dialog closes with QDialog.Accepted.
-            dialog.export_requested.connect(self._perform_export)
-
-            # Execute the dialog modally. Control flow blocks until the user closes the dialog.
             dialog.exec()
-            # The result (accepted/rejected) is handled by the connected signal and its slot.
-
         except Exception as e:
-            # Catch critical errors during dialog creation or execution
-            logger.critical("FATAL UI Error: Failed to open or run ExporterDialog.", exc_info=True)
-            
-            # Notify the user that the setup failed
-            QMessageBox.critical(
-                self, 
-                "Export Setup Error", 
-                "The export dialogue failed to open due to an internal application error. Check the \
-                    application log for details."
-            )
-        
-    def _perform_export(self, export_type: str, selected_ids: list) -> None:
-        """
-        Delegates the export task based on the type selected in the dialog.
-        
-        :param export_type: The type of content to export (e.g., 'Story (All Chapters)').
-        :type export_type: str
-        :param selected_ids: A list of integer IDs for selected items (empty for full story).
-        :type selected_ids: int
-
-        :rtype: int
-        """
-        logger.info(f"Export delegation started: Type='{export_type}', Items selected: {len(selected_ids)}.")
-        success = False
-
-        try:
-            match export_type:
-                case ExportType.STORY | ExportType.CHAPTERS:
-                    if export_type == ExportType.STORY:
-                        logger.debug("Initiating full story export via StoryExporter.")
-                        success = self.story_exporter.export(parent=self)
-
-                    else:  # ExportType.CHAPTERS
-                        if selected_ids:
-                            logger.debug(f"Initiating chapter export for IDs: {selected_ids}.")
-                            success = self.story_exporter.export(parent=self, selected_ids=selected_ids)
-
-                        else:
-                            logger.warning("Chapter export requested, but no chapters were selected.")
-                            QMessageBox.warning(self, "Export Error", "No chapters were selected for export.")
-
-                case ExportType.LORE:
-                    if selected_ids:
-                        logger.debug(f"Initiating lore export for IDs: {selected_ids}.")
-                        success = self.lore_exporter.export(parent=self, selected_ids=selected_ids)
-
-                    else:
-                        logger.warning("Lore export requested, but no entries were selected.")
-                        QMessageBox.warning(self, "Export Error", "No Lore Entries were selected for export.")
-
-                case ExportType.CHARACTERS:
-                    if selected_ids:
-                        logger.debug(f"Initiating character export for IDs: {selected_ids}.")
-                        success = self.character_exporter.export(parent=self, selected_ids=selected_ids)
-
-                    else:
-                        logger.warning("Character export requested, but no characters were selected.")
-                        QMessageBox.warning(self, "Export Error", "No Characters were selected for export.")
-
-                case _:
-                    logger.error(f"Unknown export type received: {export_type}")
-                    QMessageBox.critical(self, "Export Error", f"Unknown export type: {export_type}")
-                    
-        except Exception as e:
-            # Catch unexpected errors during the exporter service execution (e.g., I/O, database failure)
-            logger.critical(f"CRITICAL ERROR during export of type '{export_type}'.", exc_info=True)
-            QMessageBox.critical(
-                self, 
-                "Export Failed", 
-                f"A critical error occurred while exporting '{export_type}'. Check the application log for details."
-            )
-            success = False # Ensure failure state
-
-        # Report final status to the user
-        if success is True:
-            logger.info(f"Export of type '{export_type}' completed successfully.")
-            self.statusBar().showMessage(f"{export_type} exported successfully.", 5000)
-        elif success is False:
-            # If success is False, it was either due to a critical error (already shown to user) 
-            # or a benign cancellation (e.g., closing the file dialog) or a handled error (shown as QMessageBox).
-            logger.debug(f"Export of '{export_type}' was canceled or failed gracefully.")
+            logger.critical("Failed to open ExporterDialog", exc_info=True)
 
     @receiver(Events.SETTINGS_REQUESTED)
     def _open_settings_dialog(self, data: dict = None) -> None:

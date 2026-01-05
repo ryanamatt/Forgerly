@@ -14,6 +14,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal
 
 from ...utils.constants import ExportType
+from ...utils.event_bus import bus
+from ...utils.events import Events
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -48,6 +50,8 @@ class ExporterDialog(QDialog):
         :rtype: None
         """
         super().__init__(parent)
+
+        bus.register_instance(self)
 
         self.coordinator = coordinator # Store coordinator reference
         
@@ -180,8 +184,12 @@ class ExporterDialog(QDialog):
                                 f"export under the '{self.selected_export_type}' category.")
             return # Stop acceptance process
 
-        # 3. Emit the signal for the MainWindow/Coordinator to handle
-        self.export_requested.emit(self.selected_export_type, self.selected_item_ids)
+        # self.export_requested.emit(self.selected_export_type, self.selected_item_ids)
+        bus.publish(Events.EXPORT_PERFORM, data={
+            'export_type': self.selected_export_type, 'selected_ids': self.selected_item_ids,
+            'parent': self.parent()
+        })
+        
         super().accept()
 
     def get_export_details(self) -> tuple[str, list]:
