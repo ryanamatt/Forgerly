@@ -744,41 +744,41 @@ class AppCoordinator(QObject):
 
     # --- Export Logic Helper (For use by the new Exporter classes) ---
     
-    def get_chapter_data_for_export(self, chapter_ids: list[int] = []) -> list[int]:
-        """
-        Fetches all chapter data required for a full or partial story export.
+    # def get_chapter_data_for_export(self, chapter_ids: list[int] = []) -> list[int]:
+    #     """
+    #     Fetches all chapter data required for a full or partial story export.
         
-        :param chapter_ids: A list of chapter IDs to fetch. If empty, all chapters are fetched.
-        :type chapter_ids: list[int]
+    #     :param chapter_ids: A list of chapter IDs to fetch. If empty, all chapters are fetched.
+    #     :type chapter_ids: list[int]
         
-        :returns: A list of dictionaries, where each dictionary contains all data for a chapter.
-        :rtype: list[:py:obj:`Any`]
-        """
-        return self.chapter_repo.get_all_chapters_for_export(chapter_ids)
+    #     :returns: A list of dictionaries, where each dictionary contains all data for a chapter.
+    #     :rtype: list[:py:obj:`Any`]
+    #     """
+    #     return self.chapter_repo.get_all_chapters_for_export(chapter_ids)
     
-    def get_character_data_for_export(self, character_ids: list[int] = []) -> list[int]:
-        """
-        Fetches all character data required for all or some characters export.
+    # def get_character_data_for_export(self, character_ids: list[int] = []) -> list[int]:
+    #     """
+    #     Fetches all character data required for all or some characters export.
         
-        :param character_ids: A list of character IDs to fetch. If empty, all characters are fetched.
-        :type character_ids: list[int]
+    #     :param character_ids: A list of character IDs to fetch. If empty, all characters are fetched.
+    #     :type character_ids: list[int]
         
-        :returns: A list of dictionaries, where each dictionary contains all data for a character.
-        :rtype: list[:py:obj:`Any`]
-        """
-        return self.character_repo.get_all_characters_for_export(character_ids)
+    #     :returns: A list of dictionaries, where each dictionary contains all data for a character.
+    #     :rtype: list[:py:obj:`Any`]
+    #     """
+    #     return self.character_repo.get_all_characters_for_export(character_ids)
     
-    def get_lore_data_for_export(self, lore_ids: list[int] = []) -> list[int]:
-        """
-        Fetches all lore entry data required for all or some Lore_Entries export.
+    # def get_lore_data_for_export(self, lore_ids: list[int] = []) -> list[int]:
+    #     """
+    #     Fetches all lore entry data required for all or some Lore_Entries export.
         
-        :param lore_ids: A list of lore IDs to fetch. If empty, all lore entries are fetched.
-        :type lore_ids: list[int]
+    #     :param lore_ids: A list of lore IDs to fetch. If empty, all lore entries are fetched.
+    #     :type lore_ids: list[int]
         
-        :returns: A list of dictionaries, where each dictionary contains all data for a lore entry.
-        :rtype: list[:py:obj:`Any`]
-        """
-        return self.lore_repo.get_lore_entries_for_export(lore_ids)
+    #     :returns: A list of dictionaries, where each dictionary contains all data for a lore entry.
+    #     :rtype: list[:py:obj:`Any`]
+    #     """
+    #     return self.lore_repo.get_lore_entries_for_export(lore_ids)
     
     @receiver(Events.EXPORT_DATA_REQUESTED)
     def get_data_for_export(self, data: dict) -> None:
@@ -806,6 +806,32 @@ class AppCoordinator(QObject):
         data.update({results_name: return_data})
         
         bus.publish(Events.EXPORT_DATA_RETURN, data=data)
+
+    @receiver(Events.EXPORT_LIST_REQUESTED)
+    def get_export_list(self, data: dict) -> None:
+        """
+        Docstring for get_export_list
+        
+        :param data: Description
+        :type data: dict
+        :rtype: None
+        """
+        export_type = data.get('export_type')
+
+        match export_type:
+            case ExportType.CHAPTERS:
+                return_data = self.chapter_repo.get_all_chapters()
+                results_name = 'chapters'
+            case ExportType.LORE:
+                return_data = self.lore_repo.get_all_lore_entries()
+                results_name = 'lore_entries'
+            case ExportType.CHARACTERS:
+                return_data = self.character_repo.get_all_characters()
+                results_name = 'characters'
+
+        bus.publish(Events.EXPORT_LIST_RETURN, data = {
+            'export_type': export_type, results_name: return_data
+        })
     
     # -----------------------------------
     # Entity Lookup Methods
@@ -853,7 +879,6 @@ class AppCoordinator(QObject):
             
         return
             
-    
     # --- Project Stats ---
     
     def get_project_stats(self, wpm: int) -> dict[str, str]:

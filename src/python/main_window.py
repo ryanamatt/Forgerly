@@ -290,7 +290,7 @@ class MainWindow(QMainWindow):
             
         # Open the ExporterDialog
         try:
-            dialog = ExporterDialog(coordinator=self.coordinator, parent=self)
+            dialog = ExporterDialog(parent=self)
             dialog.exec()
         except Exception as e:
             logger.critical("Failed to open ExporterDialog", exc_info=True)
