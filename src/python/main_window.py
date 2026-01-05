@@ -141,7 +141,7 @@ class MainWindow(QMainWindow):
         """
         Overrides the standard window close event.
 
-        Checks with the :py:class:`.AppCoordinator` if there are unsaved changes. 
+        Checks if there are unsaved changes. 
         If so, it prompts the user to save, discard, or cancel the exit.
         
         :param event: The QCloseEvent object.
@@ -175,15 +175,6 @@ class MainWindow(QMainWindow):
             logger.error(f"Failed to save application settings during close. Proceeding with shutdown. \
                          Error: {e}", exc_info=True)
 
-
-        # Close the database connection
-        # if self.db_connector:
-        #     try:
-        #         self.db_connector.close()
-        #         logger.info("Project database connection closed.")
-        #     except Exception as e:
-        #         # Log the error but continue to allow the window to close
-        #         logger.error(f"Error closing database connection: {e}", exc_info=True)
         bus.publish(Events.APP_SHUTDOWN_INITIATED)
 
         # Accept the close event

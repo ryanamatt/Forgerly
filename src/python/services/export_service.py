@@ -20,7 +20,7 @@ class ExportService:
     """
     def __init__(self, project_title: str) -> None:
         """
-        Docstring for __init__
+        Initliazies the ExportService.
         
         :param project_title: The Title of the project.
         :type: project_title: str

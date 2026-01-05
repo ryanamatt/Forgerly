@@ -742,51 +742,16 @@ class AppCoordinator(QObject):
             })
         return {'nodes': nodes, 'edges': edges}
 
-    # --- Export Logic Helper (For use by the new Exporter classes) ---
-    
-    # def get_chapter_data_for_export(self, chapter_ids: list[int] = []) -> list[int]:
-    #     """
-    #     Fetches all chapter data required for a full or partial story export.
-        
-    #     :param chapter_ids: A list of chapter IDs to fetch. If empty, all chapters are fetched.
-    #     :type chapter_ids: list[int]
-        
-    #     :returns: A list of dictionaries, where each dictionary contains all data for a chapter.
-    #     :rtype: list[:py:obj:`Any`]
-    #     """
-    #     return self.chapter_repo.get_all_chapters_for_export(chapter_ids)
-    
-    # def get_character_data_for_export(self, character_ids: list[int] = []) -> list[int]:
-    #     """
-    #     Fetches all character data required for all or some characters export.
-        
-    #     :param character_ids: A list of character IDs to fetch. If empty, all characters are fetched.
-    #     :type character_ids: list[int]
-        
-    #     :returns: A list of dictionaries, where each dictionary contains all data for a character.
-    #     :rtype: list[:py:obj:`Any`]
-    #     """
-    #     return self.character_repo.get_all_characters_for_export(character_ids)
-    
-    # def get_lore_data_for_export(self, lore_ids: list[int] = []) -> list[int]:
-    #     """
-    #     Fetches all lore entry data required for all or some Lore_Entries export.
-        
-    #     :param lore_ids: A list of lore IDs to fetch. If empty, all lore entries are fetched.
-    #     :type lore_ids: list[int]
-        
-    #     :returns: A list of dictionaries, where each dictionary contains all data for a lore entry.
-    #     :rtype: list[:py:obj:`Any`]
-    #     """
-    #     return self.lore_repo.get_lore_entries_for_export(lore_ids)
+    # --- Export Logic ---
+
     
     @receiver(Events.EXPORT_DATA_REQUESTED)
     def get_data_for_export(self, data: dict) -> None:
         """
-        Docstring for get_data_for_export
+        Gets all the Data for the export and emits the EXPORT_DATA_RETURN event with the
+            export data.
         
-        :param self: Description
-        :param data: Description
+        :param data: The data needed containg {'export_type: ExportType, selected_ids: list[int]}
         :type data: dict
         """
         export_type = data.get('export_type')
@@ -810,9 +775,9 @@ class AppCoordinator(QObject):
     @receiver(Events.EXPORT_LIST_REQUESTED)
     def get_export_list(self, data: dict) -> None:
         """
-        Docstring for get_export_list
+        Get's the exports needed to list what to export.
         
-        :param data: Description
+        :param data: The data needed containing {'entity_type': EntityType}
         :type data: dict
         :rtype: None
         """
