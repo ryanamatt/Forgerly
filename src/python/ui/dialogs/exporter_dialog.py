@@ -31,13 +31,6 @@ class ExporterDialog(QDialog):
     selection widgets.
     """
 
-    export_requested = Signal(str, list) # (export_type, selected_ids)
-    """
-    :py:class:`~PySide6.QtCore.Signal` (str, list): Emitted when the user confirms 
-    the export. Carries the selected export type (str) and a list of selected 
-    item IDs (list[int]).
-    """
-
     def __init__(self, coordinator: 'AppCoordinator', parent=None) -> None:
         """
         Initializes the :py:class:`.ExporterDialog`.
@@ -158,7 +151,7 @@ class ExporterDialog(QDialog):
 
     def accept(self) -> None:
         """
-        Override to retrieve selected IDs and emit the export_requested signal before closing.
+        Override to retrieve selected IDs before closing.
         Handles the Accpetance of the 'Ok' button.
         
         :rtype: None
@@ -184,12 +177,11 @@ class ExporterDialog(QDialog):
                                 f"export under the '{self.selected_export_type}' category.")
             return # Stop acceptance process
 
-        # self.export_requested.emit(self.selected_export_type, self.selected_item_ids)
         bus.publish(Events.EXPORT_PERFORM, data={
             'export_type': self.selected_export_type, 'selected_ids': self.selected_item_ids,
             'parent': self.parent()
         })
-        
+
         super().accept()
 
     def get_export_details(self) -> tuple[str, list]:

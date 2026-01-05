@@ -101,7 +101,7 @@ class MainWindow(QMainWindow):
         self.coordinator = AppCoordinator(self.db_connector)
         logger.debug("AppCoordinator initialized.")
 
-        self.export_service = ExportService(coordinator=self.coordinator, project_title=self.project_title)
+        self.export_service = ExportService(project_title=self.project_title)
 
         # --- Settings and Theme Management ---
         self.settings_manager = settings_manager

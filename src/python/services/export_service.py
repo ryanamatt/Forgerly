@@ -18,18 +18,16 @@ class ExportService:
     """
     A service to help export the user wanted stuff.
     """
-    def __init__(self, coordinator, project_title: str) -> None:
+    def __init__(self, project_title: str) -> None:
         """
         Docstring for __init__
         
-        :param coordinator: Description
         :param project_title: The Title of the project.
         :type: project_title: str
         :rtype: None
         """
         bus.register_instance(self)
 
-        self.coordinator = coordinator
         self.project_title = project_title
         
         # Initialize the concrete exporters
