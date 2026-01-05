@@ -96,21 +96,7 @@ class MainWindow(QMainWindow):
         # Flag to prevent geometry saving during initialization
         self._is_ready_to_save_geometry = False
         
-        # Initialize DB Connector
         self.db_connector = db_connector
-        try:
-            if self.db_connector.connect():
-                self.db_connector.initialize_schema() 
-                logger.info(f"Project database setup verified for: {self.project_title}.db.")
-            else:
-                # If connect() fails, raise a specific error to halt execution
-                raise ConfigurationError(f"Database connection failed for project: {self.project_title}")
-        except Exception as e:
-            logger.critical(f"FATAL: Failed to connect or initialize database schema at "
-                            f"{self.db_connector.db_path}.", exc_info=True)
-            # Assuming ConfigurationError is a suitable application-level error wrapper
-            raise ConfigurationError("A critical error occurred while setting up the project \
-                                     database. See log for details.") from e
 
         # --- Initialize Coordinator & Repositories ---
         # Coordinator now manages all repositories and business logic
