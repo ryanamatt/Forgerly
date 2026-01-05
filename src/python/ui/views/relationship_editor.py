@@ -462,6 +462,17 @@ class RelationshipEditor(QWidget):
         if not self.nodes:
             return
         
+        reply = QMessageBox.question(
+            self,
+            "Confirm Auto Layout",
+            "Auto Layout will rearrange all unlocked nodes. This cannot be undone.\n\nContinue?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No  # Default to No for safety
+        )
+
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        
         # 1. Prepare NodeInput data for C++
         nodes_input = []
         for node_id, node in self.nodes.items():
