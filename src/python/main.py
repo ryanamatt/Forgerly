@@ -8,9 +8,12 @@ from .db_connector import DBConnector
 from .main_window import MainWindow
 from .start_menu_window import StartMenuWindow
 from .utils.logger import setup_logger, get_logger
+from .utils.exceptions import ConfigurationError
 from .utils.error_handler import install_system_exception_hook
 from .utils.events import Events
 from .utils.event_bus import bus, receiver
+
+logger = get_logger(__name__)
 
 class ApplicationFlowManager:
     """
@@ -111,17 +114,28 @@ class ApplicationFlowManager:
 
         project_config['project_path'] = project_path
         project_config['db_file_path'] = db_file_path
+
+        project_title = project_config.get('project_name')
         
-        # --- DBConnector Logic ---
-        # Instantiate and connect the DBConnector for the new project
-        db_connector = DBConnector(db_path=project_config['db_file_path']) 
-        db_connector.connect() # Assuming DBConnector has a connect method
+        # --- DBConnector Logic Initialization---
+        self.db_connector = DBConnector(db_path=project_config['db_file_path']) 
+        try:
+            if self.db_connector.connect():
+                self.db_connector.initialize_schema() 
+                logger.info(f"Project database setup verified for: {project_title}.db.")
+            else:
+                raise ConfigurationError(f"Database connection failed for project: {project_title}")
+        except Exception as e:
+            logger.critical(f"FATAL: Failed to connect or initialize database schema at "
+                            f"{self.db_connector.db_path}.", exc_info=True)
+            raise ConfigurationError("A critical error occurred while setting up the project \
+                                     database. See log for details.") from e
 
         # Initialize and show the Main Window
         self.main_window = MainWindow(
             project_settings=project_config,
             settings_manager=self.settings_manager,
-            db_connector=db_connector
+            db_connector=self.db_connector
         )
 
         self.main_window.show()
@@ -153,6 +167,19 @@ class ApplicationFlowManager:
         if self.main_window and not self.main_window.save_helper():
             return
         self.show_start_menu(is_new_project=False)
+
+    @receiver(Events.APP_SHUTDOWN_INITIATED)
+    def cleanup_resources(self, data: dict = None) -> None:
+        """
+        Closes the database connection when the app shuts down.
+        
+        :param data: Emtpty dict. Needed for Event Bus
+        :type data: dict
+        :rtype: None
+        """
+        if hasattr(self, 'db_connector') and self.db_connector:
+            self.db_connector.close()
+            logger.info("Database connection closed by Flow Manager.")
 
 def main() -> None:
     """
