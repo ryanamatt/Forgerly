@@ -37,7 +37,7 @@ class ExportService:
         self.exporters = {
             ExportType.STORY: story_exporter,
             ExportType.CHAPTERS: story_exporter,
-            ExportType.CHARACTERS: CharacterExporter(coordinator, project_title),
+            ExportType.CHARACTERS: CharacterExporter(project_title),
             ExportType.LORE: LoreExporter(coordinator, project_title)
         }
 

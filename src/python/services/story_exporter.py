@@ -4,6 +4,7 @@ from ebooklib import epub
 from xhtml2pdf import pisa
 import json
 import yaml
+from typing import TextIO
 from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
 from PySide6.QtGui import QTextDocument
 
@@ -11,9 +12,6 @@ from ..services.exporter import Exporter
 from ..utils.constants import FileFormats, generate_file_filter, ExportType
 from ..utils.events import Events
 from ..utils.event_bus import bus, receiver
-
-from typing import TextIO
-from ..services.app_coordinator import AppCoordinator
 
 class StoryExporter(Exporter):
     """
@@ -57,7 +55,7 @@ class StoryExporter(Exporter):
     @receiver(Events.EXPORT_DATA_RETURN)
     def _perform_export(self, data: dict) -> None:
         """
-        Performs the Actual Export with the returniong export data.
+        Performs the Actual Export with the returning export data.
         
         :param data: The needed export data including {'export_type': ExportType.CHAPTERS,
             'parent': parent widget, 'chapters' list of all chapters to export}
@@ -83,6 +81,7 @@ class StoryExporter(Exporter):
 
         match selected_filter.lower():
             case 'html': file_format = 'html'
+            case 'md': file_format = 'markdown'
             case 'txt': file_format = 'txt'
             case 'epub': file_format = 'epub'
             case 'pdf': file_format = 'pdf'

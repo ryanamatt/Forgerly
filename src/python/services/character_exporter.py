@@ -3,15 +3,14 @@
 from xhtml2pdf import pisa
 import json
 import yaml
-
+from typing import TextIO
 from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
 from PySide6.QtGui import QTextDocument
 
 from ..services.exporter import Exporter
-from ..utils.constants import FileFormats, generate_file_filter
-
-from typing import TextIO
-from ..services.app_coordinator import AppCoordinator
+from ..utils.constants import FileFormats, generate_file_filter, ExportType
+from ..utils.events import Events
+from ..utils.event_bus import bus, receiver
 
 class CharacterExporter(Exporter):
     """
@@ -21,25 +20,22 @@ class CharacterExporter(Exporter):
     It is a concrete implementation of :py:class:`~app.services.exporter.Exporter` 
     and supports exporting to multiple formats including html, md, txt, PDF, JSON, and YAML.
     """
-    def __init__(self, coordinator: AppCoordinator, project_title: str) -> None:
+    def __init__(self, project_title: str) -> None:
         """
         Initializes the :py:class:`.CharacterExporter`.
 
-        :param coordinator: The application coordinator, used to access the character repository.
-        :type coordinator: :py:class:`~app.services.app_coordinator.AppCoordinator`
         :param project_title: The current project's title, used for file naming and document metadata.
         :type project_title: str
         
         :rtype: None
         """
-        super().__init__(coordinator=coordinator, project_title=project_title)
+        super().__init__(project_title=project_title)
+
+        bus.register_instance(self)
 
     def export(self, parent: QWidget, selected_ids: list[int] = []) -> bool:
         """
-        The main public method to initiate the character export process.
-        
-        It guides the user through selecting a file path and format, fetches the 
-        character data, and calls the private file writing method.
+        Publishes the event to get the export data.
 
         :param parent: The parent Qt widget, used for modal dialogs like :py:class:`~PySide6.QtWidgets.QFileDialog`.
         :type parent: :py:class:`~PySide6.QtWidgets.QWidget`
@@ -49,49 +45,57 @@ class CharacterExporter(Exporter):
         :returns: True if the export was successful, False otherwise.
         :rtype: bool
         """
+        bus.publish(Events.EXPORT_DATA_REQUESTED, data={
+            'parent': parent, 'export_type': ExportType.CHARACTERS, 'selected_ids': selected_ids
+        })
+
+    @receiver(Events.EXPORT_DATA_RETURN)
+    def _perform_export(self, data: dict) -> None:
+        """
+        Performs the Actual Export with the returning export data.
         
-        # 1. Prompt user for file path and format
-        formats = FileFormats.ALL
-        formats.remove(FileFormats.EPUB)
-        file_filter = generate_file_filter(formats)
+        :param data: The needed export data including {'export_type': ExportType.CHARACTERS,
+            'parent': parent widget, 'characters' list of all characters to export}
+        :type data: dict
+        :rtype: None
+        """
+        if data.get('export_type') != ExportType.CHARACTERS:
+            return
+        
+        parent = data.get('parent', self)
+        char_data = data.get('characters')
+
+        if not char_data or not parent:
+            return
+
+        file_formats = FileFormats.ALL
+        file_formats.remove(FileFormats.EPUB)
+        file_filter = generate_file_filter(file_formats)
         file_path, selected_filter = QFileDialog.getSaveFileName(
-            parent, "Export Characters", "Characters.html", file_filter
+            parent, "Export Character(s)", "Character.html", file_filter
         )
         
         if not file_path:
             return False
 
-        # Determine the export format
-        if 'html' in selected_filter.lower():
-            file_format = "html"
-        elif 'md' in selected_filter.lower():
-            file_format = "markdown"
-        elif 'txt' in selected_filter.lower():
-            file_format = 'txt'
-        elif 'pdf' in selected_filter.lower():
-            file_format = 'pdf'
-        elif 'json' in selected_filter.lower():
-            file_format = 'json'
-        elif 'yaml' in selected_filter.lower():
-            file_format = 'yaml'
-        else: # Default is html
-            file_format = "html"
+        match selected_filter.lower():
+            case 'html': file_format = 'html'
+            case 'md': file_format = 'markdown'
+            case 'txt': file_format = 'txt'
+            case 'pdf': file_format = 'pdf'
+            case 'json': file_format = 'json'
+            case 'yaml': file_format = 'yaml'
+            case _: file_format = 'html'
 
-        try:
-            # 2. Fetch all required data from the coordinator
-            if selected_ids:
-                all_characters_data = self.coordinator.get_character_data_for_export(character_ids=selected_ids)
-            else:
-                all_characters_data = self.coordinator.get_character_data_for_export()
-            
-            # 3. Write content to file
-            self._write_file(file_path, file_format, all_characters_data, parent)
+        try:            
+            # Write content to file
+            self._write_file(file_path, file_format, char_data, parent)
 
             # Success message is handled by MainWindow/calling context
             return True
             
         except Exception as e:
-            QMessageBox.critical(parent, "Export Error", f"Failed to export story: {e}")
+            QMessageBox.critical(parent, "Export Error", f"Failed to export character(s): {e}")
             return False
 
     def _write_file(self, file_path: str, file_format: str, characters_data: list[dict], parent) -> None:
