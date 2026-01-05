@@ -217,7 +217,8 @@ class RelationshipRepository:
             Y_Position,
             Node_Color,
             Node_Shape,
-            Is_Hidden
+            Is_Hidden,
+            Is_Locked
         FROM Character_Node_Positions;
         """
         try:
@@ -229,7 +230,7 @@ class RelationshipRepository:
             raise e
 
     def save_node_attributes(self, character_id: int, x_pos: float, y_pos: float, 
-                           node_color: str, node_shape: str, is_hidden: int) -> bool:
+                           node_color: str, node_shape: str, is_hidden: int, is_locked: int) -> bool:
         """
         Saves or updates the position and visual attributes of a character node.
         Uses INSERT OR REPLACE to handle both creation and updates efficiently.
@@ -246,16 +247,18 @@ class RelationshipRepository:
         :type node_shape: str
         :param is_hidden: Parameter toggles if the node is hidden or not (1 for True, 0 for False)
         :type is_hidden: int
+        :param is_locked: Parameter toggles if the node is locked in place or not (1 for True 0 for False)
+        :type is_locked: int
 
         :returns: Returns True if successfully saved/updated the node attributes, otherwise False.
         :rtype: bool
         """
         query = """
         INSERT OR REPLACE INTO Character_Node_Positions
-        (Character_ID, X_Position, Y_Position, Node_Color, Node_Shape, Is_Hidden)
-        VALUES (?, ?, ?, ?, ?, ?);
+        (Character_ID, X_Position, Y_Position, Node_Color, Node_Shape, Is_Hidden, Is_Locked)
+        VALUES (?, ?, ?, ?, ?, ?, ?);
         """
-        params = (character_id, x_pos, y_pos, node_color, node_shape, is_hidden)
+        params = (character_id, x_pos, y_pos, node_color, node_shape, is_hidden, is_locked)
         try:
             success = self.db._execute_commit(query, params)
             if success:
@@ -277,7 +280,7 @@ class RelationshipRepository:
         :rtype: bool
         """
         query = """
-        UPDATE Character_Node_Positions SET is_hidden = ? WHERE Character_ID = ?;
+        UPDATE Character_Node_Positions SET Is_Hidden = ? WHERE Character_ID = ?;
         """
         params = (is_hidden, char_id)
         try:
@@ -287,6 +290,30 @@ class RelationshipRepository:
             return success
         except DatabaseError as e:
             logger.warning("Failed to save character node new is_hidden attribute", exc_info=True)
+            raise e
+        
+    def update_node_is_locked(self, char_id: int, is_locked: int) -> bool:
+        """
+        Updates the is_hidden table attribute of a character node.
+        
+        :param char_id: The ID of the character node.
+        :type char_id: int
+        :param is_locked: The new value of is_locked attribute.
+        :type is_locked: int
+        :return: True if successful otherwise False.
+        :rtype: bool
+        """
+        query = """
+        UPDATE Character_Node_Positions SET Is_Locked = ? WHERE Character_ID = ?;
+        """
+        params = (is_locked, char_id)
+        try:
+            success = self.db._execute_commit(query, params)
+            if success:
+                logger.info(f"Successfully saved new is_locked attribute, Char_ID: {char_id}")
+            return success
+        except DatabaseError as e:
+            logger.warning("Failed to save character node new is_locked attribute", exc_info=True)
             raise e
     
     # =========================================================================

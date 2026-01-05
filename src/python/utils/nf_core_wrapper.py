@@ -163,18 +163,19 @@ class GraphLayoutEngineWrapper:
 
         :rtype: None
         """
-        # 1. Convert Python lists/dicts into CFFI C arrays
-        
-        # Create C arrays for NodeInput
         self._node_count = len(nodes)
+        self._width = width
+        self._height = height
         self._node_c_array = _ffi.new("NodeInput[]", self._node_count)
+
+        # Center the coordinates for the C++ engine (Top-Left -> Center)
+        offset_x = width / 2.0
+        offset_y = height / 2.0       
         
-        # NOTE: Assumes 'nodes' is a list of dictionaries like 
-        # {'id': 1, 'x_pos': 0.0, 'y_pos': 0.0, 'is_fixed': False}
         for i, node in enumerate(nodes):
             self._node_c_array[i].id = node['id']
-            self._node_c_array[i].x_pos = node['x_pos']
-            self._node_c_array[i].y_pos = node['y_pos']
+            self._node_c_array[i].x_pos = node['x_pos'] - offset_x
+            self._node_c_array[i].y_pos = node['y_pos'] - offset_y
             self._node_c_array[i].is_fixed = bool(node.get('is_fixed', False))
 
         # Create C arrays for EdgeInput
@@ -242,12 +243,15 @@ class GraphLayoutEngineWrapper:
         # 3. Convert C output array back to a list of Python dictionaries
         final_positions = []
         actual_count = output_count_ptr[0]
+
+        offest_x = self._width / 2.0
+        offset_y = self._height / 2.0
         
         for i in range(actual_count):
             final_positions.append({
                 'id': output_c_array[i].id,
-                'x_pos': output_c_array[i].x_pos,
-                'y_pos': output_c_array[i].y_pos,
+                'x_pos': output_c_array[i].x_pos + offest_x,
+                'y_pos': output_c_array[i].y_pos + offset_y,
             })
 
         return final_positions

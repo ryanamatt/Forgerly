@@ -216,6 +216,7 @@ CREATE TABLE IF NOT EXISTS Character_Node_Positions (
     Node_Color              TEXT DEFAULT '#FFFFFF',
     Node_Shape              TEXT DEFAULT 'Circle',
     Is_Hidden               INTEGER DEFAULT 0, -- BOOLEAN
+    Is_Locked               INTEGER DEFAULT 0, -- BOOLEAN
 
     FOREIGN KEY (Character_ID) REFERENCES Characters(ID) ON DELETE CASCADE
 );

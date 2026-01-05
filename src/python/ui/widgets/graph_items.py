@@ -22,7 +22,7 @@ class CharacterNodeSignals(QObject):
     :py:class:`~PySide6.QtWidgets.QGraphicsEllipseItem` and cannot be a 
     direct subclass of :py:class:`~PySide6.QtCore.QObject`.
     """
-    node_moved = Signal(int, float, float, str, str, int)
+    node_moved = Signal(int, float, float, str, str, bool, bool)
     """
     :py:class:`~PySide6.QtCore.Signal` (int, float, float, str, str, int): 
     Emitted when a node is dragged and released.
@@ -66,7 +66,8 @@ class CharacterNode(QGraphicsEllipseItem):
         self.name = name
         self.node_color = color
         self.node_shape = shape
-        self.is_hidden = 0
+        self.is_hidden = False
+        self.is_locked = False
 
         self.signals = CharacterNodeSignals()
 
@@ -182,7 +183,8 @@ class CharacterNode(QGraphicsEllipseItem):
             pos.y(),
             self.node_color,
             self.node_shape,
-            self.is_hidden
+            self.is_hidden,
+            self.is_locked
         )
 
     def set_selection_highlight(self, highlight: bool) -> None:
@@ -232,8 +234,8 @@ class CharacterNode(QGraphicsEllipseItem):
         menu = QMenu()
 
         connect_action = menu.addAction("Connect to Character...")
-
-        set_visible_action = menu.addAction("Set Character Visibility")
+        set_visible_action = menu.addAction("Make Character Visibility")
+        lock_node_action = menu.addAction("Lock Character")
     
         view = self.scene().views()[0]
         editor: 'RelationshipEditor' = view.parent()
@@ -248,6 +250,13 @@ class CharacterNode(QGraphicsEllipseItem):
 
             bus.publish(Events.GRAPH_NODE_VISIBILTY_CHANGED, data={
                 'ID': self.char_id, 'is_hidden': self.is_hidden
+            })
+
+        elif action == lock_node_action:
+            self.is_locked = not self.is_locked
+
+            bus.publish(Events.GRAPH_NODE_LOCKED_CHANGED, data={
+                'ID': self.char_id, 'is_locked': self.is_locked
             })
 
 class RelationshipEdge(QGraphicsLineItem):

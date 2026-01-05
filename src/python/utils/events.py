@@ -63,6 +63,7 @@ class Events(str, Enum):
     GRAPH_DATA_LOADED = "graph.data_loaded"
     GRAPH_EDGE_VISIBILITY_CHANGED = "graph.edge_visibility_changed"
     GRAPH_NODE_VISIBILTY_CHANGED = "graph.node_visibility_changed"
+    GRAPH_NODE_LOCKED_CHANGED = "graph.node_locked_changed"
 
     NODE_SAVE_REQUESTED = "graph.node_save"
     REL_TYPES_REQUESTED = "graph.rel_types_requested"
