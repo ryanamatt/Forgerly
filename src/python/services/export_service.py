@@ -38,7 +38,7 @@ class ExportService:
             ExportType.STORY: story_exporter,
             ExportType.CHAPTERS: story_exporter,
             ExportType.CHARACTERS: CharacterExporter(project_title),
-            ExportType.LORE: LoreExporter(coordinator, project_title)
+            ExportType.LORE: LoreExporter(project_title)
         }
 
     @receiver(Events.EXPORT_PERFORM)

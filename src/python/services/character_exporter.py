@@ -88,15 +88,12 @@ class CharacterExporter(Exporter):
             case _: file_format = 'html'
 
         try:            
-            # Write content to file
             self._write_file(file_path, file_format, char_data, parent)
-
-            # Success message is handled by MainWindow/calling context
-            return True
             
         except Exception as e:
             QMessageBox.critical(parent, "Export Error", f"Failed to export character(s): {e}")
-            return False
+
+        return
 
     def _write_file(self, file_path: str, file_format: str, characters_data: list[dict], parent) -> None:
         """
