@@ -127,7 +127,8 @@ class BaseOutlineManager(QWidget):
         item_id = item.data(0, self.id_role)
 
         if isinstance(item_id, int) and item_id > 0:
-            bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': self.type, 'ID': self.current_item_id, 'parent': self})
+            bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': self.type, 
+                                                      'ID': self.current_item_id, 'parent': self})
             self.current_item_id = item_id
             bus.publish(Events.ITEM_SELECTED, data={
                 'entity_type': self.type, 'ID': item_id

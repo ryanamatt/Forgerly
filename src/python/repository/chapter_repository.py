@@ -132,7 +132,8 @@ class ChapterRepository:
         try:
             results = self.db._execute_query(query, params, fetch_all=True)
             if chapter_ids:
-                logger.info(f"Retrieved {len(results)} chapters for export from a list of {len(chapter_ids)} IDs.")
+                logger.info(f"Retrieved {len(results)} chapters for export from a list of " 
+                            "{len(chapter_ids)} IDs.")
             else:
                 logger.info(f"Retrieved all {len(results)} chapters for export.")
             return results if results else []
@@ -193,7 +194,8 @@ class ChapterRepository:
         logger.info(f"Calculated statistics for {len(chapters_with_stats)} chapters.")
         return chapters_with_stats
 
-    def create_chapter(self, title: str, sort_order, text_content: str = "<p></p>", pov_character_id: int | None = None) -> int | None:
+    def create_chapter(self, title: str, sort_order, text_content: str = "<p></p>", 
+                       pov_character_id: int | None = None) -> int | None:
         """
         Inserts a new chapter record into the database with a default empty content field.
 

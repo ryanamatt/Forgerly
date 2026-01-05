@@ -18,7 +18,6 @@ class RelationshipOutlineManager(QWidget):
     A custom :py:class:`~PySide6.QtWidgets.QWidget` dedicated to displaying 
     and managing the list of Relationship Types. 
     
-    It interacts with the data layer via :py:class:`~app.repository.relationship_repository.RelationshipRepository`.
     This manager allows users to define/edit the fundamental properties of a 
     relationship type (name, color, line style, directionality).
     """
@@ -471,7 +470,8 @@ class RelationshipOutlineManager(QWidget):
         reply = QMessageBox.question(
             self, 
             "Confirm Deletion",
-            f"Are you sure you want to permanently delete the Relationship Type: \n'{name}'?\n\nThis will also delete ALL character relationships of this type. This cannot be undone.",
+            f"Are you sure you want to permanently delete the Relationship Type: \n'{name}'?\n\nThis"
+             " will also delete ALL character relationships of this type. This cannot be undone.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, 
             QMessageBox.StandardButton.No
         )

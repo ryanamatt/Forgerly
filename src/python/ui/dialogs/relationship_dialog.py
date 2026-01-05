@@ -16,7 +16,8 @@ class RelationshipCreationDialog(QDialog):
         """
         Initializes :py:class:`.RelationshipCreationDialog`.
         
-        :param relationship_types: A list of all the existing Relationship Types (dicts containing 'ID' and 'Type_Name').
+        :param relationship_types: A list of all the existing Relationship Types (dicts containing 
+            'ID' and 'Type_Name').
         :type relationship_types: list[dict]
         :param char_a_name: The name of the first Character.
         :type char_a_name: str
@@ -51,12 +52,13 @@ class RelationshipCreationDialog(QDialog):
         
         # Intensity (e.g., a simple 1-10 scale)
         self.intensity_input = QSpinBox()
-        self.intensity_input.setRange(1, 10) # Intensity is on Simple 1-10 Scale but multipled by scalar later
+        self.intensity_input.setRange(1, 10) # Intensity is on Simple 1-10 Scale
         self.intensity_input.setValue(intensity)
         layout.addRow("Intensity (0-10):", self.intensity_input)
         
         # Buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | 
+                                      QDialogButtonBox.StandardButton.Cancel)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
         layout.addRow(button_box)

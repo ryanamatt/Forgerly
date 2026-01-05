@@ -72,8 +72,8 @@ class LoreRepository:
             raise e
 
 
-    def create_lore_entry(self, title: str, content: str = "", category: str = "", parent_lore_id: int | None = None,
-                          sort_order: int = 0) -> int | None:
+    def create_lore_entry(self, title: str, content: str = "", category: str = "", 
+                          parent_lore_id: int | None = None, sort_order: int = 0) -> int | None:
         """
         Inserts a new lore entry record into the database with a default empty content field.
 
@@ -96,7 +96,8 @@ class LoreRepository:
         VALUES (?, ?, ?, ?, ?)
         """
         try:
-            lore_id = self.db._execute_commit(query, (title, content, category, parent_lore_id, sort_order), fetch_id=True)
+            lore_id = self.db._execute_commit(query, (title, content, category, parent_lore_id, 
+                                                      sort_order), fetch_id=True)
             if lore_id:
                 logger.info(f"Created new lore entry: ID={lore_id}, Title='{title}'.")
             return lore_id
@@ -177,7 +178,12 @@ class LoreRepository:
         :return: A list of the string names of the categories.
         :rtype: list[str]
         """
-        query = "SELECT DISTINCT Category FROM Lore_Entries WHERE Category IS NOT NULL AND Category != '' ORDER BY Category ASC;"
+        query = """
+        SELECT DISTINCT Category 
+        FROM Lore_Entries 
+        WHERE Category IS NOT NULL AND Category != '' 
+        ORDER BY Category ASC;
+        """
         try:
             results = self.db._execute_query(query, fetch_all=True)
             return [row['Category'] for row in results] if results else []
@@ -257,7 +263,8 @@ class LoreRepository:
                 logger.info(f"Updated parent ID for lore entry ID: {lore_id} to {new_parent_id}.")
             return success
         except DatabaseError as e:
-            logger.error(f"Failed to update parent ID for lore entry ID: {lore_id} to {new_parent_id}.", exc_info=True)
+            logger.error(f"Failed to update parent ID for lore entry ID: {lore_id} to "
+                         f"{new_parent_id}.", exc_info=True)
             raise e
         
     def update_lore_order(self, lore_id: int, sort_order: int) -> bool:
@@ -282,7 +289,8 @@ class LoreRepository:
                 logger.info(f"Updated parent ID for lore entry ID: {lore_id} to {sort_order}.")
             return success
         except DatabaseError as e:
-            logger.error(f"Failed to update parent ID for lore entry ID: {lore_id} to {sort_order}.", exc_info=True)
+            logger.error(f"Failed to update parent ID for lore entry ID: {lore_id} to {sort_order}.",
+                         exc_info=True)
             raise e
     
     def delete_lore_entry(self, lore_id: int) -> bool:
@@ -344,7 +352,8 @@ class LoreRepository:
             logger.info(f"Lore search for '{clean_query}' returned {len(results)} results.")
             return results
         except DatabaseError as e:
-            logger.error(f"Failed to execute search for lore entries with query: '{clean_query}'.", exc_info=True)
+            logger.error(f"Failed to execute search for lore entries with query: '{clean_query}'.", 
+                         exc_info=True)
             raise e
     
     def get_lore_entries_for_export(self, lore_ids: list[int] = None) -> list[dict]:
@@ -382,7 +391,8 @@ class LoreRepository:
         try:
             results = self.db._execute_query(query, params, fetch_all=True)
             if lore_ids:
-                logger.info(f"Retrieved {len(results)} lore entries for export from a list of {len(lore_ids)} IDs.")
+                logger.info(f"Retrieved {len(results)} lore entries for export from a list of "
+                            f"{len(lore_ids)} IDs.")
             else:
                 logger.info(f"Retrieved all {len(results)} lore entries for export.")
             return results if results else []

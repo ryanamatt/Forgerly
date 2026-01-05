@@ -26,7 +26,8 @@ class MainMenuBar(QMenuBar):
 
         :param app_version: The application's version string, used for the About dialog.
         :type app_version: str
-        :param is_macos: Flag indicating if the application is running on macOS to set the correct modifier key (Cmd vs Ctrl).
+        :param is_macos: Flag indicating if the application is running on macOS to set the correct 
+            modifier key (Cmd vs Ctrl).
         :type is_macos: bool
         :param parent: The parent Qt widget.
         :type parent: :py:class:`~PySide6.QtWidgets.QWidget` or None
@@ -98,7 +99,8 @@ class MainMenuBar(QMenuBar):
         save_action = QAction("&Save Content", self)
         save_action.setIcon(QIcon(":icons/save.svg"))
         save_action.setShortcut(f"{self._mod_key}+S")
-        save_action.triggered.connect(lambda: bus.publish(Events.PRE_ITEM_CHANGE, data={'skip_check': True}))
+        save_action.triggered.connect(lambda: bus.publish(Events.PRE_ITEM_CHANGE, 
+                                                          data={'skip_check': True}))
         file_menu.addAction(save_action)
 
         file_menu.addSeparator()
@@ -149,20 +151,26 @@ class MainMenuBar(QMenuBar):
             action.setIcon(QIcon(icon_path))
             action.setCheckable(True)
             
-            action.triggered.connect(lambda: bus.publish(Events.VIEW_SWITCH_REQUESTED, data={'view_type': view_type}))
+            action.triggered.connect(lambda: bus.publish(Events.VIEW_SWITCH_REQUESTED, 
+                                                         data={'view_type': view_type}))
             
             self.view_group.addAction(action)
             self.view_menu.addAction(action)
             return action
 
-        self.view_chapter_action = add_view_action("Chapter Outline", ":icons/chapter.svg", ViewType.CHAPTER_EDITOR)
-        self.view_lore_action = add_view_action("Lore Outline", ":icons/lore-entry.svg", ViewType.LORE_EDITOR)
-        self.view_character_action = add_view_action("Character Outline", ":icons/character.svg", ViewType.CHARACTER_EDITOR)
-        self.view_note_action = add_view_action("Note Outline", ":icons/note.svg", ViewType.NOTE_EDITOR)
+        self.view_chapter_action = add_view_action("Chapter Outline", ":icons/chapter.svg", 
+                                                   ViewType.CHAPTER_EDITOR)
+        self.view_lore_action = add_view_action("Lore Outline", ":icons/lore-entry.svg", 
+                                                ViewType.LORE_EDITOR)
+        self.view_character_action = add_view_action("Character Outline", ":icons/character.svg", 
+                                                     ViewType.CHARACTER_EDITOR)
+        self.view_note_action = add_view_action("Note Outline", ":icons/note.svg", 
+                                                ViewType.NOTE_EDITOR)
         
         self.view_menu.addSeparator()
         
-        self.view_relationship_action = add_view_action("Relationship Graph", ":icons/node-tree.svg", ViewType.RELATIONSHIP_GRAPH)
+        self.view_relationship_action = add_view_action("Relationship Graph", ":icons/node-tree.svg", 
+                                                        ViewType.RELATIONSHIP_GRAPH)
 
         self.view_menu.addSeparator()
 

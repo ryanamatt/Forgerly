@@ -166,7 +166,8 @@ class CharacterRepository:
             VALUES (?, ?, ?, ?, ?, ?, ?);
             """
         try:
-            char_id = self.db._execute_commit(query, (name, description, status, age, date_of_birth, occupation_school, physical_description), fetch_id=True)
+            char_id = self.db._execute_commit(query, (name, description, status, age, date_of_birth, 
+                                            occupation_school, physical_description), fetch_id=True)
             if char_id:
                 logger.info(f"Created new character: ID={char_id}, Name='{name}'.")
             return char_id
@@ -207,8 +208,8 @@ class CharacterRepository:
         WHERE ID = ?;
         """
         try:
-            success = self.db._execute_commit(query, (name, description, status, age, date_of_birth, occupation_school, 
-                                                      physical_description, char_id))
+            success = self.db._execute_commit(query, (name, description, status, age, date_of_birth, 
+                                                occupation_school, physical_description, char_id))
             if success:
                 logger.info(f"Updated character ID: {char_id}. New Name: '{name}'.")
             return success
@@ -326,7 +327,8 @@ class CharacterRepository:
         try:
             results = self.db._execute_query(query, params, fetch_all=True)
             if character_ids:
-                logger.info(f"Retrieved {len(results)} characters for export from a list of {len(character_ids)} IDs.")
+                logger.info(f"Retrieved {len(results)} characters for export from a list of "
+                            "{len(character_ids)} IDs.")
             else:
                 logger.info(f"Retrieved all {len(results)} characters for export.")
             return results if results else []

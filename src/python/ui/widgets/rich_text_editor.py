@@ -8,7 +8,7 @@ from PySide6.QtGui import (
     QAction, QTextCharFormat, QFont, QTextCursor, QKeyEvent,
     QTextListFormat, QTextBlockFormat, QIcon, QBrush, QIcon
 )
-from PySide6.QtCore import Qt, QSize, Signal
+from PySide6.QtCore import Qt, QSize
 
 from ...resources_rc import *
 from .basic_text_editor import BasicTextEditor
@@ -168,13 +168,15 @@ class RichTextEditor(BasicTextEditor):
             # UNORDERED LIST (Bullet Points)
             self.list_bullet_icon = QIcon(":icons/list-unordered.svg")
             self.list_bullet_action = QAction(self.list_bullet_icon, "Bullet List", self)
-            self.list_bullet_action.triggered.connect(lambda: self._toggle_list(QTextListFormat.Style.ListDisc))
+            self.list_bullet_action.triggered.connect(lambda: self._toggle_list(
+                QTextListFormat.Style.ListDisc))
             self.toolbar.addAction(self.list_bullet_action)
 
             # ORDERED LIST (Numbers)
             self.list_number_icon = QIcon(":icons/list-ordered.svg")
             self.list_number_action = QAction(self.list_number_icon, "Numbered List", self)
-            self.list_number_action.triggered.connect(lambda: self._toggle_list(QTextListFormat.Style.ListDecimal))
+            self.list_number_action.triggered.connect(lambda: self._toggle_list(
+                QTextListFormat.Style.ListDecimal))
             self.toolbar.addAction(self.list_number_action)
 
             self.toolbar.addSeparator()
@@ -409,7 +411,8 @@ class RichTextEditor(BasicTextEditor):
                 logger.debug("Select Highlight Color")
         except Exception as e:
             logger.warning(f"Failed to display or process color highlight dialog: {e}", exc_info=True)
-            QMessageBox.warning(self, "Formatting Error", "Failed to change text highlight color due to a UI issue.")
+            QMessageBox.warning(self, "Formatting Error", "Failed to change text highlight color "
+                                "due to a UI issue.")
          
 
     def _toggle_list(self, list_style: QTextListFormat.Style) -> None:
@@ -630,7 +633,8 @@ class RichTextEditor(BasicTextEditor):
 
         except Exception as e:
             logger.warning(f"Failed to Update the Format Controls: {e}", exc_info=True)
-            QMessageBox.warning(self, "Format Controls Error", "Failed to Update the Format Controls due to a UI issue.")
+            QMessageBox.warning(self, "Format Controls Error", "Failed to Update the Format Controls "
+                                "due to a UI issue.")
 
     # ---------------------------------
     # Looukp Related Functions
@@ -645,7 +649,8 @@ class RichTextEditor(BasicTextEditor):
         :rtype: None
         """
         try:
-            is_ctrl_shift = event.modifiers() == (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier)
+            is_ctrl_shift = event.modifiers() == (Qt.KeyboardModifier.ControlModifier | 
+                                                  Qt.KeyboardModifier.ShiftModifier)
             is_L_key = event.key() == Qt.Key.Key_L
 
             if is_ctrl_shift and is_L_key:
@@ -659,7 +664,8 @@ class RichTextEditor(BasicTextEditor):
                     })
 
                     event.accept()
-                    logger.debug(f"Lookup shortcut (Ctrl+Shift+L) activated for text: '{selected_text[:30]}...'")
+                    logger.debug(f"Lookup shortcut (Ctrl+Shift+L) activated for text: \
+                                 '{selected_text[:30]}...'")
 
                 else:
                     logger.debug("Lookup shortcut pressed, but no text selected.")

@@ -8,7 +8,6 @@ from PySide6.QtGui import QIcon
 
 from .base_outline_manager import BaseOutlineManager
 from ...resources_rc import *
-from ...repository.chapter_repository import ChapterRepository
 from ...utils.constants import ViewType
 from ...utils.constants import EntityType
 from ...utils.events import Events
@@ -253,7 +252,8 @@ class ChapterOutlineManager(BaseOutlineManager):
 
         :rtype: None
         """
-        bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': EntityType.CHAPTER, 'ID': self.current_item_id, 'parent': self})
+        bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': EntityType.CHAPTER, 
+                                                  'ID': self.current_item_id, 'parent': self})
         self._delete_chapter(item)
 
     def find_chapter_item_by_id(self, chapter_id: int) -> QTreeWidgetItem | None:

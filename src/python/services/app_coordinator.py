@@ -140,8 +140,8 @@ class AppCoordinator(QObject):
             parent, # Use parent for dialog centering
             "Unsaved Changes",
             f"The current item has unsaved changes. Do you want to save before continuing?",
-            QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Save
+            QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | 
+            QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Save
         )
 
         if save_reply == QMessageBox.StandardButton.Cancel:
@@ -253,7 +253,8 @@ class AppCoordinator(QObject):
 
         :rtype: None
         """
-        self.relationship_repo.update_node_is_hidden(char_id=data.get('ID'), is_hidden=data.get('is_hidden'))
+        self.relationship_repo.update_node_is_hidden(char_id=data.get('ID'), 
+                                                     is_hidden=data.get('is_hidden'))
 
     @receiver(Events.GRAPH_NODE_LOCKED_CHANGED)
     def save_character_node_is_locked(self, data: dict) -> None:
@@ -266,7 +267,8 @@ class AppCoordinator(QObject):
 
         :rtype: None
         """
-        success = self.relationship_repo.update_node_is_locked(char_id=data.get('ID'), is_locked=data.get('is_locked'))
+        success = self.relationship_repo.update_node_is_locked(char_id=data.get('ID'), 
+                                                               is_locked=data.get('is_locked'))
 
     # --- Update ---
 
@@ -694,7 +696,8 @@ class AppCoordinator(QObject):
         self.load_relationship_graph_data()
 
 
-    def _process_graph_data(self, relationships: list[dict], node_positions: list[dict], relationship_types: list[dict]) -> dict:
+    def _process_graph_data(self, relationships: list[dict], node_positions: list[dict], 
+                            relationship_types: list[dict]) -> dict:
         """
         Proceess all the graph data.
         

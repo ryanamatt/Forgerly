@@ -47,8 +47,8 @@ class MainWindow(QMainWindow):
     5. **Settings/Theming:** Loading and saving window geometry and applying the current theme.
     """
 
-    def __init__(self, project_settings: dict[str, Any], settings_manager: SettingsManager, db_connector: DBConnector,
-                 parent=None) -> None:
+    def __init__(self, project_settings: dict[str, Any], settings_manager: SettingsManager, 
+                 db_connector: DBConnector, parent=None) -> None:
         """
         Initializes the main window, connecting to the database and setting up 
         all sub-components and services.
@@ -82,11 +82,12 @@ class MainWindow(QMainWindow):
                 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(appID)
                 logger.info(f"Windows AppUserModelID set to '{appID}'.")
             except AttributeError:
-                logger.warning("Failed to set Windows AppUserModelID (ctypes.windll.shell32 not available or AttributeError).")
+                logger.warning("Failed to set Windows AppUserModelID (ctypes.windll.shell32 not \
+                               available or AttributeError).")
                 pass
 
         # Temporary Project Title will need to be changed to actual users project title
-        self.project_title = project_settings['project_name'] if project_settings['project_name'] != "" else "Project Title"
+        self.project_title = project_settings.get('project_name', 'Project Title')
 
         self.setWindowTitle(f"The Narrative Forge v{__version__}")
         self.setGeometry(100, 100, 1200, 800)
@@ -105,9 +106,11 @@ class MainWindow(QMainWindow):
                 # If connect() fails, raise a specific error to halt execution
                 raise ConfigurationError(f"Database connection failed for project: {self.project_title}")
         except Exception as e:
-            logger.critical(f"FATAL: Failed to connect or initialize database schema at {self.db_connector.db_path}.", exc_info=True)
+            logger.critical(f"FATAL: Failed to connect or initialize database schema at "
+                            f"{self.db_connector.db_path}.", exc_info=True)
             # Assuming ConfigurationError is a suitable application-level error wrapper
-            raise ConfigurationError("A critical error occurred while setting up the project database. See log for details.") from e
+            raise ConfigurationError("A critical error occurred while setting up the project \
+                                     database. See log for details.") from e
 
         # --- Initialize Coordinator & Repositories ---
         # Coordinator now manages all repositories and business logic
@@ -188,7 +191,8 @@ class MainWindow(QMainWindow):
             logger.info("Application settings (geometry, splitter size, last project) saved successfully.")
 
         except Exception as e:
-            logger.error(f"Failed to save application settings during close. Proceeding with shutdown. Error: {e}", exc_info=True)
+            logger.error(f"Failed to save application settings during close. Proceeding with shutdown. \
+                         Error: {e}", exc_info=True)
 
 
         # Close the database connection
@@ -327,7 +331,8 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(
                 self, 
                 "Export Setup Error", 
-                "The export dialogue failed to open due to an internal application error. Check the application log for details."
+                "The export dialogue failed to open due to an internal application error. Check the \
+                    application log for details."
             )
         
     def _perform_export(self, export_type: str, selected_ids: list) -> None:
@@ -446,7 +451,8 @@ class MainWindow(QMainWindow):
                 self._apply_settings(new_settings)
                 
                 # 5. Provide user feedback
-                self.statusBar().showMessage(f"Settings saved and applied. Theme: {self.current_settings['theme']}.", 5000)
+                self.statusBar().showMessage(f"Settings saved and applied. Theme: "
+                                             f"{self.current_settings['theme']}.", 5000)
                 
             else:
                 logger.info("Settings dialog closed without saving (rejected or cancelled).")
@@ -457,7 +463,8 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(
                 self, 
                 "Settings Error", 
-                "A critical error occurred while saving or applying settings. Changes may be lost. Check the application log."
+                "A critical error occurred while saving or applying settings. Changes may be lost. \
+                    Check the application log."
             )
 
     def _apply_settings(self, new_settings: dict) -> None:
@@ -519,11 +526,13 @@ class MainWindow(QMainWindow):
                 
             if target_width and target_height:
                 self.setGeometry(window_pos_x, window_pos_y, target_width, target_height)
-                logger.debug(f"Window geometry applied: {target_width}x{target_height} at ({window_pos_x}, {window_pos_y}).")
+                logger.debug(f"Window geometry applied: {target_width}x{target_height} at \
+                             ({window_pos_x}, {window_pos_y}).")
 
         except ValueError:
             # Catch errors if 'window_size' string is malformed (e.g., '1200_800' or missing 'x')
-            logger.error(f"Configuration Error: Window size format is malformed. Setting position only to ({window_pos_x}, {window_pos_y}).", exc_info=True)
+            logger.error(f"Configuration Error: Window size format is malformed. Setting position only to \
+                         ({window_pos_x}, {window_pos_y}).", exc_info=True)
             self.move(window_pos_x, window_pos_y)
         except Exception as e:
             logger.critical("Unexpected error occurred while applying window geometry.", exc_info=True)
@@ -576,6 +585,7 @@ class MainWindow(QMainWindow):
         """
         project_stats = self.coordinator.get_project_stats(wpm=self.current_settings['words_per_minute'])
 
-        stats_dialog = ProjectStatsDialog(project_stats=project_stats, user_settings=self.current_settings, parent=self)
+        stats_dialog = ProjectStatsDialog(project_stats=project_stats, 
+                                          user_settings=self.current_settings, parent=self)
 
         stats_dialog.exec()

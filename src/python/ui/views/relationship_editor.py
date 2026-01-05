@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QFrame, QDialog, QToolBar
 )
 from PySide6.QtCore import Qt, QLineF
-from PySide6.QtGui import QPen, QAction, QIcon, QCursor
+from PySide6.QtGui import QPen, QAction, QIcon
 from typing import Any
 
 from ...resources_rc import *
@@ -212,7 +212,8 @@ class RelationshipEditor(QWidget):
             return
         
         if not self.available_rel_types:
-            QMessageBox.critical(self, "Error", "No relationship types defined. Please define types in the Outline Manager first.")
+            QMessageBox.critical(self, "Error", "No relationship types defined. Please define types"
+            " in the Outline Manager first.")
             return
             
         # Open dialog for user input
@@ -258,7 +259,8 @@ class RelationshipEditor(QWidget):
         if dialog.exec() == QDialog.DialogCode.Accepted:
             type_id, description, intensity = dialog.get_relationship_data()
             bus.publish(Events.REL_UPDATE_REQUESTED, data={
-                'relationship_id': data.get('ID'), 'type_id': type_id, 'description': description, 'intensity': intensity,
+                'relationship_id': data.get('ID'), 'type_id': type_id, 
+                'description': description, 'intensity': intensity,
             })
 
     @receiver(Events.GRAPH_DATA_LOADED)
@@ -269,7 +271,8 @@ class RelationshipEditor(QWidget):
         
         This clears the existing graph and draws all new nodes and edges based on the data.
         
-        :param graph_data: A dictionary containing 'nodes' (list of character data) and 'edges' (list of relationship data).
+        :param graph_data: A dictionary containing 'nodes' (list of character data) and 'edges' 
+            (list of relationship data).
         :type graph_data: dict[str, list[dict[str, Any]]]
         
         :rtype: None
@@ -302,7 +305,8 @@ class RelationshipEditor(QWidget):
                 node.is_hidden = is_hidden
                 node.is_locked = is_locked
 
-                # Connect node's movement signal to the editor's save signal so every node movement is tracked and persisted
+                # Connect node's movement signal to the editor's save signal so every node movement 
+                # is tracked and persisted
                 node.signals.node_moved.connect(self._save_node_positions)
 
                 self.scene.addItem(node)

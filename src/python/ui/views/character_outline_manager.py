@@ -8,7 +8,6 @@ from PySide6.QtGui import QIcon
 
 from .base_outline_manager import BaseOutlineManager
 from ...resources_rc import *
-from ...repository.character_repository import CharacterRepository
 from ...utils.constants import EntityType
 from ...utils.events import Events
 from ...utils.event_bus import bus, receiver
@@ -279,7 +278,8 @@ class CharacterOutlineManager(BaseOutlineManager):
 
         :rtype: None
         """
-        bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': EntityType.CHARACTER, 'ID': self.current_item_id, 'parent': self})
+        bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': EntityType.CHARACTER, 
+                                                  'ID': self.current_item_id, 'parent': self})
         self._delete_chapter(item)
 
     def find_character_item_by_id(self, char_id: int) -> QTreeWidgetItem | None:

@@ -63,7 +63,8 @@ class QFlowLayout(QLayout):
         try:
             if item.widget():
                 widget: QWidget = item.widget()
-                logger.debug(f"Adding widget item to flow layout: {widget.objectName() or widget.__class__.__name__}")
+                logger.debug(f"Adding widget item to flow layout: {widget.objectName() or \
+                                                                   widget.__class__.__name__}")
             else:
                 logger.debug("Adding non-widget item to flow layout.")
 

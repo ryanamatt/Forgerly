@@ -13,10 +13,6 @@ from ...utils.constants import EntityType
 from ...utils.events import Events
 from ...utils.event_bus import bus, receiver
 
-
-from ...repository.note_repository import NoteRepository
-from ...services.app_coordinator import AppCoordinator
-
 class NoteOutlineManager(BaseOutlineManager):
     """
     A custom :py:class:`~PySide6.QtWidgets.QWidget` dedicated to displaying the 
@@ -80,7 +76,8 @@ class NoteOutlineManager(BaseOutlineManager):
         for note in notes_data:
             item = QTreeWidgetItem([note['Title']])
             item.setData(0, self.id_role, note['ID'])
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsDragEnabled | Qt.ItemFlag.ItemIsDropEnabled)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsDragEnabled
+                          | Qt.ItemFlag.ItemIsDropEnabled)
             item.setIcon(0, QIcon(":icons/note.svg"))
             item_map[note['ID']] = item
 
@@ -309,7 +306,8 @@ class NoteOutlineManager(BaseOutlineManager):
 
         :rtype: None
         """
-        bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': EntityType.NOTE, 'ID': self.current_item_id, 'parent': self})
+        bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': EntityType.NOTE, 
+                                                  'ID': self.current_item_id, 'parent': self})
         self._delete_note(item)
 
     def find_note_item_by_id(self, note_id: int) -> QTreeWidgetItem | None:

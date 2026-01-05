@@ -139,7 +139,8 @@ class NoteRepository:
             logger.error("Failed to retrieve Notes for export.", exc_info=True)
             raise e
         
-    def create_note(self, title: str, sort_order: int, content: str = "", parent_note_id: int | None = None) -> int | None:
+    def create_note(self, title: str, sort_order: int, content: str = "", 
+                    parent_note_id: int | None = None) -> int | None:
         """
         Inserts a new Note record into the database with a default empty content field.
         

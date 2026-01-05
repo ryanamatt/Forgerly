@@ -21,16 +21,6 @@ class BasicTextEditor(QWidget):
     content and notifying whethe the editor is dirty. This class also contains 
     public access functions to get the text contained in the editor.
     """
-    # Signal to notify listeners (like ChapterEditor/LoreEditor) of content changes
-    # content_changed = Signal()
-    # """
-    # :py:class:`~PySide6.QtCore.Signal`: Emitted when the content of the editor changes.
-    # """
-
-    selection_changed = Signal()
-    """
-    :py:class:`~PySide6.QtCore.Signal`: Emitted when the selection has changed..
-    """
 
     def __init__(self, parent=None) -> None:
         """
@@ -136,7 +126,8 @@ class BasicTextEditor(QWidget):
         :rtype: None
         """
         if not isinstance(html_content, str):
-            logger.error(f"FATAL: set_html_content received non-string content of type: {type(html_content)}.")
+            logger.error(f"FATAL: set_html_content received non-string content of type: "
+                         f"{type(html_content)}.")
             raise TypeError("Editor content must be a string (HTML or plain text).")
 
         try:
@@ -146,7 +137,8 @@ class BasicTextEditor(QWidget):
             self.editor.blockSignals(False) 
             # Manually reset the dirty state after a successful load
             self.mark_saved()
-            logger.debug(f"BasicTextEditor content set and marked clean. Content length: {len(html_content)} bytes.")
+            logger.debug(f"BasicTextEditor content set and marked clean. Content length: "
+                         "{len(html_content)} bytes.")
         except Exception as e:
             # Catch any underlying QWidget/PyQt error and re-raise it as EditorContentError
             logger.error(f"FATAL: Failed to set HTML content in BasicTextEditor.", exc_info=True)
@@ -180,8 +172,6 @@ class BasicTextEditor(QWidget):
             logger.debug("Text selection changed (active selection).")
         else:
             logger.debug("Cursor position changed (no active selection).")
-
-        self.selection_changed.emit()
 
         bus.publish(Events.SELECTION_CHANGED, data={
             'editor': self,
