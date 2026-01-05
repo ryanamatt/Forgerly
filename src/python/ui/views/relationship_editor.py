@@ -42,11 +42,46 @@ class RelationshipEditor(QWidget):
 
         bus.register_instance(self)
 
+        self._setup_ui()
+
+        # Storage for current graph items
+        self.nodes: dict[int, CharacterNode] = {}
+        self.edges: list[RelationshipEdge] = []
+
+        self.available_rel_types: list[dict] = []
+        self.selected_node_a: CharacterNode | None = None
+        self.selected_node_b: CharacterNode | None = None
+
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+
+    def _setup_ui(self) -> None:
+        """
+        Sets up the UI for the RelationshipEditor.
+        
+        :rtype: None
+        """
         self.scene = QGraphicsScene(self)
         self.view = RelationshipCanvas(self.scene, self)
         self.view.setFrameShape(QFrame.Shape.NoFrame)
         self.view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
 
+        # Large window for free screen movement
+        self.scene.setSceneRect(-2000, -2000, 4000, 4000)
+
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        self._setup_toolbar()
+
+        main_layout.addWidget(self.toolbar)
+        main_layout.addWidget(self.view)
+
+    def _setup_toolbar(self) -> None:
+        """
+        Setups the top toolbar for RelationshipEditor.
+        
+        :rtype: None
+        """
         self.toolbar = QToolBar()
         self.grid_action = QAction("Show Grid", self)
         self.grid_action.setIcon(QIcon(":icons/grid.svg"))
@@ -63,29 +98,18 @@ class RelationshipEditor(QWidget):
         self.layout_action = QAction("Auto Layout", self)
         self.layout_action.setIcon(QIcon(":icons/auto-layout.svg"))
         self.layout_action.triggered.connect(self.apply_auto_layout)
+
+        self.reset_zoom_action = QAction("Reset Zoom", self)
+        self.reset_zoom_action.setIcon(QIcon(":icons/zoom-reset.svg"))
+        self.reset_zoom_action.triggered.connect(self.reset_view_zoom)
         
         self.toolbar.addAction(self.grid_action)
         self.toolbar.addAction(self.snap_action)
         self.toolbar.addAction(self.layout_action)
 
-        # Large window for free screen movement
-        self.scene.setSceneRect(-2000, -2000, 4000, 4000)
+        self.toolbar.addSeparator()
 
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-
-        main_layout.addWidget(self.toolbar)
-        main_layout.addWidget(self.view)
-
-        # Storage for current graph items
-        self.nodes: dict[int, CharacterNode] = {}
-        self.edges: list[RelationshipEdge] = []
-
-        self.available_rel_types: list[dict] = []
-        self.selected_node_a: CharacterNode | None = None
-        self.selected_node_b: CharacterNode | None = None
-
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.toolbar.addAction(self.reset_zoom_action)
 
     @receiver(Events.REL_TYPES_RECEIVED)
     def set_available_relationship_types(self, data: dict) -> None:
@@ -317,63 +341,6 @@ class RelationshipEditor(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Graph Load Error", f"An error occurred while loading graph data: {e}")
             self.scene.clear()
-
-    def apply_auto_layout(self) -> None:
-        """
-        Extracts current graph state, computes Fruchterman-Reingold layout 
-        via C++, and updates node positions.
-
-        :rtype: None
-        """
-        if not self.nodes:
-            return
-        
-        # 1. Prepare NodeInput data for C++
-        # Note: 'is_fixed' could be linked to a 'pinned' attribute if you add one
-        nodes_input = []
-        for node_id, node in self.nodes.items():
-            nodes_input.append({
-                'id': node_id,
-                'x_pos': node.x(),
-                'y_pos': node.y(),
-                'is_fixed': False 
-            })
-
-        # 2. Prepare EdgeInput data for C++
-        edges_input = []
-        for edge in self.edges:
-            edges_input.append({
-                'node_a_id': edge.source_node.char_id,
-                'node_b_id': edge.target_node.char_id,
-                'intensity': edge.edge_data.get('intensity', 5.0)
-            })
-
-        # 3. Initialize and run the C++ Engine
-        # We use the scene size or view size as the bounding box
-        view_rect = self.view.viewport().rect()
-        width = float(view_rect.width())
-        height = float(view_rect.height())
-
-        if width <= 0 or height <= 0:
-            width, height = 400.0, 300.0
-
-        init_temp = max(width, height) / 10.0
-
-        try:
-            # Initialize engine with the actual Scene dimensions
-            engine = GraphLayoutEngineWrapper(nodes_input, edges_input, width, height)
-            
-            # Increase iterations for more stability if they are flying off-screen
-            new_positions = engine.compute_layout(max_iterations=200, initial_temperature=init_temp)
-
-            self._update_node_positions(new_positions)
-            
-            # Optional: Auto-zoom to fit the new layout
-            self.view.fitInView(self.scene.itemsBoundingRect().adjusted(-50, -50, 50, 50), 
-                                Qt.AspectRatioMode.KeepAspectRatio)
-            
-        except Exception as e:
-            QMessageBox.critical(self, "Layout Error", f"C++ Engine failed: {e}")
         
     def _update_node_positions(self, new_positions: list[dict]) -> None:
         """
@@ -466,6 +433,77 @@ class RelationshipEditor(QWidget):
             for edge in self.edges:
                 if edge.source_node == node_item or edge.target_node == node_item:
                     edge.setVisible(is_visible)
+
+    # --- Toolbar Connection Functions ---
+
+    def apply_auto_layout(self) -> None:
+        """
+        Extracts current graph state, computes Fruchterman-Reingold layout 
+        via C++, and updates node positions.
+
+        :rtype: None
+        """
+        if not self.nodes:
+            return
+        
+        # 1. Prepare NodeInput data for C++
+        # Note: 'is_fixed' could be linked to a 'pinned' attribute if you add one
+        nodes_input = []
+        for node_id, node in self.nodes.items():
+            nodes_input.append({
+                'id': node_id,
+                'x_pos': node.x(),
+                'y_pos': node.y(),
+                'is_fixed': False 
+            })
+
+        # 2. Prepare EdgeInput data for C++
+        edges_input = []
+        for edge in self.edges:
+            edges_input.append({
+                'node_a_id': edge.source_node.char_id,
+                'node_b_id': edge.target_node.char_id,
+                'intensity': edge.edge_data.get('intensity', 5.0)
+            })
+
+        # 3. Initialize and run the C++ Engine
+        # We use the scene size or view size as the bounding box
+        view_rect = self.view.viewport().rect()
+        width = float(view_rect.width())
+        height = float(view_rect.height())
+
+        if width <= 0 or height <= 0:
+            width, height = 400.0, 300.0
+
+        init_temp = max(width, height) / 10.0
+
+        try:
+            # Initialize engine with the actual Scene dimensions
+            engine = GraphLayoutEngineWrapper(nodes_input, edges_input, width, height)
+            
+            # Increase iterations for more stability if they are flying off-screen
+            new_positions = engine.compute_layout(max_iterations=200, initial_temperature=init_temp)
+
+            self._update_node_positions(new_positions)
+            
+            # Optional: Auto-zoom to fit the new layout
+            self.view.fitInView(self.scene.itemsBoundingRect().adjusted(-50, -50, 50, 50), 
+                                Qt.AspectRatioMode.KeepAspectRatio)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Layout Error", f"C++ Engine failed: {e}")
+
+    def reset_view_zoom(self) -> None:
+        """
+        Resets the canvas zoom to 100%.
+
+        :rtype: None
+        """
+        self.view.reset_zoom()
+        if self.nodes:
+            self.view.centerOn(self.scene.itemsBoundingRect().center())
+        else:
+            self.view.centerOn(0, 0)
 
     # --- State Managers --- 
 
