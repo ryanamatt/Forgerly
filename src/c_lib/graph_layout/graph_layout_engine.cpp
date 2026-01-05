@@ -28,6 +28,8 @@ GraphLayoutEngine::GraphLayoutEngine(const std::vector<NodeInput>& nodes,
     } else {
         k_ = 1.0; // Default to Safe Value
     }
+
+    initialize_positions();
 }
 
 // --- Fruchterman-Reingold Force Functions ---
@@ -111,27 +113,6 @@ void GraphLayoutEngine::apply_repulsive_forces() {
             }
         }
     }
-    
-    // Safety check: Use the original vector's node data to check is_fixed safely
-    for (const auto& node : input_nodes_) {
-        if (!node.is_fixed) {
-            int id = node.id;
-            double disp_x = node_displacements_[id].x;
-            double disp_y = node_displacements_[id].y;
-            double disp_mag = std::sqrt(disp_x*disp_x + disp_y*disp_y);
-
-            if (disp_mag > 0) {
-                node_positions_[id].x_pos += (disp_x / disp_mag) * std::min(disp_mag, t_);
-                node_positions_[id].y_pos += (disp_y / disp_mag) * std::min(disp_mag, t_);
-
-                double halfW = W_ / 2.0;
-                double halfH = H_ / 2.0;
-
-                node_positions_[id].x_pos = std::max(-halfW, std::min(halfW, node_positions_[id].x_pos));
-                node_positions_[id].y_pos = std::max(-halfH, std::min(halfH, node_positions_[id].y_pos));
-            }
-        }
-    }
 }
 
 void GraphLayoutEngine::apply_attractive_forces() {
@@ -167,43 +148,43 @@ void GraphLayoutEngine::apply_attractive_forces() {
             node_displacements_[v_id].y += dy;
         }
     }
-    
-    // Safe update using the input_nodes_ list to avoid ID-as-index errors
-    for (const auto& node : input_nodes_) {
-        if (!node.is_fixed) {
-            int id = node.id;
-            double disp_x = node_displacements_[id].x;
-            double disp_y = node_displacements_[id].y;
-            double disp_mag = std::sqrt(disp_x*disp_x + disp_y*disp_y);
-
-            if (disp_mag > 0) {
-                node_positions_[id].x_pos += (disp_x / disp_mag) * std::min(disp_mag, t_);
-                node_positions_[id].y_pos += (disp_y / disp_mag) * std::min(disp_mag, t_);
-
-                double halfW = W_ / 2.0;
-                double halfH = H_ / 2.0;
-
-                node_positions_[id].x_pos = std::max(-halfW, std::min(halfW, node_positions_[id].x_pos));
-                node_positions_[id].y_pos = std::max(-halfH, std::min(halfH, node_positions_[id].y_pos));
-            }
-        }
-    }
 }
 
 void GraphLayoutEngine::cool_down() {
     t_ *= C_COOLING;
 }
 
+void GraphLayoutEngine::update_positions() {
+    for (const auto& node : input_nodes_) {
+        if (node.is_fixed) continue;
+
+        int id = node.id;
+        double dx = node_displacements_[id].x;
+        double dy = node_displacements_[id].y;
+        double dist = std::sqrt(dx*dx + dy*dy);
+
+        if (dist > 0) {
+            // Apply displacement limited by temperature
+            node_positions_[id].x_pos += (dx / dist) * std::min(dist, t_);
+            node_positions_[id].y_pos += (dy / dist) * std::min(dist, t_);
+            
+            // Boundary constraints
+            node_positions_[id].x_pos = std::max(-W_/2.0, std::min(W_/2.0, node_positions_[id].x_pos));
+            node_positions_[id].y_pos = std::max(-H_/2.0, std::min(H_/2.0, node_positions_[id].y_pos));
+        }
+    }
+}
+
 std::vector<NodeOutput> GraphLayoutEngine::computeLayout(int max_iterations, double initial_temperature) {
     if (input_nodes_.empty()) return {};
 
     t_ = initial_temperature;
-    initialize_positions();
 
     for (int iter = 0; iter < max_iterations; iter++) {
         apply_repulsive_forces();
         apply_attractive_forces();
 
+        update_positions();
         cool_down();
     }
 

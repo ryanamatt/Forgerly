@@ -255,6 +255,19 @@ class AppCoordinator(QObject):
         """
         self.relationship_repo.update_node_is_hidden(char_id=data.get('ID'), is_hidden=data.get('is_hidden'))
 
+    @receiver(Events.GRAPH_NODE_LOCKED_CHANGED)
+    def save_character_node_is_locked(self, data: dict) -> None:
+        """
+        Saves the status of a change is_locked attribute.
+        
+        :param data: A dictionary of the data containing {'ID': int,
+            'is_locked': bool}
+        :type data: dict
+
+        :rtype: None
+        """
+        success = self.relationship_repo.update_node_is_locked(char_id=data.get('ID'), is_locked=data.get('is_locked'))
+
     # --- Update ---
 
     @receiver(Events.REL_UPDATE_REQUESTED)
@@ -720,7 +733,8 @@ class AppCoordinator(QObject):
                 'y': pos_data.get('Y_Position', 0),
                 'color': pos_data.get('Node_Color', '#60A5FA'), # Default color
                 'shape': pos_data.get('Node_Shape', 'Circle'), # Default shape
-                'is_hidden': pos_data.get('Is_Hidden', 0)
+                'is_hidden': pos_data.get('Is_Hidden', 0),
+                'is_locked': pos_data.get('Is_Locked', 0)
             })
 
         # --- Edge Processing ---

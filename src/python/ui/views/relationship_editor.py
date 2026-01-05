@@ -286,6 +286,7 @@ class RelationshipEditor(QWidget):
             for node_data in graph_data.get('nodes', []):
                 char_id = node_data['id']
                 is_hidden = bool(node_data.get('is_hidden', 0))
+                is_locked = bool(node_data.get('is_locked', 0))
 
                 # Create Node Item
                 node = CharacterNode (
@@ -299,6 +300,7 @@ class RelationshipEditor(QWidget):
 
                 node.setVisible(not is_hidden)
                 node.is_hidden = is_hidden
+                node.is_locked = is_locked
 
                 # Connect node's movement signal to the editor's save signal so every node movement is tracked and persisted
                 node.signals.node_moved.connect(self._save_node_positions)
@@ -362,11 +364,11 @@ class RelationshipEditor(QWidget):
                 # Manually trigger the move signal to persist the auto-layout to DB
                 node.signals.node_moved.emit(
                     node_id, pos_data['x_pos'], pos_data['y_pos'],
-                    node.node_color, node.node_shape, node.is_hidden
+                    node.node_color, node.node_shape, node.is_hidden, node.is_locked
                 )
 
-    def _save_node_positions(self, char_id: int, x_pos: int, y_pos: int,
-                             node_color: str, node_shape: str, is_hidden: int) -> None:
+    def _save_node_positions(self, char_id: int, x_pos: int, y_pos: int, node_color: str, node_shape: str, 
+                             is_hidden: int, is_locked: int) -> None:
         """
         Calls the Event to Save the Node Positions.
         
@@ -382,12 +384,14 @@ class RelationshipEditor(QWidget):
         :type node_shape: str
         :param is_hidden: Whether the node is hidden.
         :type is_hidden: int
+        :param is_locked: Whether the node is locked.
+        :type is_locked: int
 
         :rtype: None
         """
         bus.publish(Events.NODE_SAVE_REQUESTED, data={
                 'character_id': char_id, 'x_pos': x_pos, 'y_pos': y_pos, 'node_color': node_color, 
-                'node_shape': node_shape, 'is_hidden': is_hidden,
+                'node_shape': node_shape, 'is_hidden': is_hidden, 'is_locked': is_locked
             })
 
     @receiver(Events.GRAPH_EDGE_VISIBILITY_CHANGED)
@@ -447,14 +451,13 @@ class RelationshipEditor(QWidget):
             return
         
         # 1. Prepare NodeInput data for C++
-        # Note: 'is_fixed' could be linked to a 'pinned' attribute if you add one
         nodes_input = []
         for node_id, node in self.nodes.items():
             nodes_input.append({
                 'id': node_id,
                 'x_pos': node.x(),
                 'y_pos': node.y(),
-                'is_fixed': False 
+                'is_fixed': node.is_locked 
             })
 
         # 2. Prepare EdgeInput data for C++
@@ -480,16 +483,10 @@ class RelationshipEditor(QWidget):
         try:
             # Initialize engine with the actual Scene dimensions
             engine = GraphLayoutEngineWrapper(nodes_input, edges_input, width, height)
-            
-            # Increase iterations for more stability if they are flying off-screen
             new_positions = engine.compute_layout(max_iterations=200, initial_temperature=init_temp)
 
             self._update_node_positions(new_positions)
-            
-            # Optional: Auto-zoom to fit the new layout
-            self.view.fitInView(self.scene.itemsBoundingRect().adjusted(-50, -50, 50, 50), 
-                                Qt.AspectRatioMode.KeepAspectRatio)
-            
+
         except Exception as e:
             QMessageBox.critical(self, "Layout Error", f"C++ Engine failed: {e}")
 

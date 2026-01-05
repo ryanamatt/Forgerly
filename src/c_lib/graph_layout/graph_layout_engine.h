@@ -70,6 +70,7 @@ private:
     void initialize_positions();
     void apply_repulsive_forces();
     void apply_attractive_forces();
+    void update_positions();
     void limit_displacement(double max_disp);
     void cool_down();
     double distance(double x1, double y1, double x2, double y2) const;
