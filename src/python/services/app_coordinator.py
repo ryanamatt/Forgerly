@@ -12,7 +12,7 @@ from ..repository.note_repository import NoteRepository
 from ..repository.relationship_repository import RelationshipRepository
 
 from ..utils.nf_core_wrapper import calculate_read_time
-from ..utils.constants import ViewType, EntityType
+from ..utils.constants import ViewType, EntityType, ExportType
 from ..utils.events import Events
 from ..utils.event_bus import bus, receiver
 
@@ -575,22 +575,6 @@ class AppCoordinator(QObject):
                 self.note_repo.update_note_parent_id(note_id=id, new_parent_id=new_parent_id)
 
         bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': entity_type})
-
-    def update_lore_parent_id(self, lore_id: int, new_parent_id: int | None) -> bool:
-        """
-        Updates the parent ID of a Lore Entry via the repository.
-
-        :param lore_id: The ID of the lore entry to update.
-        :param new_parent_id: The ID of the new parent, or None.
-
-        :returns: True on successful database update, False otherwise.
-        """
-        if isinstance(new_parent_id, int) and new_parent_id <= 0:
-            new_parent_id = None
-        result = self.lore_repo.update_lore_entry_parent_id(lore_id, new_parent_id)
-        if result:
-            pass
-        return result
     
     @receiver(Events.LORE_CATEGORIES_REFRESH)
     def refresh_lore_categories(self, data: dict) -> None:
@@ -601,22 +585,6 @@ class AppCoordinator(QObject):
         """
         categories = self.lore_repo.get_unique_categories()
         bus.publish(Events.LORE_CATEGORIES_CHANGED, data={'categories': categories})
-
-    def update_note_parent_id(self, note_id: int, new_parent_id: int | None) -> bool:
-        """
-        Updates the parent ID of a note via the repository.
-
-        :param note_id: The ID of the note to update.
-        :param new_parent_id: The ID of the new parent, or None.
-
-        :returns: True on successful database update, False otherwise.
-        """
-        if isinstance(new_parent_id, int) and new_parent_id <= 0:
-            new_parent_id = None
-        result = self.note_repo.update_note_parent_id(note_id, new_parent_id)
-        if result:
-            pass
-        return result
     
     @receiver(Events.OUTLINE_REORDER)
     def reordering_item(self, data: dict) -> None:
@@ -641,7 +609,6 @@ class AppCoordinator(QObject):
             QMessageBox.critical(data.get('editor'), "Reordering Error", "Database update failed.")
             self.load_outline(data=data)
 
-    
     # --- Relationship Graph Methods ---
 
     @receiver(Events.GRAPH_LOAD_REQUESTED)
@@ -709,7 +676,6 @@ class AppCoordinator(QObject):
         self.relationship_repo.delete_relationship(data.get('ID'))
         self.load_relationship_graph_data()
 
-
     def _process_graph_data(self, relationships: list[dict], node_positions: list[dict], 
                             relationship_types: list[dict]) -> dict:
         """
@@ -776,43 +742,61 @@ class AppCoordinator(QObject):
             })
         return {'nodes': nodes, 'edges': edges}
 
-    # --- Export Logic Helper (For use by the new Exporter classes) ---
+    # --- Export Logic ---
+
     
-    def get_chapter_data_for_export(self, chapter_ids: list[int] = []) -> list[int]:
+    @receiver(Events.EXPORT_DATA_REQUESTED)
+    def get_data_for_export(self, data: dict) -> None:
         """
-        Fetches all chapter data required for a full or partial story export.
+        Gets all the Data for the export and emits the EXPORT_DATA_RETURN event with the
+            export data.
         
-        :param chapter_ids: A list of chapter IDs to fetch. If empty, all chapters are fetched.
-        :type chapter_ids: list[int]
-        
-        :returns: A list of dictionaries, where each dictionary contains all data for a chapter.
-        :rtype: list[:py:obj:`Any`]
+        :param data: The data needed containg {'export_type: ExportType, selected_ids: list[int]}
+        :type data: dict
         """
-        return self.chapter_repo.get_all_chapters_for_export(chapter_ids)
-    
-    def get_character_data_for_export(self, character_ids: list[int] = []) -> list[int]:
-        """
-        Fetches all character data required for all or some characters export.
+        export_type = data.get('export_type')
+        selected_ids = data.pop('selected_ids', None)
+
+        match export_type:
+            case ExportType.CHAPTERS:
+                return_data = self.chapter_repo.get_all_chapters_for_export(selected_ids)
+                results_name = 'chapters'
+            case ExportType.LORE:
+                return_data = self.lore_repo.get_lore_entries_for_export(selected_ids)
+                results_name = 'lore_entries'
+            case ExportType.CHARACTERS:
+                return_data = self.character_repo.get_all_characters_for_export(selected_ids)
+                results_name = 'characters'
         
-        :param character_ids: A list of character IDs to fetch. If empty, all characters are fetched.
-        :type character_ids: list[int]
+        data.update({results_name: return_data})
         
-        :returns: A list of dictionaries, where each dictionary contains all data for a character.
-        :rtype: list[:py:obj:`Any`]
+        bus.publish(Events.EXPORT_DATA_RETURN, data=data)
+
+    @receiver(Events.EXPORT_LIST_REQUESTED)
+    def get_export_list(self, data: dict) -> None:
         """
-        return self.character_repo.get_all_characters_for_export(character_ids)
-    
-    def get_lore_data_for_export(self, lore_ids: list[int] = []) -> list[int]:
-        """
-        Fetches all lore entry data required for all or some Lore_Entries export.
+        Get's the exports needed to list what to export.
         
-        :param lore_ids: A list of lore IDs to fetch. If empty, all lore entries are fetched.
-        :type lore_ids: list[int]
-        
-        :returns: A list of dictionaries, where each dictionary contains all data for a lore entry.
-        :rtype: list[:py:obj:`Any`]
+        :param data: The data needed containing {'entity_type': EntityType}
+        :type data: dict
+        :rtype: None
         """
-        return self.lore_repo.get_lore_entries_for_export(lore_ids)
+        export_type = data.get('export_type')
+
+        match export_type:
+            case ExportType.CHAPTERS:
+                return_data = self.chapter_repo.get_all_chapters()
+                results_name = 'chapters'
+            case ExportType.LORE:
+                return_data = self.lore_repo.get_all_lore_entries()
+                results_name = 'lore_entries'
+            case ExportType.CHARACTERS:
+                return_data = self.character_repo.get_all_characters()
+                results_name = 'characters'
+
+        bus.publish(Events.EXPORT_LIST_RETURN, data = {
+            'export_type': export_type, results_name: return_data
+        })
     
     # -----------------------------------
     # Entity Lookup Methods
@@ -860,7 +844,6 @@ class AppCoordinator(QObject):
             
         return
             
-    
     # --- Project Stats ---
     
     def get_project_stats(self, wpm: int) -> dict[str, str]:

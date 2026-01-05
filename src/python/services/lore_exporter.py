@@ -3,15 +3,14 @@
 from xhtml2pdf import pisa
 import json
 import yaml
-
+from typing import TextIO
 from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
 from PySide6.QtGui import QTextDocument
 
 from ..services.exporter import Exporter
-from ..utils.constants import FileFormats, generate_file_filter
-
-from typing import TextIO
-from ..services.app_coordinator import AppCoordinator
+from ..utils.constants import FileFormats, generate_file_filter, ExportType
+from ..utils.events import Events
+from ..utils.event_bus import bus, receiver
 
 class LoreExporter(Exporter):
     """
@@ -21,76 +20,80 @@ class LoreExporter(Exporter):
     It is a concrete implementation of :py:class:`~app.services.exporter.Exporter` 
     and supports exporting to multiple formats including html, md, txt, PDF, JSON, and YAML.
     """
-    def __init__(self, coordinator: AppCoordinator, project_title: str) -> None:
+    def __init__(self, project_title: str) -> None:
         """
         Initializes the :py:class:`.LoreExporter`.
 
-        :param coordinator: The application coordinator, used to access the lore repository.
-        :type coordinator: :py:class:`~app.services.app_coordinator.AppCoordinator`
         :param project_title: The current project's title, used for file naming and document metadata.
         :type project_title: str
         
         :rtype: None
         """
-        super().__init__(coordinator=coordinator, project_title=project_title)
+        super().__init__(project_title=project_title)
+
+        bus.register_instance(self)
 
     def export(self, parent: QWidget, selected_ids: list[int] = []) -> bool:
         """
-        The main public method to initiate the lore entry export process.
-        
-        It guides the user through selecting a file path and format, fetches the 
-        lore entry data, and calls the private file writing method.
+        Publishes the event to get the export data.
 
         :param parent: The parent Qt widget, used for modal dialogs like :py:class:`~PySide6.QtWidgets.QFileDialog`.
         :type parent: :py:class:`~PySide6.QtWidgets.QWidget`
-        :param selected_ids: A list of lore entry IDs to export. If empty, all lore entrys are exported.
+        :param selected_ids: A list of Lore Entry IDs to export. If empty, all Lore Entries are exported.
         :type selected_ids: list[int]
         
         :returns: True if the export was successful, False otherwise.
         :rtype: bool
         """
-        formats = FileFormats.ALL
-        formats.remove(FileFormats.EPUB)
-        file_filter = generate_file_filter(formats)
+        bus.publish(Events.EXPORT_DATA_REQUESTED, data={
+            'parent': parent, 'export_type': ExportType.LORE, 'selected_ids': selected_ids
+        })
+
+    @receiver(Events.EXPORT_DATA_RETURN)
+    def _perform_export(self, data: dict) -> None:
+        """
+        Performs the Actual Export with the returning export data.
+        
+        :param data: The needed export data including {'export_type': ExportType.LORE,
+            'parent': parent widget, 'lore_entries' list of all lore_entries to export}
+        :type data: dict
+        :rtype: None
+        """
+        if data.get('export_type') != ExportType.LORE:
+            return
+        
+        parent = data.get('parent', self)
+        lore_data = data.get('lore_entries')
+
+        if not lore_data or not parent:
+            return
+
+        file_formats = FileFormats.ALL
+        file_formats.remove(FileFormats.EPUB)
+        file_filter = generate_file_filter(file_formats)
         file_path, selected_filter = QFileDialog.getSaveFileName(
-            parent, "Export Lore Entries", "Lore.html", file_filter
+            parent, "Export Lore_Entry(s)", "Lore_Entry.html", file_filter
         )
         
         if not file_path:
             return False
 
-        # Determine the export format
-        if 'html' in selected_filter.lower():
-            file_format = "html"
-        elif 'md' in selected_filter.lower():
-            file_format = "markdown"
-        elif 'txt' in selected_filter.lower():
-            file_format = 'txt'
-        elif 'pdf' in selected_filter.lower():
-            file_format = 'pdf'
-        elif 'json' in selected_filter.lower():
-            file_format = 'json'
-        elif 'yaml' in selected_filter.lower():
-            file_format = 'yaml'
-        else: # Default is html
-            file_format = "html"
+        match selected_filter.lower():
+            case 'html': file_format = 'html'
+            case 'md': file_format = 'markdown'
+            case 'txt': file_format = 'txt'
+            case 'pdf': file_format = 'pdf'
+            case 'json': file_format = 'json'
+            case 'yaml': file_format = 'yaml'
+            case _: file_format = 'html'
 
-        try:
-            # 2. Fetch all required data from the coordinator
-            if selected_ids:
-                all_lore_data = self.coordinator.get_lore_data_for_export(lore_ids=selected_ids)
-            else:
-                all_lore_data = self.coordinator.get_lore_data_for_export()
-            
-            # 3. Write content to file
-            self._write_file(file_path, file_format, all_lore_data, parent)
-
-            # Success message is handled by MainWindow/calling context
-            return True
+        try:            
+            self._write_file(file_path, file_format, lore_data, parent)
             
         except Exception as e:
-            QMessageBox.critical(parent, "Export Error", f"Failed to export lore: {e}")
-            return False
+            QMessageBox.critical(parent, "Export Error", f"Failed to export Lore Entry(s): {e}")
+
+        return
 
     def _write_file(self, file_path: str, file_format: str, lore_data: list[dict], parent) -> None:
         """
