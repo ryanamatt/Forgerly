@@ -92,3 +92,6 @@ class Events(str, Enum):
     PROJECT_NEW_REQUESTED = "project.new_requested"
     PROJECT_OPEN_REQUESTED = "project.open_requested"
     PROJECT_STATS_REQUESTED = "project.stats_requested"
+
+    # Application Wide Events
+    APP_SHUTDOWN_INITIATED = "app_shutdown_initiated"

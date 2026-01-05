@@ -6,9 +6,7 @@ from PySide6.QtGui import QCloseEvent, QResizeEvent, QIcon
 import os
 import sys
 import ctypes
-from typing import Any
-
-from .db_connector import DBConnector
+from typing import Any, TYPE_CHECKING
 
 from .ui.ui_factory import UIFactory
 from .ui.view_manager import ViewManager
@@ -26,10 +24,12 @@ from .services.lore_exporter import LoreExporter
 from .utils._version import __version__
 from .utils.theme_utils import apply_theme
 from .utils.constants import ViewType, ExportType, EntityType
-from .utils.exceptions import ConfigurationError, EditorContentError
 from .utils.events import Events
 from .utils.event_bus import bus, receiver
 from .utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from .db_connector import DBConnector
 
 logger = get_logger(__name__)
 
@@ -182,13 +182,14 @@ class MainWindow(QMainWindow):
 
 
         # Close the database connection
-        if self.db_connector:
-            try:
-                self.db_connector.close()
-                logger.info("Project database connection closed.")
-            except Exception as e:
-                # Log the error but continue to allow the window to close
-                logger.error(f"Error closing database connection: {e}", exc_info=True)
+        # if self.db_connector:
+        #     try:
+        #         self.db_connector.close()
+        #         logger.info("Project database connection closed.")
+        #     except Exception as e:
+        #         # Log the error but continue to allow the window to close
+        #         logger.error(f"Error closing database connection: {e}", exc_info=True)
+        bus.publish(Events.APP_SHUTDOWN_INITIATED)
 
         # Accept the close event
         logger.info("MainWindow successfully closed.")
