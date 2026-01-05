@@ -36,8 +36,10 @@ class SettingsManager:
             os.makedirs(self._CONFIG_DIR, exist_ok=True)
 
         except Exception as e:
-            logger.critical(f"FATAL: Failed to create config directory '{self._CONFIG_DIR}'. Check permissions.", exc_info=True)
-            raise ConfigurationError(f"Cannot initialize settings manager. Failed to create directory: {self._CONFIG_DIR}") from e
+            logger.critical(f"FATAL: Failed to create config directory '{self._CONFIG_DIR}'. "
+                            "Check permissions.", exc_info=True)
+            raise ConfigurationError(f"Cannot initialize settings manager. Failed to create "
+                                     f"directory: {self._CONFIG_DIR}") from e
 
         self._ensure_default_settings()
         logger.debug("SettingsManager initialized successfully.")
@@ -52,7 +54,8 @@ class SettingsManager:
         :rtype: None
         """
         if not os.path.exists(self._DEFAULT_FILE):
-            logger.warning(f"Default settings file not found at {self._DEFAULT_FILE}. Creating minimal default file.")
+            logger.warning(f"Default settings file not found at {self._DEFAULT_FILE}. "
+                           "Creating minimal default file.")
             try:
                 default_data = {
                     "last_project_path": "",
@@ -172,7 +175,8 @@ class SettingsManager:
                 os.remove(self._USER_FILE)
                 logger.info(f"User settings file deleted: {self._USER_FILE}. Reverted to defaults.")
             except Exception as e:
-                logger.error(f"Error deleting user settings file: {self._USER_FILE}. File may be locked or permissions denied.", exc_info=True)
+                logger.error(f"Error deleting user settings file: {self._USER_FILE}. File may be "
+                             "locked or permissions denied.", exc_info=True)
                 raise ConfigurationError("Failed to reset user settings due to a file system error.") from e
                 
         # Return a fresh copy of the defaults

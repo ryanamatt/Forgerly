@@ -199,7 +199,8 @@ class SettingsDialog(QDialog):
         reply = QMessageBox.question(
             self,
             "Confirm Revert",
-            "Are you sure you want to revert ALL settings to their factory defaults? This will erase your saved preferences.",
+            "Are you sure you want to revert ALL settings to their factory defaults? This will erase " \
+                "your saved preferences.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
@@ -217,7 +218,8 @@ class SettingsDialog(QDialog):
             if index != -1:
                 self.theme_combo.setCurrentIndex(index)
                 
-            QMessageBox.information(self, "Reverted", "Settings reverted to defaults. Click OK to apply these changes.")
+            QMessageBox.information(self, "Reverted", "Settings reverted to defaults. Click OK to "
+                                    "apply these changes.")
 
     def get_new_settings(self) -> dict:
         """

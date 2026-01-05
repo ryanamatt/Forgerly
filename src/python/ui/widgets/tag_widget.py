@@ -299,7 +299,8 @@ class TagManagerWidget(QWidget):
             if tag_name in self.tags:
                 self.tags.remove(tag_name)
             else:
-                logger.warning(f"Attempted to remove non-existent tag: '{tag_name}'. Ignoring removal from set.")
+                logger.warning(f"Attempted to remove non-existent tag: '{tag_name}'. Ignoring "
+                               "removal from set.")
             
             # 2. Remove the widget from the layout
             i = 0

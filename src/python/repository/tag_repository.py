@@ -145,7 +145,8 @@ class TagRepository:
                 logger.info(f"Successfully set {len(tag_names)} tags for chapter ID: {chapter_id}.")
             return success
         except DatabaseError as e:
-            logger.error(f"Failed to set tags for chapter ID: {chapter_id}. Tag list: {tag_names}", exc_info=True)
+            logger.error(f"Failed to set tags for chapter ID: {chapter_id}. Tag list: {tag_names}", 
+                         exc_info=True)
             raise e
         
     # --- Tags for Lore ---
@@ -204,7 +205,8 @@ class TagRepository:
                 logger.info(f"Successfully set {len(tag_names)} tags for lore entry ID: {lore_id}.")
             return success
         except DatabaseError as e:
-            logger.error(f"Failed to set tags for lore entry ID: {lore_id}. Tag list: {tag_names}", exc_info=True)
+            logger.error(f"Failed to set tags for lore entry ID: {lore_id}. Tag list: {tag_names}", 
+                         exc_info=True)
             raise e
         
     # --- Tags for Notes ---

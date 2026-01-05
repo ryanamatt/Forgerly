@@ -109,7 +109,8 @@ class RelationshipRepository:
         :type lore_id: int
         :param description: The description of the Relationship, Defaults to an Empty String.
         :type description: str
-        :param intensity: The intensity (thickness) of the line connecting the character nodes. Default to 50.
+        :param intensity: The intensity (thickness) of the line connecting the character nodes. 
+            Default to 50.
         :type intensity: int
         :param start_chapter_id: The chapter ID that the relationship begins in. Default is None.
         :type start_chapter_id: int or None
@@ -128,10 +129,12 @@ class RelationshipRepository:
         try:
             relationship_id = self.db._execute_commit(query, params, fetch_id=True)
             if relationship_id:
-                logger.info(f"Created new relationship: ID={relationship_id}, Type_ID={type_id} between Char {char_a_id} and Char {char_b_id}.")
+                logger.info(f"Created new relationship: ID={relationship_id}, Type_ID={type_id}" 
+                            f" between Char {char_a_id} and Char {char_b_id}.")
             return relationship_id
         except DatabaseError as e:
-            logger.error(f"Failed to create relationship between {char_a_id} and {char_b_id} with Type ID {type_id}.", exc_info=True)
+            logger.error(f"Failed to create relationship between {char_a_id} and {char_b_id} with "
+                         f"Type ID {type_id}.", exc_info=True)
             raise e
 
     def delete_relationship(self, relationship_id: int) -> bool:
@@ -155,8 +158,8 @@ class RelationshipRepository:
             raise e
 
     def update_relationship_details(self, relationship_id: int, type_id: int, description: str, 
-                                    intensity: int, lore_id: int | None = None, start_chapter_id: int | None = None, 
-                                    end_chapter_id: int | None = None) -> bool:
+                            intensity: int, lore_id: int | None = None, start_chapter_id: int | None = None, 
+                            end_chapter_id: int | None = None) -> bool:
         """
         Updates the details of a relationships.
         
@@ -365,7 +368,8 @@ class RelationshipRepository:
             raise e
     
 
-    def create_relationship_type(self, type_name: str, short_label: str = "", default_color: str = "#FFFFFF", is_directed: int = 0, line_style: str = "Solid") -> int | None:
+    def create_relationship_type(self, type_name: str, short_label: str = "", default_color: str = "#FFFFFF", 
+                                 is_directed: int = 0, line_style: str = "Solid") -> int | None:
         """
         Creates a new relationship_type.
 
@@ -398,7 +402,8 @@ class RelationshipRepository:
             logger.error(f"Failed to create new relationship type with name: '{type_name}'.", exc_info=True)
             raise e
 
-    def update_relationship_type(self, type_id: int, type_name: str, short_label: str, default_color: str, is_directed: int, line_style: str) -> bool:
+    def update_relationship_type(self, type_id: int, type_name: str, short_label: str, default_color: str, 
+                                 is_directed: int, line_style: str) -> bool:
         """
         Updates an existing relationship type.
 
@@ -433,7 +438,8 @@ class RelationshipRepository:
                 logger.info(f"Updated relationship type ID: {type_id}. New Name: '{type_name}'.")
             return success
         except DatabaseError as e:
-            logger.error(f"Failed to update relationship type ID: {type_id} with name '{type_name}'.", exc_info=True)
+            logger.error(f"Failed to update relationship type ID: {type_id} with name '{type_name}'.", 
+                         exc_info=True)
             raise e
 
     def delete_relationship_type(self, type_id: int) -> bool:
@@ -447,7 +453,8 @@ class RelationshipRepository:
         try:
             success = self.db._execute_commit(query, (type_id,))
             if success:
-                logger.warning(f"Relationship type deleted: ID={type_id}. Associated relationships were also deleted.")
+                logger.warning(f"Relationship type deleted: ID={type_id}. Associated relationships "
+                               "were also deleted.")
             return success
         except DatabaseError as e:
             logger.error(f"Failed to delete relationship type ID: {type_id}.", exc_info=True)

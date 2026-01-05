@@ -194,14 +194,16 @@ class CharacterExporter(Exporter):
             body_content += f'<p><strong>Description:</strong> {description}</p>\n'
             if status: body_content += f'<p class="data-point"><strong>Status:</strong> {status}</p>\n'
             if age: body_content += f'<p class="data-point"><strong>Age:</strong> {age}</p>\n'
-            if date_of_birth: body_content += f'<p class="data-point"><strong>Date of Birth:</strong> {date_of_birth}</p>\n'
-            if pronouns: body_content += f'<p class="data-point"><strong>Pronouns:</strong> {pronouns}</p>\n'
-            if sex_orient: body_content += f'<p class="data-point"><strong>Sexual Orientation:</strong> {sex_orient}</p>\n'
-            if gen_ident: body_content += f'<p class="data-point"><strong>Gender Identity:</strong> {gen_ident}</p>\n'
-            if ethn_back: body_content += f'<p class="data-point"><strong>Ethnic Background:</strong> {ethn_back}</p>\n'
-            if occu_school: body_content += f'<p class="data-point"><strong>Occupation/School:</strong> {occu_school}</p>\n'
-            if home_city: body_content += f'<p class="data-point"><strong>Home City/Town:</strong> {home_city}</p>\n'
+            if date_of_birth: 
+                body_content += f'<p class="data-point"><strong>Date of Birth:</strong> {date_of_birth}</p>\n'
+            if pronouns: 
+                body_content += f'<p class="data-point"><strong>Pronouns:</strong> {pronouns}</p>\n'
+            if occu_school: 
+                body_content += f'<p class="data-point"><strong>Occupation/School:</strong> {occu_school}</p>\n'
+            if home_city: 
+                body_content += f'<p class="data-point"><strong>Home City/Town:</strong> {home_city}</p>\n'
             if phys_desc: body_content += f'<p><strong>Physical Description:</strong> {phys_desc}</p>\n'
+
             body_content += '</div>\n'
 
         # Full HTML structure
@@ -235,7 +237,24 @@ class CharacterExporter(Exporter):
         # HTML Header/Preamble
         f.write(f"<!DOCTYPE html><html><head><title>{self.project_title} Character(s)</title>")
         f.write("<meta charset='UTF-8'>")
-        f.write("<style>body{font-family: Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto;} h1{color: #333; border-bottom: 2px solid #ccc; padding-bottom: 5px;} h2{color: #555;}</style>")
+        f.write("""
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    max-width: 800px;
+                    margin: 40px auto;
+                }
+                h1 {
+                    color: #333;
+                    border-bottom: 2px solid #ccc;
+                    padding-bottom: 5px;
+                }
+                h2 {
+                    color: #555;
+                }
+            </style>
+            """)       
         f.write("</head><body>\n")
 
         for character in characters_data:

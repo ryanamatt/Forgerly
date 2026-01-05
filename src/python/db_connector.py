@@ -113,7 +113,8 @@ class DBConnector:
 
     # --- Core Execution Methods (Used by all Repositories) ---
 
-    def _execute_query(self, sql: str, params: tuple | None = None, fetch_one: bool = False, fetch_all: bool = False, as_list: bool = False) -> Any:
+    def _execute_query(self, sql: str, params: tuple | None = None, fetch_one: bool = False, 
+                       fetch_all: bool = False, as_list: bool = False) -> Any:
         """
         Internal method for executing SELECT queries or single non-SELECT operations 
         (INSERT/UPDATE/DELETE).
@@ -161,7 +162,8 @@ class DBConnector:
                 original_exception=e
             ) from e
 
-    def _execute_commit(self, sql: str, params: tuple | None = None, fetch_id: bool = False) -> bool | int | None:
+    def _execute_commit(self, sql: str, params: tuple | None = None, 
+                        fetch_id: bool = False) -> bool | int | None:
         """
         Executes a non-SELECT query (INSERT/UPDATE/DELETE) and commits.
         
@@ -194,7 +196,8 @@ class DBConnector:
             logger.error(f"Database Commit Error: {e}\nSQL: {sql}\nParams: {params}", exc_info=True)
             self.conn.rollback()
             raise DatabaseError(
-                message=f"Error executing database modification (INSERT/UPDATE/DELETE). Transaction rolled back.",
+                message=f"Error executing database modification (INSERT/UPDATE/DELETE). Transaction \
+                    rolled back.",
                 original_exception=e
             ) from e
         

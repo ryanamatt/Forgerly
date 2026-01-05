@@ -37,7 +37,8 @@ class CharacterNode(QGraphicsEllipseItem):
     relationship graph canvas.
     """
 
-    def __init__(self, char_id: int, name: str, x: float, y: float, color: str, shape: str, parent=None) -> None:
+    def __init__(self, char_id: int, name: str, x: float, y: float, color: str, shape: str, 
+                 parent=None) -> None:
         """
         Initializes the character node.
         
@@ -440,6 +441,8 @@ class RelationshipEdge(QGraphicsLineItem):
         action = menu.exec(event.screenPos())
         
         if action == edit_action:
-            bus.publish(Events.REL_DETAILS_REQUESTED, data={'source': self.source_node, 'target': self.target_node, 'ID': self.edge_data.get('id')})
+            bus.publish(Events.REL_DETAILS_REQUESTED, data={'source': self.source_node, 
+                                        'target': self.target_node, 'ID': self.edge_data.get('id')})
         elif action == delete_action:
-            bus.publish(Events.REL_DELETE_REQUESTED, data={'source': self.source_node, 'target': self.target_node, 'ID': self.edge_data.get('id')})
+            bus.publish(Events.REL_DELETE_REQUESTED, data={'source': self.source_node, 
+                                        'target': self.target_node, 'ID': self.edge_data.get('id')})

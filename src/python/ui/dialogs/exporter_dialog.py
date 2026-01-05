@@ -176,7 +176,8 @@ class ExporterDialog(QDialog):
 
         # 2. Validation check: Ensure items are selected for non-Story exports
         if self.selected_export_type != ExportType.STORY and not self.selected_item_ids:
-            QMessageBox.warning(self, "Selection Required", f"Please select one or more items to export under the '{self.selected_export_type}' category.")
+            QMessageBox.warning(self, "Selection Required", f"Please select one or more items to "
+                                f"export under the '{self.selected_export_type}' category.")
             return # Stop acceptance process
 
         # 3. Emit the signal for the MainWindow/Coordinator to handle

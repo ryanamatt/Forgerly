@@ -302,7 +302,8 @@ class LoreOutlineManager(BaseOutlineManager):
 
         :rtype: None
         """
-        bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': EntityType.LORE, 'ID': self.current_item_id, 'parent': self})
+        bus.publish(Events.PRE_ITEM_CHANGE, data={'entity_type': EntityType.LORE, 
+                                                  'ID': self.current_item_id, 'parent': self})
         self._delete_lore(item)
 
     def find_lore_item_by_id(self, lore_id: int) -> QTreeWidgetItem | None:

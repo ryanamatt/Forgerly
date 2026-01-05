@@ -179,7 +179,8 @@ class StartMenuWindow(QMainWindow):
             return True
 
         except Exception as e:
-            logger.error(f"Failed to scaffold project files for '{project_name}' at '{project_path}'", exc_info=True)
+            logger.error(f"Failed to scaffold project files for '{project_name}' at '{project_path}'",
+                         exc_info=True)
             
             if project_path.is_dir():
                 logger.warning(f"Attempting to clean up partially created directory: {project_path}")
@@ -187,7 +188,8 @@ class StartMenuWindow(QMainWindow):
                 logger.warning("Cleanup complete (or ignored errors).")
                 
             raise ConfigurationError(
-                message="Failed to create project files (database, config, or subfolders). Check permissions or disk space.",
+                message="Failed to create project files (database, config, or subfolders). \
+                    Check permissions or disk space.",
                 original_exception=e
             )
 
@@ -229,7 +231,8 @@ class StartMenuWindow(QMainWindow):
             
             if not folder_name:
                 logger.warning(f"Project name '{project_name}' resulted in an invalid folder name.")
-                QMessageBox.warning(self, "Invalid Name", "The project name resulted in an invalid folder name.")
+                QMessageBox.warning(self, "Invalid Name", "The project name resulted in an invalid \
+                                    folder name.")
                 return
 
             # Define the final project path
@@ -242,7 +245,8 @@ class StartMenuWindow(QMainWindow):
                 QMessageBox.warning(
                     self, 
                     "Project Exists", 
-                    f"A folder named '{folder_name}' already exists in the selected location. Please choose a different name or location."
+                    f"A folder named '{folder_name}' already exists in the selected location. \
+                        Please choose a different name or location."
                 )
                 return
 
@@ -266,11 +270,13 @@ class StartMenuWindow(QMainWindow):
             )
         except Exception as e:
             # Catch I/O, permissions, or disk errors during root folder creation
-            logger.error(f"Failed to create project folder or structure at '{project_path}'", exc_info=True)
+            logger.error(f"Failed to create project folder or structure at '{project_path}'", 
+                         exc_info=True)
             QMessageBox.critical(
                 self,
                 "Folder Creation Error",
-                f"Could not create the project folder at '{project_path}'.\nDetails: Please check write permissions and disk space."
+                f"Could not create the project folder at '{project_path}'.\nDetails: Please check \
+                    write permissions and disk space."
             )
 
     def _open_existing_project(self):
