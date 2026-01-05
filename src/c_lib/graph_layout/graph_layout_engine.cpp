@@ -113,27 +113,6 @@ void GraphLayoutEngine::apply_repulsive_forces() {
             }
         }
     }
-    
-    // // Safety check: Use the original vector's node data to check is_fixed safely
-    // for (const auto& node : input_nodes_) {
-    //     if (!node.is_fixed) {
-    //         int id = node.id;
-    //         double disp_x = node_displacements_[id].x;
-    //         double disp_y = node_displacements_[id].y;
-    //         double disp_mag = std::sqrt(disp_x*disp_x + disp_y*disp_y);
-
-    //         if (disp_mag > 0) {
-    //             node_positions_[id].x_pos += (disp_x / disp_mag) * std::min(disp_mag, t_);
-    //             node_positions_[id].y_pos += (disp_y / disp_mag) * std::min(disp_mag, t_);
-
-    //             double halfW = W_ / 2.0;
-    //             double halfH = H_ / 2.0;
-
-    //             node_positions_[id].x_pos = std::max(-halfW, std::min(halfW, node_positions_[id].x_pos));
-    //             node_positions_[id].y_pos = std::max(-halfH, std::min(halfH, node_positions_[id].y_pos));
-    //         }
-    //     }
-    // }
 }
 
 void GraphLayoutEngine::apply_attractive_forces() {
@@ -169,27 +148,6 @@ void GraphLayoutEngine::apply_attractive_forces() {
             node_displacements_[v_id].y += dy;
         }
     }
-    
-    // // Safe update using the input_nodes_ list to avoid ID-as-index errors
-    // for (const auto& node : input_nodes_) {
-    //     if (!node.is_fixed) {
-    //         int id = node.id;
-    //         double disp_x = node_displacements_[id].x;
-    //         double disp_y = node_displacements_[id].y;
-    //         double disp_mag = std::sqrt(disp_x*disp_x + disp_y*disp_y);
-
-    //         if (disp_mag > 0) {
-    //             node_positions_[id].x_pos += (disp_x / disp_mag) * std::min(disp_mag, t_);
-    //             node_positions_[id].y_pos += (disp_y / disp_mag) * std::min(disp_mag, t_);
-
-    //             double halfW = W_ / 2.0;
-    //             double halfH = H_ / 2.0;
-
-    //             node_positions_[id].x_pos = std::max(-halfW, std::min(halfW, node_positions_[id].x_pos));
-    //             node_positions_[id].y_pos = std::max(-halfH, std::min(halfH, node_positions_[id].y_pos));
-    //         }
-    //     }
-    // }
 }
 
 void GraphLayoutEngine::cool_down() {
