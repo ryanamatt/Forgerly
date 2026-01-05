@@ -38,5 +38,7 @@
     <file>icons/visible-off.svg</file>
     <file>icons/visible-on.svg</file>
     <file>icons/zoom-reset.svg</file>
+    <file>icons/lock.svg</file>
+    <file>icons/unlock.svg</file>
   </qresource>
 </RCC>

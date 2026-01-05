@@ -318,6 +318,29 @@ class RelationshipRepository:
         except DatabaseError as e:
             logger.warning("Failed to save character node new is_locked attribute", exc_info=True)
             raise e
+        
+    def update_node_bulk_is_locked(self, char_ids: list[int], is_locked: bool) -> bool:
+        """
+        Bulk Updates a list of Node_Ids to the is_locked value.
+        
+        :param char_ids: A list of the Node IDs.
+        :type char_ids: list[int]
+        :param is_locked: The new Is_Locked value to set to each ID.
+        :type is_locked: bool
+        :return: Returns True if successfully saved, otherwise False
+        :rtype: bool
+        """
+        placeholders = ', '.join(['?'] * len(char_ids))
+        query = f"UPDATE Character_Node_Positions SET Is_Locked = ? WHERE Character_ID IN ({placeholders})"
+        params = [1 if is_locked else 0] + char_ids
+        try:
+            success = self.db._execute_commit(query, params)
+            if success:
+                logger.info(f"Successfully saved new is_locked attribute, Char_IDs: {char_ids}")
+            return success
+        except DatabaseError as e:
+            logger.warning("Failed to save new IDS new is_locked attribute", exc_info=True)
+            raise e
     
     # =========================================================================
     # Relationship Types (Configuration)

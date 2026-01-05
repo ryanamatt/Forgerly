@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QGraphicsView, QGraphicsScene, QGraphicsLineItem, QMessageBox, 
     QFrame, QDialog, QToolBar
 )
-from PySide6.QtCore import Qt, QLineF
+from PySide6.QtCore import Qt, QLineF, QPointF
 from PySide6.QtGui import QPen, QAction, QIcon
 from typing import Any
 
@@ -51,6 +51,7 @@ class RelationshipEditor(QWidget):
         self.available_rel_types: list[dict] = []
         self.selected_node_a: CharacterNode | None = None
         self.selected_node_b: CharacterNode | None = None
+        self.bulk_is_locked: bool = False
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 
@@ -83,33 +84,26 @@ class RelationshipEditor(QWidget):
         :rtype: None
         """
         self.toolbar = QToolBar()
-        self.grid_action = QAction("Show Grid", self)
-        self.grid_action.setIcon(QIcon(":icons/grid.svg"))
-        self.grid_action.setCheckable(True)
-        self.grid_action.setChecked(True)
-        self.grid_action.triggered.connect(self.view.toggle_grid)
-        
-        self.snap_action = QAction("Snap to Grid", self)
-        self.snap_action.setIcon(QIcon(":icons/snap-grid.svg"))
-        self.snap_action.setCheckable(True)
-        self.snap_action.setChecked(True)
-        self.snap_action.triggered.connect(self.view.toggle_snap)
 
-        self.layout_action = QAction("Auto Layout", self)
-        self.layout_action.setIcon(QIcon(":icons/auto-layout.svg"))
-        self.layout_action.triggered.connect(self.apply_auto_layout)
+        def add_btn(text: str, icon: str, slot: callable, checkable: bool = False) -> QAction:
+            action = QAction(text, self)
+            action.setIcon(QIcon(f":icons/{icon}"))
+            if checkable:
+                action.setCheckable(checkable)
+                action.setChecked(checkable)
+            action.triggered.connect(slot)
+            self.toolbar.addAction(action)
+            return action
 
-        self.reset_zoom_action = QAction("Reset Zoom", self)
-        self.reset_zoom_action.setIcon(QIcon(":icons/zoom-reset.svg"))
-        self.reset_zoom_action.triggered.connect(self.reset_view_zoom)
-        
-        self.toolbar.addAction(self.grid_action)
-        self.toolbar.addAction(self.snap_action)
-        self.toolbar.addAction(self.layout_action)
+
+        self.grid_action = add_btn("Show Grid", "grid.svg", self.view.toggle_grid, True)
+        self.snap_action = add_btn("Snap to Grid", "snap-grid.svg", self.view.toggle_snap, True)
+        self.layout_action = add_btn("Auto Layout", "auto-layout.svg", self.apply_auto_layout)
+        self.lock_all_action = add_btn("Lock/Unlock All Characters", "lock.svg", self.toggle_lock_nodes, True)
 
         self.toolbar.addSeparator()
 
-        self.toolbar.addAction(self.reset_zoom_action)
+        self.reset_zoom_action = add_btn("Reset Zoom", "zoom-reset.svg", self.reset_view_zoom)
 
     @receiver(Events.REL_TYPES_RECEIVED)
     def set_available_relationship_types(self, data: dict) -> None:
@@ -312,6 +306,17 @@ class RelationshipEditor(QWidget):
                 self.scene.addItem(node)
                 self.nodes[char_id] = node
 
+            if self.nodes:
+                all_locked = all(node.is_locked for node in self.nodes.values())
+                self.bulk_is_locked = all_locked
+                self.lock_all_action.setChecked(self.bulk_is_locked)
+
+                icon_name = "unlock.svg" if self.bulk_is_locked else "lock.svg"
+                self.lock_all_action.setIcon(QIcon(f":icons/{icon_name}"))
+            else:
+                self.bulk_is_locked = False
+                self.lock_all_action.setChecked(False)
+
             # Create Edges (Relationships)
             for edge_data in graph_data.get('edges', []):
                 source_id = edge_data['source']
@@ -494,6 +499,26 @@ class RelationshipEditor(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Layout Error", f"C++ Engine failed: {e}")
 
+    def toggle_lock_nodes(self) -> None:
+        """
+        Toggles wether to lock/unlock all nodes.
+        """
+        self.bulk_is_locked = not self.bulk_is_locked
+
+        icon_name = "unlock.svg" if self.bulk_is_locked else "lock.svg"
+        self.lock_all_action.setIcon(QIcon(f":icons/{icon_name}"))
+
+        node_ids = []
+        for node_id, node in self.nodes.items():
+            node.is_locked = self.bulk_is_locked
+            node_ids.append(node_id)
+        
+        # Publish one event for the entire operation
+        bus.publish(Events.GRAPH_NODE_LOCKED_BULK_CHANGED, data={
+            'char_ids': node_ids, 
+            'is_locked': self.bulk_is_locked
+    })
+
     def reset_view_zoom(self) -> None:
         """
         Resets the canvas zoom to 100%.
@@ -501,8 +526,11 @@ class RelationshipEditor(QWidget):
         :rtype: None
         """
         self.view.reset_zoom()
+
+        self.view.scale(0.75, 0.75)
         if self.nodes:
-            self.view.centerOn(self.scene.itemsBoundingRect().center())
+            center_point = self.scene.itemsBoundingRect().center()
+            self.view.centerOn(center_point)
         else:
             self.view.centerOn(0, 0)
 
