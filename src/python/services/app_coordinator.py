@@ -267,8 +267,22 @@ class AppCoordinator(QObject):
 
         :rtype: None
         """
-        success = self.relationship_repo.update_node_is_locked(char_id=data.get('ID'), 
-                                                               is_locked=data.get('is_locked'))
+        self.relationship_repo.update_node_is_locked(char_id=data.get('ID'), 
+                                                     is_locked=data.get('is_locked'))
+        
+    @receiver(Events.GRAPH_NODE_LOCKED_BULK_CHANGED)
+    def save_character_node_bulk_is_locked(self, data: dict) -> None:
+        """
+        Saves the status of a change is_locked attribute.
+        
+        :param data: A dictionary of the data containing {'ID': int,
+            'is_locked': bool}
+        :type data: dict
+
+        :rtype: None
+        """
+        self.relationship_repo.update_node_bulk_is_locked(**data)
+
 
     # --- Update ---
 
