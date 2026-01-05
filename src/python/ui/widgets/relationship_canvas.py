@@ -82,6 +82,14 @@ class RelationshipCanvas(QGraphicsView):
         """
         self.snap_to_grid = enabled
 
+    def reset_zoom(self) -> None:
+        """
+        Resets the view transformation to the default (1:1 scale).
+
+        :rtype: None
+        """
+        self.resetTransform()
+
     # --- Events Handling ---
 
     def wheelEvent(self, event: QWheelEvent) -> None:
