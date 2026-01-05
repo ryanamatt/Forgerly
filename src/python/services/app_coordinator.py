@@ -726,8 +726,6 @@ class AppCoordinator(QObject):
             char_id = char['ID']
             pos_data = pos_map.get(char_id, {})
 
-            print(pos_data, char.get('Name'))
-
             nodes.append({
                 'id': char_id,
                 'name': char['Name'],

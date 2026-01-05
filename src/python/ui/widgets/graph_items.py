@@ -234,8 +234,10 @@ class CharacterNode(QGraphicsEllipseItem):
         menu = QMenu()
 
         connect_action = menu.addAction("Connect to Character...")
-        set_visible_action = menu.addAction("Make Character Visibility")
-        lock_node_action = menu.addAction("Lock Character")
+        set_visible_action = menu.addAction("Make Character Invisible")
+
+        lock_node_action_text = "Unlock Character" if self.is_locked else "Lock Character"
+        lock_node_action = menu.addAction(lock_node_action_text)
     
         view = self.scene().views()[0]
         editor: 'RelationshipEditor' = view.parent()
