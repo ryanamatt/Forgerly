@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QGraphicsView, QGraphicsScene, QGraphicsLineItem, QMessageBox, 
     QFrame, QDialog, QToolBar
 )
-from PySide6.QtCore import Qt, QLineF, QPointF
+from PySide6.QtCore import Qt, QLineF
 from PySide6.QtGui import QPen, QAction, QIcon
 from typing import Any
 
@@ -51,7 +51,9 @@ class RelationshipEditor(QWidget):
         self.available_rel_types: list[dict] = []
         self.selected_node_a: CharacterNode | None = None
         self.selected_node_b: CharacterNode | None = None
+
         self.bulk_is_locked: bool = False
+        self.is_label_visible: bool = True
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 
@@ -104,6 +106,7 @@ class RelationshipEditor(QWidget):
         self.toolbar.addSeparator()
 
         self.reset_zoom_action = add_btn("Reset Zoom", "zoom-reset.svg", self.reset_view_zoom)
+        self.toggle_labels_action = add_btn("Toggle Label Visbility", "visible-on", self.toggle_labels, True)
 
     @receiver(Events.REL_TYPES_RECEIVED)
     def set_available_relationship_types(self, data: dict) -> None:
@@ -533,6 +536,22 @@ class RelationshipEditor(QWidget):
             self.view.centerOn(center_point)
         else:
             self.view.centerOn(0, 0)
+
+    def toggle_labels(self) -> None:
+        """
+        Toggles Whether or not the Short Labels are Visible on the Graph Edges.
+
+        :rtype: None        
+        """
+        self.is_label_visible = not self.is_label_visible
+
+        # for edge_id, edge in self.edges.items():
+        #     print
+        for edge in self.edges:
+            edge.label_item.setVisible(self.is_label_visible)
+
+        icon_name = "visible-on.svg" if self.is_label_visible else "visible-off.svg"
+        self.toggle_labels_action.setIcon(QIcon(f":icons/{icon_name}"))
 
     # --- State Managers --- 
 
