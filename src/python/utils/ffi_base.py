@@ -15,14 +15,6 @@ else:
 
 ffi = FFI()
 
-# Define common data structures used by multiple modules
-ffi.cdef("""
-    typedef struct {
-        double x;
-        double y;
-    } Point;
-""")
-
 try:
     _lib_path_local = os.path.join(os.path.dirname(__file__), '..', '..', 'c_lib', _LIB_NAME)
     try:

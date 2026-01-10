@@ -4,6 +4,11 @@ from .ffi_base import ffi, lib
 # Append graph-specific definitions
 ffi.cdef("""
     typedef struct {
+        double x;
+        double y;
+    } Point;
+         
+    typedef struct {
         int id;
         double x_pos;
         double y_pos;
