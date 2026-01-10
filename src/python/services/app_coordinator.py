@@ -11,7 +11,7 @@ from ..repository.character_repository import CharacterRepository
 from ..repository.note_repository import NoteRepository
 from ..repository.relationship_repository import RelationshipRepository
 
-from ..utils.nf_core_wrapper import calculate_read_time
+from ..utils.text_stats import calculate_read_time
 from ..utils.constants import ViewType, EntityType, ExportType
 from ..utils.events import Events
 from ..utils.event_bus import bus, receiver

@@ -12,7 +12,7 @@ from ...resources_rc import *
 from ..widgets.graph_items import CharacterNode, RelationshipEdge
 from ..widgets.relationship_canvas import RelationshipCanvas
 from ..dialogs.relationship_dialog import RelationshipCreationDialog
-from ...utils.nf_core_wrapper import GraphLayoutEngineWrapper
+from ...utils.graph_layout import GraphLayoutEngineWrapper
 from ...utils.constants import EntityType
 from ...utils.events import Events
 from ...utils.event_bus import bus, receiver

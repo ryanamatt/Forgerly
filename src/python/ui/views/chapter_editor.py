@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt
 
 from .base_editor import BaseEditor
 from ...ui.widgets.rich_text_editor import RichTextEditor
-from ...utils.nf_core_wrapper import calculate_word_count, calculate_character_count, calculate_read_time
+from ...utils.text_stats import calculate_word_count, calculate_character_count, calculate_read_time
 from ...utils.constants import EntityType
 from ...utils.events import Events
 from ...utils.event_bus import bus, receiver

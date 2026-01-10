@@ -21,7 +21,7 @@
 ### **Core (C++ & Bridge)**
 
 - [ ] Modified `c_lib/` (e.g., `graph_layout_engine.cpp`)
-- [ ] Updated `nf_core_wrapper.py` or C-API `Node`/`Edge` structs
+- [ ] Updated `Python C++ Wrappers` or C-API `Node`/`Edge` structs
 
 ### **Data & Schema**
 
