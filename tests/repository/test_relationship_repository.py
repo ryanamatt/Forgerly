@@ -142,14 +142,14 @@ def test_save_and_get_node_attributes(rel_repo: RelationshipRepository, char_rep
     char_id = create_test_character(char_repo, "GraphNode")
     
     # 1. Initial Insert
-    rel_repo.save_node_attributes(char_id, 100.5, 200.5, "#FF0000", "Square", 0)
+    rel_repo.save_node_attributes(char_id, 100.5, 200.5, "#FF0000", "Square", 0, 0)
     positions = rel_repo.get_all_node_positions()
     assert len(positions) == 1
     assert positions[0]['X_Position'] == 100.5
     assert positions[0]['Node_Color'] == "#FF0000"
     
     # 2. Update (INSERT OR REPLACE)
-    rel_repo.save_node_attributes(char_id, 50.0, 50.0, "#000000", "Circle", 1)
+    rel_repo.save_node_attributes(char_id, 50.0, 50.0, "#000000", "Circle", 1, 1)
     
     # Should still only be one row
     positions = rel_repo.get_all_node_positions()
@@ -159,3 +159,4 @@ def test_save_and_get_node_attributes(rel_repo: RelationshipRepository, char_rep
     assert positions[0]['X_Position'] == 50.0
     assert positions[0]['Node_Color'] == "#000000"
     assert positions[0]['Is_Hidden'] == 1
+    assert positions[0]['Is_Locked'] == 1
