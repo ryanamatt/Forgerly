@@ -3,6 +3,7 @@
 
 #include "text_stats/text_stats_engine.h"
 #include "graph_layout/graph_layout_engine.h"
+#include "spell_checker/spell_checker_engine.h"
 #include <cstring>
 #include <string>
 #include <vector>
@@ -118,6 +119,141 @@ int graph_layout_compute(
 
     *output_count = static_cast<int>(count);
     return 0; // Indicate success
+}
+
+// --- Spell Checker Engine C-API Wrappers ---
+
+using SpellCheckerHandle = void*;
+
+/**
+ * @brief Creates a new SpellCheckerEngine instance.
+ * @return An opaque handle to the SpellCheckerEngine Object.
+ */
+SpellCheckerHandle spell_checker_create() {
+    try {
+        SpellCheckerEngine* engine = new SpellCheckerEngine();
+        return static_cast<SpellCheckerHandle>(engine);
+    } catch (const std::exception& e) {
+        std::cerr << "Error creating SpellCheckerEngine: " << e.what() << std::endl;
+        return nullptr;
+    }
+}
+
+/**
+ * @brief Destroys a SpellCheckerEngine instance.
+ * @param handle The opaque handle to the SpellCheckerEngine object.
+ */
+void spell_checker_destroy(SpellCheckerHandle handle) {
+    if (handle) {
+        delete static_cast<SpellCheckerEngine*>(handle);
+    }
+}
+
+/**
+ * @brief Bulk load dictionary words.
+ * @param handle The SpellCheckerEngine handle.
+ * @param words Array of C strings (words).
+ * @param count Number of words.
+ */
+void spell_checker_load_dictionary(SpellCheckerHandle handle, const char** words, int count) {
+    if (handle) {
+        SpellCheckerEngine* engine = static_cast<SpellCheckerEngine*>(handle);
+        engine->loadDictionary(words, count);
+    }
+}
+
+/**
+ * @brief Bulk load custom words.
+ * @param handle The SpellCheckerEngine handle.
+ * @param words Array of C strings (words).
+ * @param count Number of words.
+ */
+void spell_checker_load_custom(SpellCheckerHandle handle, const char** words, int count) {
+    if (handle) {
+        SpellCheckerEngine* engine = static_cast<SpellCheckerEngine*>(handle);
+        engine->loadCustomWords(words, count);
+    }
+}
+
+/**
+ * @brief Add a single custom word.
+ * @param handle The SpellCheckerEngine handle.
+ * @param word The word to add.
+ */
+void spell_checker_add_custom(SpellCheckerHandle handle, const char* word) {
+    if (handle && word) {
+        SpellCheckerEngine* engine = static_cast<SpellCheckerEngine*>(handle);
+        engine->addCustomWord(word);
+    }
+}
+
+/**
+ * @brief Remove a custom word.
+ * @param handle The SpellCheckerEngine handle.
+ * @param word The word to remove.
+ */
+void spell_checker_remove_custom(SpellCheckerHandle handle, const char* word) {
+    if (handle && word) {
+        SpellCheckerEngine* engine = static_cast<SpellCheckerEngine*>(handle);
+        engine->removeCustomWord(word);
+    }
+}
+
+/**
+ * @brief Check if a word is spelled correctly.
+ * @param handle The SpellCheckerEngine handle.
+ * @param word The word to check.
+ * @return 1 if correct, 0 if incorrect.
+ */
+int spell_checker_is_correct(SpellCheckerHandle handle, const char* word) {
+    if (!handle || !word) {
+        return 0;
+    }
+    SpellCheckerEngine* engine = static_cast<SpellCheckerEngine*>(handle);
+    return engine->isCorrect(word) ? 1 : 0;
+}
+
+/**
+ * @brief Structure for passing suggestions back to Python.
+ */
+struct SuggestionOutput {
+    char word[256];  // Fixed size for simplicity
+    int distance;
+};
+
+/**
+ * @brief Get spelling suggestions for a word.
+ * @param handle The SpellCheckerEngine handle.
+ * @param word The word to get suggestions for.
+ * @param max_distance Maximum edit distance.
+ * @param output_array Pre-allocated array to store results.
+ * @param output_count Pointer to store number of suggestions.
+ * @return 0 on success, -1 on failure.
+ */
+int spell_checker_get_suggestions(
+    SpellCheckerHandle handle,
+    const char* word,
+    int max_distance,
+    SuggestionOutput* output_array,
+    int* output_count)
+{
+    if (!handle || !word || !output_array || !output_count) {
+        if (output_count) *output_count = 0;
+        return -1;
+    }
+
+    SpellCheckerEngine* engine = static_cast<SpellCheckerEngine*>(handle);
+    std::vector<SuggestionResult> results = engine->getSuggestions(word, max_distance);
+
+    int count = std::min(static_cast<int>(results.size()), 100); // Limit to 100 suggestions
+    for (int i = 0; i < count; i++) {
+        strncpy(output_array[i].word, results[i].word.c_str(), 255);
+        output_array[i].word[255] = '\0';
+        output_array[i].distance = results[i].distance;
+    }
+
+    *output_count = count;
+    return 0;
 }
 
 } // extern "C"
