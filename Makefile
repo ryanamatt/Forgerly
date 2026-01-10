@@ -22,7 +22,6 @@ SRC_DIR     = src/c_lib
 # Source Files
 SRC_FILES   = $(SRC_DIR)/text_stats/text_stats_engine.cpp \
               $(SRC_DIR)/graph_layout/graph_layout_engine.cpp \
-              $(SRC_DIR)/spell_checker/spell_checker_engine.cpp \
               $(SRC_DIR)/nf_c_api.cpp
 
 # Output Naming
