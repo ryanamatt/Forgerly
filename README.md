@@ -76,6 +76,8 @@ Technical specifications and project guides are maintained in the docs/ director
 
 #### Core Technical Specs
 
+- [Coding Standars](docs/development/STYLE_GUIDE.md): The Style Guide for Contributing Code.
+
 - [Database Schema](docs/SCHEMA.md): Detailed breakdown of SQLite tables, constraints, and performance indexes.
 
 - [C++ Bridge API](docs/CPP_BRIDGE.md): Reference for the cffi layer, memory management, and C-API exports.
@@ -129,3 +131,8 @@ python -m src.python.main
 ## **📄 License**
 
 This project is licensed under the MIT License \- see the [LICENSE](LICENSE) file for details.
+
+## 🤝 Contributing
+
+Please review our [Code of Condcut](CODE_OF_CONDUCT.md) and the [Style Guide](docs/development/STYLE_GUIDE.md) 
+before submitting a Pull Request.
