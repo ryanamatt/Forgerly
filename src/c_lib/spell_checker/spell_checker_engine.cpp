@@ -12,9 +12,18 @@ SpellCheckerEngine::SpellCheckerEngine() {
 }
 
 SpellCheckerEngine::~SpellCheckerEngine() {
-    // TODO Add Recursive Delete
-    delete dictionaryTrie;
-    delete customTrie;
+    deleteTrieNodes(dictionaryTrie);
+    deleteTrieNodes(customTrie);
+}
+
+void SpellCheckerEngine::deleteTrieNodes(TrieNode* node) {
+    if (!node) return;
+    for (int i = 0; i < 26; i++) {
+        if (node->children[i]) {
+            deleteTrieNodes(node->children[i]);
+        }
+    }
+    delete node;
 }
 
 void SpellCheckerEngine::loadDictionary(const char** words, int count) {
@@ -104,7 +113,7 @@ std::vector<SuggestionResult> SpellCheckerEngine::getSuggestions(const char* wor
 }
 
 bool SpellCheckerEngine::existsInDictionary(const char* word) const {
-    if (!word || word[0] != '\0') {
+    if (!word || word[0] == '\0') {
         return false;
     }
     return searchWord(dictionaryTrie, toLowerCase(word));

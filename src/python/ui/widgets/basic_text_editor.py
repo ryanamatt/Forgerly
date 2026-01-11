@@ -3,12 +3,14 @@
 from PySide6.QtWidgets import (
     QTextEdit, QWidget, QVBoxLayout, QMessageBox
 )
-from PySide6.QtCore import Signal
+from PySide6.QtGui import QTextCharFormat, QTextCursor, QColor, QSyntaxHighlighter
+from PySide6.QtCore import QTimer, Qt
 
+from ...utils.spell_checker import get_spell_checker
 from ...utils.logger import get_logger
 from ...utils.exceptions import EditorContentError
-from ...utils.event_bus import bus
 from ...utils.events import Events
+from ...utils.event_bus import bus
 
 logger = get_logger(__name__)
 
@@ -37,6 +39,12 @@ class BasicTextEditor(QWidget):
 
         bus.register_instance(self)
 
+        self.spell_checker = get_spell_checker()
+        self.spell_check_timer = QTimer(self)
+        self.spell_check_timer.setSingleShot(True)
+        self.spell_check_timer.setInterval(500) # 0.5 Seconds
+        self.spell_check_timer.timeout.connect(self.run_spell_check)
+
         # State tracking for unsaved changes
         self._is_dirty = False
         self._last_saved_content = ""
@@ -52,6 +60,7 @@ class BasicTextEditor(QWidget):
 
         # Connect signals for dirty flag and content change notification
         self.editor.textChanged.connect(self._set_dirty)
+        self.editor.textChanged.connect(lambda: self.spell_check_timer.start())
         self.editor.selectionChanged.connect(self._on_selection_changed)
 
     # --- Dirty Flag Management ---
@@ -101,6 +110,52 @@ class BasicTextEditor(QWidget):
             logger.warning(f"Failed to Mark the Text Editor as saved: {e}", exc_info=True)
             QMessageBox.warning(self, "Mark Save Error", "Failed to Mark Saved due to a UI issue.")
 
+    def run_spell_check(self) -> None:
+        """
+        Runs the Spell Checking and underlines the in correct word.
+        
+        :rtype: None
+        """
+        # Prevent the textChanged signal from firing while we apply formatting
+        self.editor.blockSignals(True)
+        
+        # Save current cursor position to restore later
+        original_cursor = self.editor.textCursor()
+        
+        # Define the 'Error' format (Red wavy underline)
+        error_format = QTextCharFormat()
+        error_format.setUnderlineColor(QColor("red"))
+        error_format.setUnderlineStyle(QTextCharFormat.WaveUnderline)
+        
+        # Define the 'Normal' format (Clear existing underlines)
+        normal_format = QTextCharFormat()
+        normal_format.setUnderlineStyle(QTextCharFormat.NoUnderline)
+
+        # Start a cursor at the beginning of the document
+        cursor = self.editor.textCursor()
+        cursor.movePosition(QTextCursor.Start)
+
+        # Clear all existing formatting first
+        cursor.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
+        cursor.setCharFormat(normal_format)
+        cursor.movePosition(QTextCursor.Start)
+
+        # Regex-like word iteration
+        import re
+        text = self.editor.toPlainText()
+        # Find words using regex (alphabetic characters)
+        for match in re.finditer(r'\b[A-Za-z]+\b', text):
+            word = match.group()
+            
+            if not self.spell_checker.is_correct(word):
+                # Move cursor to the word's position
+                cursor.setPosition(match.start())
+                cursor.setPosition(match.end(), QTextCursor.KeepAnchor)
+                cursor.setCharFormat(error_format)
+
+        # Restore original cursor
+        self.editor.setTextCursor(original_cursor)
+        self.editor.blockSignals(False)
 
     # --- Public Accessors for Content ---
 

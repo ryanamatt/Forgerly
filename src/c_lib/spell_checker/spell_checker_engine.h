@@ -47,6 +47,7 @@ private:
                           const std::vector<int>& prevRow, int maxCost,
                           std::string currentWord, std::vector<SuggestionResult>& results) const;
     std::string toLowerCase(const std::string& str) const;
+    void deleteTrieNodes(TrieNode* node);
 };
 
 #endif // SPELL_CHECKER_ENGINE_H
