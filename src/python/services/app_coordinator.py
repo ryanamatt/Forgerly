@@ -1,5 +1,6 @@
 # src/python/services/app_coordinator.py
 
+import os
 from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QMessageBox
 
@@ -11,10 +12,14 @@ from ..repository.character_repository import CharacterRepository
 from ..repository.note_repository import NoteRepository
 from ..repository.relationship_repository import RelationshipRepository
 
-from ..utils.nf_core_wrapper import calculate_read_time
+from ..utils.text_stats import calculate_read_time
+from ..utils.spell_checker import get_spell_checker
 from ..utils.constants import ViewType, EntityType, ExportType
+from ..utils.logger import get_logger
 from ..utils.events import Events
 from ..utils.event_bus import bus, receiver
+
+logger = get_logger(__name__)
 
 class AppCoordinator(QObject):
     """
@@ -48,6 +53,10 @@ class AppCoordinator(QObject):
         self.note_repo = NoteRepository(self.db)
         self.tag_repo = TagRepository(self.db)
         self.relationship_repo = RelationshipRepository(self.db)
+
+        # Initialize Spell Checker
+        self.spell_checker = get_spell_checker()
+        self._initialize_spell_checker()
 
         # State Tracking
         self.current_item_id: int = 0
@@ -873,3 +882,17 @@ class AppCoordinator(QObject):
             "lore_count": f"{lore_count}", 
             "character_count": f"{char_count}"
         } 
+    
+    # --- Spell Checker ---
+    def _initialize_spell_checker(self) -> None:
+        """
+        Loads the default dictionary file.
+        
+        :rtype: None
+        """
+        dict_path = os.path.join('dictionaries', 'en_US.txt')
+        try:
+            count = self.spell_checker.load_dictionary_from_file(dict_path)
+            logger.info(f"Loaded {count} words into spell checker.")
+        except Exception as e:
+            logger.error(f"Failed to load dictionary: {e}")
