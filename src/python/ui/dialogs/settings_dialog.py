@@ -9,6 +9,8 @@ from typing import Any
 
 from ...services.settings_manager import SettingsManager
 from ...utils.theme_utils import get_available_themes
+from ...utils.events import Events
+from ...utils.event_bus import bus
 
 class SettingsDialog(QDialog):
     """
@@ -32,6 +34,8 @@ class SettingsDialog(QDialog):
         :rtype: None
         """
         super().__init__(parent)
+
+        bus.register_instance(self)
 
         self.setWindowTitle("Application Settings")
         self.setGeometry(200, 200, 600, 400)
@@ -181,7 +185,10 @@ class SettingsDialog(QDialog):
         self._new_settings['theme'] = self.theme_combo.currentText()
         self._new_settings['window_size'] = self.window_size_combo.currentText()
         self._new_settings['outline_width_pixels'] = self.outline_width_spinbox.value()
-        self._new_settings['words_per_minute'] = self.wpm_spinBox.value()
+        new_wpm = self.wpm_spinBox.value()
+        self._new_settings['words_per_minute'] = new_wpm
+
+        bus.publish(Events.WPM_CHANGED, data={'new_wpm': new_wpm})
         
         self.accept()
 

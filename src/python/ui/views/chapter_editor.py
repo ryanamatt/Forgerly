@@ -140,19 +140,20 @@ class ChapterEditor(BaseEditor):
         self.read_time_label.setText(f"Read Time: {read_time_str} (WPM: {self.wpm})")
 
     @receiver(Events.WPM_CHANGED)
-    def set_wpm(self, new_wpm: int) -> None:
+    def set_wpm(self, data: dict) -> None:
         """
         Updates the WPM setting and recalculates the statistics display.
         
-        :param new_wpm: The new WPM number to set. Will default to 250 if <= 0.
-        :type new_wpm: int
+        :param dict: Containing The new WPM number to set. Will default to 250 if <= 0.
+            {'new_wpm': int}
+        :type data: dict
 
         :rtype: None
         """
-        if new_wpm <= 0:
-            new_wpm = 250
+        new_wpm = data.get('new_wpm', 250)
+
         self.wpm = new_wpm
-        self._update_stats_display()
+        self._update_stats_display({'editor': self.text_editor})
 
     @receiver(Events.MARK_SAVED)
     def mark_saved_connection(self, data: dict) -> None:
