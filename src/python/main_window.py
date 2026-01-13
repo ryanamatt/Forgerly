@@ -6,7 +6,9 @@ from PySide6.QtGui import QCloseEvent, QResizeEvent, QIcon
 import os
 import sys
 import ctypes
-from typing import Any, TYPE_CHECKING
+from typing import Any
+
+from .db_connector import DBConnector
 
 from .ui.ui_factory import UIFactory
 from .ui.view_manager import ViewManager
@@ -25,9 +27,6 @@ from .utils.constants import ViewType, EntityType
 from .utils.events import Events
 from .utils.event_bus import bus, receiver
 from .utils.logger import get_logger
-
-if TYPE_CHECKING:
-    from .db_connector import DBConnector
 
 logger = get_logger(__name__)
 
