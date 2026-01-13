@@ -3,8 +3,9 @@
 from PySide6.QtWidgets import (
     QTextEdit, QWidget, QVBoxLayout, QMessageBox
 )
-from PySide6.QtGui import QTextCharFormat, QTextCursor, QColor, QSyntaxHighlighter
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtGui import QTextCharFormat, QTextCursor, QColor, QAction
+from PySide6.QtCore import QTimer, Qt, QPoint
+import re
 
 from ...utils.spell_checker import get_spell_checker
 from ...utils.logger import get_logger
@@ -30,7 +31,6 @@ class BasicTextEditor(QWidget):
 
         :param parent: The parent widget. Defaults to ``None``.
         :type parent: :py:class:`PySide6.QtWidgets.QWidget`
-
         :rtype: None
         """
         super().__init__(parent)
@@ -42,7 +42,7 @@ class BasicTextEditor(QWidget):
         self.spell_checker = get_spell_checker()
         self.spell_check_timer = QTimer(self)
         self.spell_check_timer.setSingleShot(True)
-        self.spell_check_timer.setInterval(500) # 0.5 Seconds
+        self.spell_check_timer.setInterval(2500) # 2.5 Seconds
         self.spell_check_timer.timeout.connect(self.run_spell_check)
 
         # State tracking for unsaved changes
@@ -52,6 +52,8 @@ class BasicTextEditor(QWidget):
         # Core component
         self.editor = QTextEdit()
         self.editor.setPlaceholderText("Start writing here")
+        self.editor.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.editor.customContextMenuRequested.connect(self._show_context_menu)
         
         # Layout setup (similar to your original RichTextEditor setup)
         main_layout = QVBoxLayout(self)
@@ -59,9 +61,102 @@ class BasicTextEditor(QWidget):
         main_layout.addWidget(self.editor)
 
         # Connect signals for dirty flag and content change notification
-        self.editor.textChanged.connect(self._set_dirty)
-        self.editor.textChanged.connect(lambda: self.spell_check_timer.start())
+        self.editor.textChanged.connect(self._text_changed)
         self.editor.selectionChanged.connect(self._on_selection_changed)
+
+    # --- Events ---
+    
+    def _show_context_menu(self, position: QPoint) -> None:
+        """
+        Shows the context menu.
+
+        :param position: The position of the place to show the menu.
+        :type positon: QPoint
+        :rtype: None
+        """
+        # Create the standard context menu
+        menu = self.editor.createStandardContextMenu()
+        
+        # Get the cursor at the position of the right-click
+        cursor = self.editor.cursorForPosition(position)
+        cursor.select(QTextCursor.WordUnderCursor)
+        word = cursor.selectedText().strip()
+
+        # Check if the word is alphabetic and misspelled
+        if word and word.isalpha() and not self.spell_checker.is_correct(word):
+            suggestions = self.spell_checker.get_suggestions(word)
+            
+            if suggestions:
+                menu.addSeparator()
+                suggestion_menu = menu.addMenu(f"Suggestions for '{word}'")
+                
+                for suggestion in suggestions:
+                    suggested_word = suggestion['word']
+                    # Apply capitalization to the suggestion if needed
+                    display_word = self._apply_casing(word, suggested_word)
+
+                    action = QAction(suggested_word, self)
+                    action.triggered.connect(
+                        lambda checked=False, w=display_word, c=cursor: self._replace_word(c, w)
+                    )
+                    suggestion_menu.addAction(action)
+            else:
+                menu.addSeparator()
+                menu.addAction("No suggestions found").setEnabled(False)
+
+        # Show the menu
+        menu.exec(self.editor.mapToGlobal(position))
+
+    def _apply_casing(self, original: str, suggestion: str) -> str:
+        """
+        Adjusts the suggestion string to match the casing of the original word.
+        Handles ALL CAPS, Title Case, and lowercase.
+
+        :param original: The original word.
+        :type original: str
+        :param suggestion: The suggestion word to apply casing to.
+        :type suggestion: str
+        :returns: The suggested word with correct casing.
+        :rtype: str
+        """
+        if not original:
+            return suggestion
+
+        # Case 1: ALL CAPS (e.g., "TEH" -> "THE")
+        if original.isupper():
+            return suggestion.upper()
+
+        # Case 2: Title Case (e.g., "Teh" -> "The")
+        if original[0].isupper():
+            return suggestion.capitalize()
+
+        # Case 3: Default lowercase (e.g., "teh" -> "the")
+        return suggestion.lower()
+
+    def _replace_word(self, cursor: QTextCursor, new_word: str) -> None:
+        """
+        Replaces the misspelled word with the selected suggestion.
+
+        :param cursor: The cursor in the text editor.
+        :type cursor: QTextCursor.
+        :param new_word: The new_word to replace the misspelled word.
+        :type new_word: str
+        :rtype: None
+        """
+        cursor.beginEditBlock()
+        cursor.insertText(new_word)
+        cursor.endEditBlock()
+        # Trigger a re-check to clear the red underline immediately
+        self.run_spell_check()
+
+    def _text_changed(self) -> None:
+        """
+        Handles when the text is changed. Emitted the correct signals.
+        
+        :rtype: None
+        """
+        self._set_dirty()
+        self.spell_check_timer.start()
 
     # --- Dirty Flag Management ---
 
@@ -118,8 +213,6 @@ class BasicTextEditor(QWidget):
         """
         # Prevent the textChanged signal from firing while we apply formatting
         self.editor.blockSignals(True)
-        
-        # Save current cursor position to restore later
         original_cursor = self.editor.textCursor()
         
         # Define the 'Error' format (Red wavy underline)
@@ -127,33 +220,29 @@ class BasicTextEditor(QWidget):
         error_format.setUnderlineColor(QColor("red"))
         error_format.setUnderlineStyle(QTextCharFormat.WaveUnderline)
         
-        # Define the 'Normal' format (Clear existing underlines)
-        normal_format = QTextCharFormat()
-        normal_format.setUnderlineStyle(QTextCharFormat.NoUnderline)
+        clear_underline_format = QTextCharFormat()
+        clear_underline_format.setUnderlineStyle(QTextCharFormat.NoUnderline)
 
-        # Start a cursor at the beginning of the document
+        # Clear ONLY the underlines across the whole document
         cursor = self.editor.textCursor()
+        cursor.beginEditBlock() # Group as one undo operation
         cursor.movePosition(QTextCursor.Start)
-
-        # Clear all existing formatting first
         cursor.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
-        cursor.setCharFormat(normal_format)
-        cursor.movePosition(QTextCursor.Start)
 
-        # Regex-like word iteration
-        import re
+        # Use mergeCharFormat to preserve colors/bold/etc.
+        cursor.mergeCharFormat(clear_underline_format) 
+
+        # Apply red underlines to misspelled words
         text = self.editor.toPlainText()
-        # Find words using regex (alphabetic characters)
         for match in re.finditer(r'\b[A-Za-z]+\b', text):
             word = match.group()
-            
             if not self.spell_checker.is_correct(word):
-                # Move cursor to the word's position
                 cursor.setPosition(match.start())
                 cursor.setPosition(match.end(), QTextCursor.KeepAnchor)
-                cursor.setCharFormat(error_format)
+                # Again, use mergeCharFormat to only add the red wavy line
+                cursor.mergeCharFormat(error_format)
 
-        # Restore original cursor
+        cursor.endEditBlock()
         self.editor.setTextCursor(original_cursor)
         self.editor.blockSignals(False)
 
