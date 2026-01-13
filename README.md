@@ -8,40 +8,23 @@ Narrative Forge is a comprehensive desktop application designed to assist **auth
 
 The application provides specialized views and editors to manage all aspects of your story:
 
--**Chapter Management:** Outline and edit chapters.  
-  -**Chapter Statistics:** The **Chapter Editor** displays real-time statistics for the active chapter, with an additional global statistics dialog for the entire story.
+- **Chapter Management:** Outline and edit chapters.  
+  - **Chapter Statistics:** The **Chapter Editor** displays real-time statistics for the active chapter, with an additional global statistics dialog for the entire story.
 
 ![Screenshot of Chapter Editor with Statistics Panel](docs/user/screenshots/project_statistics.png)
 
--**Character Profiles:** Create and manage detailed character profiles and biographies.  
--**Lore/Worldbuilding Editor:** Document and organize your world's history, locations, and other lore elements.  
--**Relationship Graph:** Visualize character connections through a dynamic node graph.  
-  -**Custom Relationships:** Define custom RelationshipTypes and adjust relationship intensity.  
-  -**High-Performance Layout:** Utilizes a custom **C++ library** implementing the **Fruchterman-Reingold** force-directed algorithm for the "Auto Layout" feature.  
-  -**Precision Tools:** Toggleable background grid and "Snap to Grid" functionality for manual node organization.
+- **Character Profiles:** Create and manage detailed character profiles and biographies.  
+- **Lore/Worldbuilding Editor:** Document and organize your world's history, locations, and other lore elements.  
+- **Relationship Graph:** Visualize character connections through a dynamic node graph.  
+  - **Custom Relationships:** Define custom RelationshipTypes and adjust relationship intensity.  
+  - **High-Performance Layout:** Utilizes a custom **C++ library** implementing the **Fruchterman-Reingold** force-directed algorithm for the "Auto Layout" feature.  
+  - **Precision Tools:** Toggleable background grid and "Snap to Grid" functionality for manual node organization.
 
 ![Screenshot of Relationship Graph with Node Layout and Grid enabled](docs/user/screenshots/relationship_graph.png)
 
--**Tagging System:** Apply tags to various entities for easy organization and filtering.  
--**Inter-Entry Lookup:** While editing a chapter, highlight text and press **Ctrl+Shift+L** to instantly view associated character or lore entries.  
--**Data Export:** Export your story data into shareable formats like Markdown or plain text.
-
-## 🐛 Reporting Bugs & Issues
-
-Narrative Forge is under active development. If you encounter a bug or have a feature request, please help us improve by following these steps:
-
-1. **Check the Roadmap:** See [docs/maintenance/TODO.md](docs/maintenance/TODO.md) to see if the issue is already being tracked.
-  -Check the issue Tracker to ensure the bug has not already been reported.
-
-2. **Open an Issue:** Use the GitHub Issue Tracker to report the bug. Please include:
-
-  -A clear description of the bug.
-
-  -Steps to reproduce the behavior.
-
-  -Your environment details (OS, Python version if development bug).
-
-  -Screenshots or logs from the `logs/` directory.
+- **Tagging System:** Apply tags to various entities for easy organization and filtering.  
+- **Inter-Entry Lookup:** While editing a chapter, highlight text and press **Ctrl+Shift+L** to instantly view associated character or lore entries.  
+- **Data Export:** Export your story data into shareable formats like Markdown or plain text.
 
 ## **Individual Project Folders**
 
@@ -52,6 +35,24 @@ Each user project is self-contained:
 ├── config/                  \# Project-specific settings (.nfp)  
 ├── assets/                  \# Images and local media  
 └── exports/                 \# Generated documents
+
+## 🐛 Reporting Bugs & Issues
+
+Narrative Forge is under active development. If you encounter a bug or have a feature request, please help us improve by following these steps:
+
+1. **Check the Roadmap:** See [docs/maintenance/TODO.md](docs/maintenance/TODO.md) to see if the issue is already being tracked.
+
+    - Check the issue Tracker to ensure the bug has not already been reported.
+
+2. **Open an Issue:** Use the GitHub Issue Tracker to report the bug. Please include:
+
+    - A clear description of the bug.
+  
+    - Steps to reproduce the behavior.
+  
+    - Your environment details (OS, Python version if development bug).
+  
+    - Screenshots or logs from the `logs/` directory.
 
 ## Development
 
@@ -152,11 +153,13 @@ This project is licensed under the MIT License \- see the [LICENSE](LICENSE) fil
 ### Project Logo (`resources/logo.ico`)
 
 **License:** All Rights Reserved / Proprietary
-The Narrative Forge logo is the intellectual property of the maintainers.
+The Narrative Forge logo is the intellectual property of the maintainers. 
 
--Personal Use: You may use the logo for personal use while running the software.
--Contributions: You may include the logo in forks of this repository specifically for the purpose of developing and submitting Pull Requests to the main project.
--Restrictions: You may not use this logo for separate commercial purposes or in unrelated derivative works (independent forks/rebrands) without express permission.
+- Personal Use: You may use the logo for personal use while running the software. 
+
+- Contributions: You may include the logo in forks of this repository specifically for the purpose of developing and submitting Pull Requests to the main project. 
+
+- Restrictions: You may not use this logo for separate commercial purposes or in unrelated derivative works (independent forks/rebrands) without express permission. 
 
 ###  Icons (`resources/icons/`)
 
