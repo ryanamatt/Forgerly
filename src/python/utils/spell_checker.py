@@ -46,7 +46,7 @@ class SpellChecker:
         
     def __del__(self) -> None:
         """
-        "Cleanup when garbage collected.
+        Cleanup when garbage collected.
         
         :rtype: None
         """
@@ -93,8 +93,8 @@ class SpellChecker:
         """
         Add a single custom word (e.g., new character name).
         
-        :param: word: The word to add
-        :type word; str
+        :param word: The word to add
+        :type word: str
         :rtype: None
         """
         if word:
@@ -104,8 +104,8 @@ class SpellChecker:
         """
         Remove a custom word.
         
-        :param: word: The word to remove
-        :type word; str
+        :param word: The word to remove
+        :type word: str
         :rtype: None
         """
         if word:
@@ -136,7 +136,7 @@ class SpellChecker:
         :type max_distance: int
         :param max_results: Maximum number of suggestions to return (default 10)
         :type max_results: int
-        returns: List of dicts with 'word' and 'distance' keys, sorted by distance
+        :returns: List of dicts with 'word' and 'distance' keys, sorted by distance
         :rtype: list[dict]
         """
         if not word:
