@@ -4,10 +4,13 @@ This document outlines the architecture for the bridge between the **Python fron
 
 ## **1\. Architecture Overview**
 
-Narrative Forge uses a modular hybrid architecture. The bridge is split into three components to manage a single shared library handle efficiently:
+Narrative Forge uses a modular hybrid architecture. The bridge is split into three components to 
+manage a single shared library handle efficiently:
 
-* **Core Configuration (ffi\_base.py):** Centralizes ffi.dlopen() to ensure the .dll/.so is loaded only once.  
-* **Logic Modules (text\_stats.py, graph\_layout.py):** Use the shared ffi object to define specific C-structures and export clean Python functions.  
+* **Core Configuration (ffi\_base.py):** Centralizes ffi.dlopen() to ensure the .dll/.so is loaded 
+only once.  
+* **Logic Modules (text\_stats.py, graph\_layout.py):** Use the shared ffi object to define specific 
+C-structures and export clean Python functions.  
 * **Core Library (C++17):** High-performance engines for graph theory and text analysis.
 
 ## **2\. Directory Structure**
@@ -23,7 +26,8 @@ src/python/utils/
 
 ## **3\. Shared Data Structures**
 
-Common structures are defined in ffi\_base.py. Module-specific structures are defined in their respective files via ffi.cdef().
+Common structures are defined in ffi\_base.py. Module-specific structures are defined in their 
+respective files via ffi.cdef().
 
 ### **Base Structures (ffi\_base.py)**
 
@@ -56,11 +60,22 @@ Common structures are defined in ffi\_base.py. Module-specific structures are de
 | graph\_layout\_compute | Runs the Fruchterman-Reingold iterations. | int (Status) |
 | graph\_layout\_destroy | Destroys the C++ object and frees memory. | void |
 
+### **Spell Checker (spell\_checker.py)**
+
+| Function | Description | Returns |
+| :---- | :---- | :---- |
+| spell_checker_create | Initializes the C++ SpellCheckerEngine. | void* (Handle) |
+| spell_checker_is_correct | Validates a word against all loaded Tries | int (Boolean) |
+| spell_checker_get_suggestions | Populates a SuggestionOutput array for Python. | int (Status) |
+
 ## **5\. Memory Management & Safety**
 
-1. **Single Load:** Never call dlopen outside of ffi\_base.py. This prevents multiple instances of the library from occupying memory.  
-2. **Allocation:** Python must allocate memory for output arrays (e.g., NodeOutput\[\]) before calling C++.  
-3. **Handles:** The void\* handle must be paired with graph\_layout\_destroy to prevent heap leaks. This is handled automatically by the GraphLayoutEngineWrapper destructor.
+1. **Single Load:** Never call dlopen outside of ffi\_base.py. This prevents multiple instances of 
+the library from occupying memory.  
+2. **Allocation:** Python must allocate memory for output arrays (e.g., NodeOutput\[\]) before 
+calling C++.  
+3. **Handles:** The void\* handle must be paired with graph\_layout\_destroy to prevent heap leaks. 
+This is handled automatically by the GraphLayoutEngineWrapper destructor. Same is done with SpellChecker.
 
 ## **6\. Usage Examples**
 

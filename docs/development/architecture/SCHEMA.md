@@ -180,6 +180,7 @@ Stores UI coordinates and styling for the Relationship Canvas.
 | Node\_Color | TEXT | Hex code for the node background. |
 | Node\_Shape | TEXT | e.g., 'Circle', 'Square'. |
 | Is\_Hidden | INTEGER | Boolean flag for visibility. |
+| Is\_Locked | INTEGER | Boolean Flag for locked position. |
 
 ## **⚡ Performance Optimization (Indexes)**
 
@@ -208,4 +209,4 @@ To ensure smooth UI performance (especially in the Relationship Graph and Outlin
 * **Foreign Keys:** Enabled via PRAGMA foreign\_keys \= ON;.  
 * **Integrity:** UNIQUE constraints are applied to Lore\_Entries(Title), Locations(Name), and Tags(Name).
 
-*Last Updated: 2025-12-21*
+*Last Updated: 2025-1-13*
