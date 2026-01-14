@@ -40,7 +40,7 @@ class MainMenuBar(QMenuBar):
 
         self.app_version = app_version
 
-        self._mod_key = "Meta" if is_macos else "Ctrl"
+        self._mod_key = "Cmd" if is_macos else "Ctrl"
 
         self._setup_menus()
 
@@ -67,11 +67,13 @@ class MainMenuBar(QMenuBar):
         # Project Actions
         new_project_action = QAction("New Project", self)
         new_project_action.setIcon(QIcon(":icons/project-add.svg"))
+        new_project_action.setShortcut(f"{self._mod_key}+N")
         new_project_action.triggered.connect(lambda: bus.publish(Events.PROJECT_NEW_REQUESTED))
         file_menu.addAction(new_project_action)
 
         open_project_action = QAction("Open Project", self)
         open_project_action.setIcon(QIcon(":icons/project-open.svg"))
+        open_project_action.setShortcut(f"{self._mod_key}+O")
         open_project_action.triggered.connect(lambda: bus.publish(Events.PROJECT_OPEN_REQUESTED))
         file_menu.addAction(open_project_action)
         
@@ -146,10 +148,12 @@ class MainMenuBar(QMenuBar):
         self.view_group.setExclusive(True)
 
         # Helper to create and add actions to the menu and group
-        def add_view_action(text, icon_path, view_type):
+        def add_view_action(text: str, icon_path: str, view_type: ViewType, 
+                            shortcut: str | None = None) -> QAction:
             action = QAction(text, self)
             action.setIcon(QIcon(icon_path))
             action.setCheckable(True)
+            if shortcut: action.setShortcut(shortcut)
             
             action.triggered.connect(lambda: bus.publish(Events.VIEW_SWITCH_REQUESTED, 
                                                          data={'view_type': view_type}))
@@ -159,24 +163,25 @@ class MainMenuBar(QMenuBar):
             return action
 
         self.view_chapter_action = add_view_action("Chapter Outline", ":icons/chapter.svg", 
-                                                   ViewType.CHAPTER_EDITOR)
+                                                   ViewType.CHAPTER_EDITOR, f"{self._mod_key}+1")
         self.view_lore_action = add_view_action("Lore Outline", ":icons/lore-entry.svg", 
-                                                ViewType.LORE_EDITOR)
+                                                ViewType.LORE_EDITOR, f"{self._mod_key}+2")
         self.view_character_action = add_view_action("Character Outline", ":icons/character.svg", 
-                                                     ViewType.CHARACTER_EDITOR)
+                                                     ViewType.CHARACTER_EDITOR, f"{self._mod_key}+3")
         self.view_note_action = add_view_action("Note Outline", ":icons/note.svg", 
-                                                ViewType.NOTE_EDITOR)
+                                                ViewType.NOTE_EDITOR, f"{self._mod_key}+4")
         
         self.view_menu.addSeparator()
         
         self.view_relationship_action = add_view_action("Relationship Graph", ":icons/node-tree.svg", 
-                                                        ViewType.RELATIONSHIP_GRAPH)
+                                                        ViewType.RELATIONSHIP_GRAPH, f"{self._mod_key}+5")
 
         self.view_menu.addSeparator()
 
         # Project Statistics (Not part of the group as it's a pop-up, not a toggle view)
         self.project_stats_action = QAction("&Project Statistics", self)
         self.project_stats_action.setIcon(QIcon(":icons/line-chart-line.svg"))
+        self.project_stats_action.setShortcut(f"{self._mod_key}+I")
         self.project_stats_action.triggered.connect(lambda: bus.publish(Events.PROJECT_STATS_REQUESTED))
         self.view_menu.addAction(self.project_stats_action)
 
