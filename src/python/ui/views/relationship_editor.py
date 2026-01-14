@@ -4,9 +4,10 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QGraphicsView, QGraphicsScene, QGraphicsLineItem, QMessageBox, 
     QFrame, QDialog, QToolBar
 )
-from PySide6.QtCore import Qt, QLineF
+from PySide6.QtCore import Qt, QLineF, QPointF
 from PySide6.QtGui import QPen, QAction, QIcon
 from typing import Any
+import math
 
 from ...resources_rc import *
 from ..widgets.graph_items import CharacterNode, RelationshipEdge
@@ -288,12 +289,20 @@ class RelationshipEditor(QWidget):
                 is_hidden = bool(node_data.get('is_hidden', 0))
                 is_locked = bool(node_data.get('is_locked', 0))
 
+                # Get initial coordinates
+                nx = node_data.get('x', 0)
+                ny = node_data.get('y', 0)
+
+                # If the node is at the default origin, find a better spot
+                if nx == 0 and ny == 0:
+                    nx, ny = self._find_empty_space(nx, ny)
+
                 # Create Node Item
                 node = CharacterNode (
                     char_id=char_id,
                     name=node_data['name'],
-                    x=node_data['x'],
-                    y=node_data['y'],
+                    x=nx,
+                    y=ny,
                     color=node_data.get('color', '#60A5FA'),
                     shape=node_data.get('shape', 'Circle'),
                 )
@@ -355,6 +364,48 @@ class RelationshipEditor(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Graph Load Error", f"An error occurred while loading graph data: {e}")
             self.scene.clear()
+
+    def _find_empty_space(self, start_x: float, start_y: float) -> tuple[float, float]:
+        """
+        Finds the nearest available grid spot that doesn't collide with existing nodes.
+        
+        :param start_x: The starting value of X.
+        :type start_x: float
+        :param start_y: The starting value of Y.
+        :type start_y: float
+        :returns: The New X and Y Postion.
+        :rtype: tuple[float, float]
+        """
+        grid_spacing = 80  # Slightly more than 2 * NODE_RADIUS
+        attempts = 0
+        max_attempts = 100 
+        
+        curr_x, curr_y = start_x, start_y
+        
+        # Simple spiral search or linear offset
+        while attempts < max_attempts:
+            collision = False
+            potential_pos = QPointF(curr_x, curr_y)
+            
+            for existing_node in self.nodes.values():
+                # Calculate distance between centers
+                dx = potential_pos.x() - existing_node.scenePos().x()
+                dy = potential_pos.y() - existing_node.scenePos().y()
+                if math.sqrt(dx*dx + dy*dy) < (grid_spacing):
+                    collision = True
+                    break
+            
+            if not collision:
+                return curr_x, curr_y
+            
+            # Move to next slot (Simple row/column logic)
+            attempts += 1
+            curr_x += grid_spacing
+            if attempts % 5 == 0: # Move to next row every 5 nodes
+                curr_x = start_x
+                curr_y += grid_spacing
+                
+        return curr_x, curr_y
         
     def _update_node_positions(self, new_positions: list[dict]) -> None:
         """

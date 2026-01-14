@@ -62,6 +62,16 @@ class AppCoordinator(QObject):
         self.current_item_id: int = 0
         self.current_entity_type: EntityType = EntityType.CHAPTER
 
+    @receiver(Events.APP_SHUTDOWN_INITIATED)
+    def disconnect_from_bus(self, data: dict) -> None:
+        """
+        Unregisters this instance from the event bus to prevent zombie calls.
+        
+        :rtype: None
+        """
+        bus.unregister_instance(self)
+        logger.info("AppCoordinator unregistered from Event Bus.")
+
     @receiver(Events.DATA_LOADED)
     def set_state_tracking(self, data: dict) -> None:
         """

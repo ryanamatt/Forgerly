@@ -88,6 +88,10 @@ class ApplicationFlowManager:
 
         :rtype: None
         """
+        if self.main_window:
+            self.main_window.close()
+            self.main_window = None
+
         # 1. Close the Start Menu
         self.start_menu.close() if self.start_menu else None
         self.start_menu = None
