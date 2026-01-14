@@ -133,8 +133,8 @@ class CharacterNode(QGraphicsEllipseItem):
         """
         Handles changes to the item's state, specifically for movement.
         
-        Ensures the node position is correctly snapped to the grid (if any) 
-        and updates connected edges.
+        Ensures the node position is correctly snapped to the grid (if any),
+        prevents collision with other nodes, and updates connected edges.
 
         :param change: The type of state change.
         :type change: :py:class:`~PySide6.QtWidgets.QGraphicsItem.GraphicsItemChange`
@@ -144,17 +144,23 @@ class CharacterNode(QGraphicsEllipseItem):
         :returns: The potentially modified new value.
         :rtype: :py:obj:`Any`
         """
-        """Called when item changes (likes position)"""
         if change == self.GraphicsItemChange.ItemPositionChange and self.scene():
-            # Access the canvas settings through the scene's view
+            new_pos = value
             view = self.scene().views()[0]
+
             if view.snap_to_grid:
                 grid = view.grid_size
                 new_pos = value.toPoint()
                 x = round(new_pos.x() / grid) * grid
                 y = round(new_pos.y() / grid) * grid
-                return QPointF(x, y)
-        
+                new_pos = QPointF(x, y)
+            
+            # Check for Collision with other nodes
+            if not self._would_collide_at_position(new_pos):
+                return new_pos
+            else:
+                # Return current pos to prevent movement
+                return self.scenePos()
 
         if change == self.GraphicsItemChange.ItemPositionHasChanged:
             if self.scene():
@@ -162,6 +168,36 @@ class CharacterNode(QGraphicsEllipseItem):
                     if isinstance(item, RelationshipEdge):
                         item.update_position()
         return super().itemChange(change, value)
+    
+    def _would_collide_at_position(self, new_pos: QPointF) -> None:
+        """
+        Checks if moving to the new position would cause a collision with 
+        another CharacterNode.
+        
+        Two nodes collide if the distance between their centers is less than 
+        twice the node radius (i.e., they would overlap).
+        
+        :param new_pos: The proposed new position for this node.
+        :type new_pos: :py:class:`~PySide6.QtCore.QPointF`
+        
+        :returns: True if collision would occur, False otherwise.
+        :rtype: bool
+        """
+        if not self.scene():
+            return
+        
+        for item in self.scene().items():
+            if isinstance(item, CharacterNode) and item is not self:
+                other_pos = item.scenePos()
+                dx = new_pos.x() - other_pos.x()
+                dy = new_pos.y() - other_pos.y()
+                distance = math.sqrt(dx * dx + dy * dy)
+                min_dist = (self.NODE_RADIUS + item.NODE_RADIUS) * 1.1
+
+                if distance < min_dist:
+                    return True
+                
+        return False
 
     def mouseReleaseEvent(self, event) -> None:
         """
