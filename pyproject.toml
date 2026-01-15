@@ -7,7 +7,7 @@ name = "narrative-forge"
 version = "0.1.0"
 description = "A comprehensive desktop application for authors, storytellers, and worldbuilders."
 readme = "README.md"
-requires-python = ">=3.12.1"
+requires-python = ">=3.14.0"
 license = { text = "MIT" }
 authors = [
     { name = "Narrative Forge Maintainers" }
