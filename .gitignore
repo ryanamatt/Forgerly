@@ -3,6 +3,8 @@ __pycache__/
 docs/api/_build/
 projects/
 logs/
+dist/
+build/
 config/user_settings.json
 src/python/resources_rc.py
 src/python/resources_rc.pyclear

@@ -31,7 +31,7 @@ class ChapterEditor(BaseEditor):
     :vartype rich_text_editor: RichTextEditor
     """
     
-    def __init__(self, current_settings, parent=None) -> None:
+    def __init__(self, current_settings: dict, parent=None) -> None:
         """
         Initializes the ChapterEditor with sub-components and layout.
 
@@ -48,7 +48,7 @@ class ChapterEditor(BaseEditor):
         bus.register_instance(self)
 
         self.current_settings = current_settings
-        self.wpm = current_settings['words_per_minute']
+        self.wpm = current_settings.get('words_per_minute')
 
         self.current_lookup_dialog = None
 

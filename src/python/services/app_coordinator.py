@@ -1,6 +1,7 @@
 # src/python/services/app_coordinator.py
 
 import os
+import sys
 from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QMessageBox
 
@@ -877,8 +878,9 @@ class AppCoordinator(QObject):
 
         total_word_count, char_count_no_spaces = 0, 0
         for chapter in chapter_stats:
-            total_word_count += chapter['word_count']
-            char_count_no_spaces += chapter['char_count_no_spaces']
+            total_word_count += chapter.get('word_count', 0)
+            char_count_no_spaces += chapter.get('char_count_no_spaces', 0)
+
         read_time = calculate_read_time(total_word_count, wpm)
 
         lore_count = self.lore_repo.get_number_of_lore_entries()
@@ -894,15 +896,29 @@ class AppCoordinator(QObject):
         } 
     
     # --- Spell Checker ---
+
     def _initialize_spell_checker(self) -> None:
         """
         Loads the default dictionary file.
         
         :rtype: None
         """
-        dict_path = os.path.join('dictionaries', 'en_US.txt')
         try:
-            count = self.spell_checker.load_dictionary_from_file(dict_path)
-            logger.info(f"Loaded {count} words into spell checker.")
+            # 1. Resolve the base path (Normal dev vs PyInstaller _MEIPASS)
+            if hasattr(sys, '_MEIPASS'):
+                base_path = sys._MEIPASS
+            else:
+                base_path = os.path.abspath(".")
+
+            # 2. Construct the absolute path to the dictionary
+            dict_path = os.path.join(base_path, 'dictionaries', 'en_US.txt')
+            
+            # 3. Get the checker and load
+            checker = get_spell_checker()
+            words_loaded = checker.load_dictionary_from_file(dict_path)
+            
+            logger.info(f"Spell checker initialized with {words_loaded} words from {dict_path}")
+            
         except Exception as e:
-            logger.error(f"Failed to load dictionary: {e}")
+            logger.error(f"Failed to initialize spell checker: {e}", exc_info=True)
+            # We don't raise here to allow the app to function without spellcheck

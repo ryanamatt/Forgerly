@@ -1,5 +1,7 @@
 # src/python/utils/spell_checker.py
 
+import os
+import sys
 from .ffi_base import ffi, lib
 from pathlib import Path
 
@@ -54,7 +56,6 @@ class SpellChecker:
             lib.spell_checker_destroy(self._handle)
             self._handle = None
 
-    
     def load_dictionary(self, words: list[str]) -> None:
         """
         Bulk load dictionary words into the spell checker.
@@ -190,8 +191,7 @@ class SpellChecker:
         
         self.load_dictionary(words)
         return len(words)
-
-
+    
 # Singleton instance for global access
 _global_spell_checker = None
 

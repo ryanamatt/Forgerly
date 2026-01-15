@@ -30,7 +30,7 @@ class ProjectStatsDialog(QDialog):
         """
         super().__init__(parent)
         self.project_stats = project_stats
-        self.wpm = user_settings['words_per_minute']
+        self.wpm = user_settings.get('words_per_minute', 250)
         
         self.setWindowTitle("Project Statistics")
         self.setGeometry(200, 200, 500, 300) 
@@ -53,15 +53,15 @@ class ProjectStatsDialog(QDialog):
 
         # Row 1: Word Count
         content_layout.addWidget(QLabel("Total Words:"), 0, 0)
-        content_layout.addWidget(QLabel(self._stats["total_word_count"]), 0, 1)
+        content_layout.addWidget(QLabel(self._stats.get("total_word_count")), 0, 1)
 
         # Row 2: Characters (No Spaces)
         content_layout.addWidget(QLabel("Characters (No Spaces):"), 1, 0)
-        content_layout.addWidget(QLabel(self._stats["char_count_no_spaces"]), 1, 1)
+        content_layout.addWidget(QLabel(self._stats.get("char_count_no_spaces")), 1, 1)
         
         # Row 3: Estimated Read Time
         content_layout.addWidget(QLabel("Estimated Read Time:"), 3, 0)
-        content_layout.addWidget(QLabel(f"{self._stats['read_time']} (at {self.wpm} WPM)"), 3, 1)
+        content_layout.addWidget(QLabel(f"{self._stats.get('read_time')} (at {self.wpm} WPM)"), 3, 1)
         
         content_layout.setColumnStretch(1, 1) # Makes the value column fill available space
 
@@ -73,15 +73,15 @@ class ProjectStatsDialog(QDialog):
 
         # Row 1: Chapters
         entity_layout.addWidget(QLabel("Total Chapters:"), 0, 0)
-        entity_layout.addWidget(QLabel(self._stats["chapter_count"]), 0, 1)
+        entity_layout.addWidget(QLabel(self._stats.get("chapter_count")), 0, 1)
 
         # Row 2: Lore
         entity_layout.addWidget(QLabel("Total Lore Entries:"), 1, 0)
-        entity_layout.addWidget(QLabel(self._stats["lore_count"]), 1, 1)
+        entity_layout.addWidget(QLabel(self._stats.get("lore_count")), 1, 1)
         
         # Row 3: Characters
         entity_layout.addWidget(QLabel("Total Characters:"), 2, 0)
-        entity_layout.addWidget(QLabel(self._stats["character_count"]), 2, 1)
+        entity_layout.addWidget(QLabel(self._stats.get("character_count")), 2, 1)
         
         entity_layout.setColumnStretch(1, 1)
 

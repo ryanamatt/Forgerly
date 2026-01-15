@@ -65,7 +65,7 @@ class MainWindow(QMainWindow):
         bus.register_instance(self)
 
         self.project_settings = project_settings
-        self.project_path = self.project_settings['project_path']
+        self.project_path = self.project_settings.get('project_path')
 
         # need to know if macOS for differences with Ctrl or Cmd Key
         self.is_macos = sys.platform == 'darwin'
@@ -88,7 +88,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle(f"The Narrative Forge v{__version__}")
         self.setGeometry(100, 100, 1200, 800)
-        self.setWindowIcon(QIcon(os.path.join('resources', 'logo.ico')))
+        self.setWindowIcon(QIcon(self.get_resource_path('resources/logo.ico')))
 
         # Flag to prevent geometry saving during initialization
         self._is_ready_to_save_geometry = False
@@ -131,6 +131,15 @@ class MainWindow(QMainWindow):
         self._geometry_save_timer.setSingleShot(True)
         # Connect the timer's timeout signal to the save method
         self._geometry_save_timer.timeout.connect(self._save_geometry_to_settings)
+
+    def get_resource_path(self, relative_path: str) -> str:
+        """ Get absolute path to resource, works for dev and for PyInstaller """
+        try:
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+
+        return os.path.join(base_path, relative_path)
 
     # -------------------------------------------------------------------------
     # System Events
@@ -462,7 +471,7 @@ class MainWindow(QMainWindow):
                 
         :rtype: None
         """
-        project_stats = self.coordinator.get_project_stats(wpm=self.current_settings['words_per_minute'])
+        project_stats = self.coordinator.get_project_stats(wpm=self.current_settings.get('words_per_minute', 250))
 
         stats_dialog = ProjectStatsDialog(project_stats=project_stats, 
                                           user_settings=self.current_settings, parent=self)

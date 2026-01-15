@@ -56,12 +56,6 @@ Narrative Forge is under active development. If you encounter a bug or have a fe
 
 ## Development
 
-### **🛠️ Requirements**
-
-- **Python:** 3.14.0  
-- **GUI Framework:** PySide6 6.10.1  
-- **Build Tools:** C++ compiler (for core library optimization)
-
 ### **💾 Project Structure**
 
 Narrative Forge follows a modular architecture separating the GUI, business logic, and high-performance core:
@@ -124,27 +118,57 @@ python tools/build_docs.py
 python tools/view_docs.py
 ```
 
-## **🚀 Run**
+🛠️ Development & Building
 
-### **Installation**
+1. Requirements
 
-1. **Clone the Repository.**  
-2. **Install Dependencies:**
+    - Python: >= 3.12.1
 
-```Bash
-pip install -r requirements.txt
+    - Compiler: g++ (MinGW-w64 for Windows or GCC for Linux)
+
+    - Tools: make (optional, but recommended)
+
+2. Installation
+
+    Clone the repository and install the required dependencies (including dev tools for building):
+
+```Terminal
+pip install .[dev]
 ```
 
-3. Build C++ Core (Required for Auto-Layout):  
-   Compile the source in src/c\_lib/ into nf\_core\_lib.dll or .so.
+3. Building the C++ Core
 
-### **Execution**
+    The high-performance graph layout engine must be compiled before the "Auto Layout" feature will function.
 
-Run the application directly from the main module:
+    Using Make:
 
-```Bash
-python -m src.python.main
+```Terminal
+make
 ```
+
+Manual Compilation (if Make is unavailable):
+
+```Terminal
+g++ -shared -o src/c_lib/nf_core_lib.dll src/c_lib/text_stats/text_stats_engine.cpp src/c_lib/graph_layout_engine.cpp src/c_lib/spell_checker/spell_checker_engine.cpp src/c_lib/nf_c_api.cpp -Isrc/c_lib -std=c++17
+```
+
+
+4. Packaging (Creating a Portable EXE)
+
+    We use PyInstaller to bundle the application. The configuration is handled in NarrativeForge.spec.
+
+```Terminal
+pyinstaller NarrativeForge.spec
+```
+
+
+The resulting executable will be found in the dist/NarrativeForge/ folder.
+
+🚀 Running the App
+
+You can now run the application using the entry-point script:
+
+python run_app.py
 
 ## **📄 License**
 
