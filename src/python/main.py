@@ -122,7 +122,12 @@ class ApplicationFlowManager:
         project_title = project_config.get('project_name')
         
         # --- DBConnector Logic Initialization---
-        self.db_connector = DBConnector(db_path=project_config['db_file_path']) 
+        schema_path = DBConnector.resource_path(os.path.join('src', 'sql', 'schema_v1.sql'))
+        
+        self.db_connector = DBConnector(
+            db_path=project_config['db_file_path'],
+            schema_path=schema_path
+        )
         try:
             if self.db_connector.connect():
                 self.db_connector.initialize_schema() 
