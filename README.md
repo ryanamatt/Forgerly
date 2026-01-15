@@ -166,9 +166,11 @@ The resulting executable will be found in the dist/NarrativeForge/ folder.
 
 🚀 Running the App
 
-You can now run the application using the entry-point script:
+Run the application using the entry-point script:
 
+```Terminal
 python run_app.py
+```
 
 ## **📄 License**
 
