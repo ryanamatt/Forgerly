@@ -3,6 +3,7 @@
 block_cipher = None
 
 import os
+import platform
 pro_root = os.path.abspath('.')
 
 added_files = [
@@ -13,8 +14,11 @@ added_files = [
     (os.path.join(pro_root, 'src', 'sql'), 'src/sql'),
 ]
 
+lib_ext = '.dll' if platform.system() == 'Windows' else '.so'
+lib_path = os.path.join(pro_root, 'src', 'c_lib', f'nf_core_lib{lib_ext}')
+
 added_binaries = [
-    (os.path.join(pro_root, 'src\\c_lib\\nf_core_lib.dll'), 'src\\c_lib'), 
+    (lib_path, os.path.join('src', 'c_lib')), 
 ]
 
 a = Analysis(
