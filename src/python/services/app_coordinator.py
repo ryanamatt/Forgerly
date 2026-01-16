@@ -822,7 +822,7 @@ class AppCoordinator(QObject):
     # Entity Lookup Methods
     #------------------------------------
 
-    @receiver(Events.LOOKUP_REQUESTED)
+    @receiver(Events.PERFORM_DATABASE_LOOKUP)
     def lookup_entity_content_by_name(self, data: dict) -> tuple[str, str, str] | None:
         """
         Sequentially looks up an entity by name/title across all relevant repositories.
@@ -830,14 +830,15 @@ class AppCoordinator(QObject):
         The lookup order (Character -> Lore -> Chapter) is strategic: characters and 
         lore entries are usually more unique and concise than chapter titles.
 
-        :param name: The highlighted text string (e.g., "Sir Kaelan").
-        :type name: str
+        :param data: A dict carrying {'selected text': str} 
+            The highlighted text string (e.g., "Sir Kaelan").
+        :type name: dict
 
         :returns: A tuple (EntityType, Title, Content) or None if not found.
         :rtype: tuple[str, str, str]
         """
 
-        name = data['selected_text'].strip()
+        name = data.get('selected_text', '').strip()
         if not name: return
 
         # Start Searching For Characters

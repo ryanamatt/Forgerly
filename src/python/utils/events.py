@@ -53,6 +53,7 @@ class Events(str, Enum):
     # Lookup Events
     LOOKUP_REQUESTED = "lookup.requested"
     LOOKUP_RESULT = "lookup.result"
+    PERFORM_DATABASE_LOOKUP = "lookup.database"
     
     # Lore Category Events
     LORE_CATEGORIES_CHANGED = "lore.categories_changed"

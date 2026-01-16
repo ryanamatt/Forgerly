@@ -16,6 +16,7 @@ from .ui.menu.main_menu_bar import MainMenuBar
 from .ui.dialogs.settings_dialog import SettingsDialog
 from .ui.dialogs.exporter_dialog import ExporterDialog
 from .ui.dialogs.project_stats_dialog import ProjectStatsDialog
+from .ui.dialogs.lookup_dialog import LookupDialog
 
 from .services.settings_manager import SettingsManager
 from .services.app_coordinator import AppCoordinator
@@ -460,6 +461,28 @@ class MainWindow(QMainWindow):
         self.current_settings['window_height'] = new_height
         self.current_settings['window_pos_x'] = new_pos_x
         self.current_settings['window_pos_y'] = new_pos_y
+
+    @receiver(Events.LOOKUP_RESULT)
+    def _open_lookup_result_dialog(self, data: dict) -> None:
+        """
+        Creates and displays a small, modal dialog containing the content of the linked entity.
+        
+        :param data: The data needed contains {type: EntityType, title: str, content: str}
+
+        :rtype: None
+        """
+        entity_type = data.get('entity_type')
+        title = data.get('title')
+        content = data.get('content')
+
+        lookup_dialog = LookupDialog(
+            entity_type=entity_type,
+            title=title,
+            content=content,
+            parent=self
+        )
+
+        lookup_dialog.show()
 
     @receiver(Events.PROJECT_STATS_REQUESTED)
     def _open_project_stats_dialog(self, data: dict = None) -> None:

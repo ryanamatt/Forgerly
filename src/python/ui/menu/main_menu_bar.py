@@ -54,6 +54,7 @@ class MainMenuBar(QMenuBar):
         """
         self._setup_file_menu()
         self._setup_view_menu()
+        self._setup_tools_menu()
         self._setup_help_menu()
 
     def _setup_file_menu(self) -> None:
@@ -184,6 +185,16 @@ class MainMenuBar(QMenuBar):
         self.project_stats_action.setShortcut(f"{self._mod_key}+I")
         self.project_stats_action.triggered.connect(lambda: bus.publish(Events.PROJECT_STATS_REQUESTED))
         self.view_menu.addAction(self.project_stats_action)
+
+    def _setup_tools_menu(self) -> None:
+        tools_menu = self.addMenu("&Tools")
+
+        lookup_action = QAction("Lookup Selected Text", self)
+        lookup_action.setIcon(QIcon(":icons/search.svg"))
+        lookup_action.setShortcut(f"{self._mod_key}+Shift+L")
+    
+        lookup_action.triggered.connect(lambda: bus.publish(Events.LOOKUP_REQUESTED, data={}))
+        tools_menu.addAction(lookup_action)
 
     def _setup_help_menu(self) -> None:
         """

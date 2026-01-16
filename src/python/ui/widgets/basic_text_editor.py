@@ -11,7 +11,7 @@ from ...utils.spell_checker import get_spell_checker
 from ...utils.logger import get_logger
 from ...utils.exceptions import EditorContentError
 from ...utils.events import Events
-from ...utils.event_bus import bus
+from ...utils.event_bus import bus, receiver
 
 logger = get_logger(__name__)
 
@@ -245,6 +245,19 @@ class BasicTextEditor(QWidget):
         cursor.endEditBlock()
         self.editor.setTextCursor(original_cursor)
         self.editor.blockSignals(False)
+
+    @receiver(Events.LOOKUP_REQUESTED)
+    def _send_lookup_text(self, data: dict = None) -> None:
+        """
+        Called when Selected Text is Pushed in MainMenuBar
+        
+        :param data: The data, Empty dict
+        :type data: dict
+        :rtype: None
+        """
+        selected_text = self.get_selected_text().strip()
+
+        bus.publish(Events.PERFORM_DATABASE_LOOKUP, data={'selected_text': selected_text})
 
     # --- Public Accessors for Content ---
 
