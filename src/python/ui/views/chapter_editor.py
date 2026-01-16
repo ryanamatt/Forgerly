@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt
 
 from .base_editor import BaseEditor
 from ...ui.widgets.rich_text_editor import RichTextEditor
+from ...ui.dialogs.lookup_dialog import LookupDialog
 from ...utils.text_stats import calculate_word_count, calculate_character_count, calculate_read_time
 from ...utils.constants import EntityType
 from ...utils.events import Events
@@ -192,47 +193,6 @@ class ChapterEditor(BaseEditor):
         """
         self.text_editor.set_html_content(html_content)
         self._update_stats_display()
-
-    @receiver(Events.LOOKUP_RESULT)
-    def display_lookup_result(self, data: dict) -> None:
-        """
-        Creates and displays a small, modal dialog containing the content of the linked entity.
-        
-        :param data: The data needed contains {type: EntityType, title: str, content: str}
-
-        :rtype: None
-        """
-        entity_type = data.get('type')
-        title = data.get('title')
-        content = data.get('content')
-
-        # 1. Close the old dialog if it's still open
-        if self.current_lookup_dialog is not None:
-            self.current_lookup_dialog.close()
-            
-        dialog = QDialog(self)
-        
-        # 2. Store the new dialog reference
-        self.current_lookup_dialog = dialog
-        
-        # --- Existing UI Setup (no change here) ---
-        dialog.setWindowTitle(f"Information: {title} ({entity_type})")
-        dialog.setMinimumSize(450, 350) 
-        
-        layout = QVBoxLayout(dialog)
-        
-        title_label = QLabel(f"**{title}** ({entity_type})")
-        title_label.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        layout.addWidget(title_label)
-        
-        content_viewer = QTextEdit()
-        content_viewer.setReadOnly(True)
-        content_viewer.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
-        content_viewer.setHtml(content)
-        content_viewer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        layout.addWidget(content_viewer)
-        
-        dialog.show()
 
     def get_save_data(self) -> dict:
         """
