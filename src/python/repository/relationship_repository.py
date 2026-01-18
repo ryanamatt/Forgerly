@@ -231,6 +231,24 @@ class RelationshipRepository:
         except DatabaseError as e:
             logger.error("Failed to retrieve all character node positions.", exc_info=True)
             raise e
+        
+    def get_node_details(self, char_id: int) -> dict:
+        """
+        Docstring for get_all_node_positions
+        
+        :param char_id: The character ID.
+        :type char_id: int
+        :returns: Dict of all values except X and Y positon.
+        :rtype: dict
+        """
+        query = "SELECT Node_Color, Node_Shape, Is_Hidden, Is_Locked FROM Character_Node_Positions WHERE Character_ID = ?;"
+        try:
+            results = self.db._execute_query(query, (char_id,), fetch_one=True)
+            logger.debug(f"Retrieved node details for char_id: {char_id}.")
+            return results
+        except DatabaseError as e:
+            logger.error(f"Failed to retrieve node data for char_id: {char_id}.", exc_info=True)
+            raise e
 
     def save_node_attributes(self, character_id: int, x_pos: float, y_pos: float, 
                            node_color: str, node_shape: str, is_hidden: int, is_locked: int) -> bool:
@@ -269,6 +287,39 @@ class RelationshipRepository:
             return success
         except DatabaseError as e:
             logger.warning("Failed to save character node attributes", exc_info=True)
+            raise e
+        
+    def save_node_details(self, character_id: int, node_color: str, node_shape: str, is_hidden: int, 
+                          is_locked: int) -> bool:
+        """
+        Saves the details of a Character nodes (Everything except Postion (X, Y))
+
+        :param character_id: The character ID of the node attribute.
+        :type character_id: int
+        :param node_color: The hex color of the node. Include leading #.
+        :type node_color: str
+        :param node_shape: The shape of the node (Circle, Square, Diamond).
+        :type node_shape: str
+        :param is_hidden: Parameter toggles if the node is hidden or not (1 for True, 0 for False)
+        :type is_hidden: int
+        :param is_locked: Parameter toggles if the node is locked in place or not (1 for True 0 for False)
+        :type is_locked: int
+
+        :returns: Returns True if successfully saved/updated the node attributes, otherwise False.
+        :rtype: bool
+        """
+        query = """
+        UPDATE Character_Node_Positions SET Node_Color = ?, Node_Shape = ?, Is_Hidden = ?, Is_Locked = ?
+        WHERE Character_ID = ?;
+        """
+        params = (node_color, node_shape, is_hidden, is_locked, character_id)
+        try:
+            success = self.db._execute_commit(query, params)
+            if success:
+                logger.info(f"Successfully saved node details, Char_ID: {character_id}")
+            return success
+        except DatabaseError as e:
+            logger.warning("Failed to save character node details", exc_info=True)
             raise e
         
     def update_node_is_hidden(self, char_id: int, is_hidden: int) -> bool:

@@ -261,6 +261,19 @@ class AppCoordinator(QObject):
                 "Failed to create new character relationship in the database."
             )
             return False
+        
+    @receiver(Events.REL_CHAR_DETAILS_SAVE)
+    def save_character_node_detials(self, data: dict) -> None:
+        """
+        Saves the Character Node Details to the database.
+        
+        :param data: dict containing {'ID': int, 'Node_Color': str, 'Node_Shape': str, 
+            'Is_Hidden': bool, 'Is_Locked', bool}
+        :type data: dict
+        :rtype: None
+        """
+        id = data.pop('ID')
+        self.relationship_repo.save_node_details(character_id=id, **data)
     
     @receiver(Events.GRAPH_NODE_VISIBILTY_CHANGED)
     def save_character_node_is_hidden(self, data: dict) -> None:
@@ -374,7 +387,7 @@ class AppCoordinator(QObject):
         :rtype: None
         """ 
         characters = self.character_repo.get_all_characters()
-        character_nodes =self.relationship_repo.get_all_node_positions()
+        character_nodes = self.relationship_repo.get_all_node_positions()
 
         # Mapping Character_ID -> Node Data
         node_map = {node['Character_ID']: node for node in character_nodes}
@@ -695,6 +708,19 @@ class AppCoordinator(QObject):
         """
         self.relationship_repo.delete_relationship(data.get('ID'))
         self.load_relationship_graph_data()
+
+    @receiver(Events.REL_CHAR_DETAILS_REQUESTED)
+    def hande_char_node_details(self, data: dict) -> None:
+        """
+        Retrieves the character Node details and calls the event REL_CHAR_DETAILS_RETURN.
+        
+        :param data: Description
+        :type data: dict
+        """
+        id = data.get('ID')
+        data |= self.relationship_repo.get_node_details(char_id=id)
+        data.update({'Name': self.character_repo.get_character_name(char_id=id)})
+        bus.publish(Events.REL_CHAR_DETAILS_RETURN, data=data)
 
     def _process_graph_data(self, relationships: list[dict], node_positions: list[dict], 
                             relationship_types: list[dict]) -> dict:
