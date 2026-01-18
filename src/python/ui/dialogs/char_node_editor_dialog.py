@@ -39,8 +39,8 @@ class CharNodeEditorDialog(QDialog):
         # 3. Node Shape
         self.shape_combo = QComboBox()
         # Common graph shapes
-        self.shape_combo.addItems(['ellipse', 'box', 'diamond', 'triangle', 'star'])
-        self.shape_combo.setCurrentText(details.get('Node_Shape', 'ellipse'))
+        self.shape_combo.addItems(['Circle', 'Box', 'Diamond', 'Triangle', 'Star'])
+        self.shape_combo.setCurrentText(details.get('Node_Shape', 'Circle'))
 
         # 4. Binary States (Hidden/Locked)
         self.hidden_check = QCheckBox("Hide from Graph")
