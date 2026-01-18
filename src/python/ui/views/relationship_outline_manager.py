@@ -9,6 +9,7 @@ from PySide6.QtGui import QColor, QIcon
 
 from ...resources_rc import *
 from ..dialogs.relationship_type_editor_dialog import RelationshipTypeEditorDialog
+from ..dialogs.char_node_editor_dialog import CharNodeEditorDialog
 from ...utils.constants import EntityType
 from ...utils.events import Events
 from ...utils.event_bus import bus, receiver
@@ -46,8 +47,8 @@ class RelationshipOutlineManager(QWidget):
         self.characters_tab = QWidget()
 
         # List For Relationship Types
-        self.list_widget = QListWidget()
-        self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.rel_type_list_widget = QListWidget()
+        self.rel_type_list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         
         self.new_button = QPushButton("New Relationship Type")
 
@@ -63,21 +64,22 @@ class RelationshipOutlineManager(QWidget):
         button_layout.addWidget(self.new_button)
         
         tab_layout.addLayout(button_layout)
-        tab_layout.addWidget(self.list_widget)
+        tab_layout.addWidget(self.rel_type_list_widget)
 
         self.tabs.addTab(self.rel_types_tab, 'Relationship Types (Edges)')
         self.tabs.addTab(self.characters_tab, "Characters (Nodes)")
 
         # Layout for Characters Tab
         char_tab_layout = QVBoxLayout(self.characters_tab)
-        char_tab_label = QLabel("Toggle character visibility on the graph:")
+        char_tab_label = QLabel("Characters")
+        char_tab_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         char_tab_layout.addWidget(char_tab_label)
         char_tab_layout.addWidget(self.char_list_widget)
 
         # 1. Create the Frame
         self.container_frame = QFrame()
-        self.container_frame.setFrameShape(QFrame.StyledPanel)
-        self.container_frame.setFrameShadow(QFrame.Raised)
+        self.container_frame.setFrameShape(QFrame.Shape.StyledPanel)
+        self.container_frame.setFrameShadow(QFrame.Shadow.Raised)
 
         # 2. Put the tabs inside the frame's layout
         frame_layout = QVBoxLayout(self.container_frame)
@@ -92,9 +94,14 @@ class RelationshipOutlineManager(QWidget):
 
         # --- Connections ---
         self.new_button.clicked.connect(self._create_new_type)
-        self.list_widget.customContextMenuRequested.connect(self._show_context_menu)
-        self.list_widget.itemDoubleClicked.connect(self._open_type_editor)
-        self.list_widget.itemClicked.connect(self._handle_item_clicked)
+
+        # List Widget
+        self.rel_type_list_widget.customContextMenuRequested.connect(self._show_rel_type_context_menu)
+        self.rel_type_list_widget.itemDoubleClicked.connect(self._call_type_editor_details)
+
+        # Char List Widget
+        self.char_list_widget.customContextMenuRequested.connect(self._show_char_context_menu)
+        self.char_list_widget.itemDoubleClicked.connect(self._call_char_editor_details)
         
     @receiver(Events.OUTLINE_DATA_LOADED)
     @receiver(Events.REL_CHAR_DATA_RETURN)
@@ -119,7 +126,7 @@ class RelationshipOutlineManager(QWidget):
             return
                         
         if rel_types is not None:
-            self.list_widget.clear()
+            self.rel_type_list_widget.clear()
             for rel_type in rel_types:
                 self._add_rel_type_item(rel_type)
             
@@ -179,8 +186,8 @@ class RelationshipOutlineManager(QWidget):
         layout.addWidget(toggle_btn)
 
         item.setSizeHint(row_widget.sizeHint())
-        self.list_widget.addItem(item)
-        self.list_widget.setItemWidget(item, row_widget)
+        self.rel_type_list_widget.addItem(item)
+        self.rel_type_list_widget.setItemWidget(item, row_widget)
 
     def _add_character_item(self, char: dict) -> None:
         """
@@ -234,17 +241,6 @@ class RelationshipOutlineManager(QWidget):
         self.char_list_widget.setItemWidget(item, row_widget)
                                 
     # --- Internal Handlers ---
-
-    def _handle_item_clicked(self, item: QListWidgetItem) -> None:
-        """
-        Handles a single click on a list item.
-        
-        :param item: The list item that was clicked.
-        :type item: :py:class:`~PySide6.QtWidgets.QListWidgetItem`
-        
-        :rtype: None
-        """
-        type_id = item.data(self.RELATIONSHIP_TYPE_ID_ROLE)
 
     def _toggle_visibility(self, item: QListWidgetItem, button: QPushButton) -> None:
         """
@@ -325,9 +321,11 @@ class RelationshipOutlineManager(QWidget):
                     toggle_btn.setIcon(QIcon(icon_path))
                 break
 
-    def _show_context_menu(self, position: QPoint) -> None:
+    # --- Rel Types Functions ---
+
+    def _show_rel_type_context_menu(self, position: QPoint) -> None:
         """
-        Shows the context menu for the list widget at the right-click position.
+        Shows the context menu for the relationship types list widget at the right-click position.
         
         The menu contains options to "New Relationship Type" and, if an item 
         is clicked, "Edit Type Properties..." and "Delete Type".
@@ -337,7 +335,7 @@ class RelationshipOutlineManager(QWidget):
         
         :rtype: None
         """
-        item = self.list_widget.itemAt(position)
+        item = self.rel_type_list_widget.itemAt(position)
         
         menu = QMenu(self)
         
@@ -353,7 +351,7 @@ class RelationshipOutlineManager(QWidget):
             edit_action.triggered.connect(lambda: self._call_type_editor_details(item))
             delete_action.triggered.connect(lambda: self._delete_type(item))
 
-        menu.exec(self.list_widget.mapToGlobal(position))
+        menu.exec(self.rel_type_list_widget.mapToGlobal(position))
 
     def _call_type_editor_details(self, item: QListWidgetItem) -> None:
         """
@@ -366,7 +364,8 @@ class RelationshipOutlineManager(QWidget):
 
         :rtype: None
         """
-        bus.publish(Events.REL_TYPE_DETAILS_REQUESTED, data={'ID': item.data(self.RELATIONSHIP_TYPE_ID_ROLE)})
+        type_id = item.data(self.RELATIONSHIP_TYPE_ID_ROLE)
+        bus.publish(Events.REL_TYPE_DETAILS_REQUESTED, data={'ID': type_id})
 
     @receiver(Events.REL_TYPE_DETAILS_RETURN)
     def _open_type_editor(self, data: dict) -> None:
@@ -383,7 +382,7 @@ class RelationshipOutlineManager(QWidget):
         details = data
 
         # Initialize and show the custom dialog
-        dialog = RelationshipTypeEditorDialog(self, details)
+        dialog = RelationshipTypeEditorDialog(details, self)
         
         if dialog.exec() == QDialog.DialogCode.Accepted:
             values = dialog.get_values()
@@ -427,7 +426,7 @@ class RelationshipOutlineManager(QWidget):
         }
 
         # Open the same dialog used for editing
-        dialog = RelationshipTypeEditorDialog(self, default_details)
+        dialog = RelationshipTypeEditorDialog(details=default_details, parent=self)
         dialog.setWindowTitle("Create New Relationship Type") # Override title for clarity
 
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -478,3 +477,67 @@ class RelationshipOutlineManager(QWidget):
         
         if reply == QMessageBox.StandardButton.Yes:
             bus.publish(Events.ITEM_DELETE_REQUESTED, data={'entity_type': EntityType.RELATIONSHIP, 'ID': type_id})
+
+    # --- Char Related Functions ---
+
+    def _show_char_context_menu(self, position: QPoint) -> None:
+        """
+        Shows the context menu for the characters list widget at the right-click position.
+
+        :param position: The position where the right-click occurred, relative to the list widget.
+        :type position: :py:class:`~PySide6.QtCore.QPoint`
+        
+        :rtype: None
+        """
+        item = self.char_list_widget.itemAt(position)
+        
+        menu = QMenu(self)
+
+        if item:
+            # Actions available for a selected item
+            edit_action = menu.addAction("Edit Character Node Properties...")
+            
+            edit_action.triggered.connect(lambda: self._call_char_editor_details(item))
+
+        menu.exec(self.char_list_widget.mapToGlobal(position))
+
+    def _call_char_editor_details(self, item: QListWidgetItem) -> None:
+        """
+        Calls for all the details for the character node.
+        When received it will call the _open_type_editor to open
+        up all the details.
+        
+        :param item: The item that was clicked on.
+        :type item: QListWidgetItem
+
+        :rtype: None
+        """
+        char_id = item.data(Qt.ItemDataRole.UserRole + 1)
+        bus.publish(Events.REL_CHAR_DETAILS_REQUESTED, data={'ID': char_id})
+
+    @receiver(Events.REL_CHAR_DETAILS_RETURN)
+    def _open_char_editor(self, data: dict) -> None:
+        """
+        Opens a multi-step input dialog flow to edit the core properties of 
+        the selected character node (Node_Color, Node_Shape, Is_Hidden, Is_Locked).
+
+        :param data: The dict of data needed to open the char editor.
+        :type data: dict
+        
+        :rtype: None
+        """
+        char_id = data.pop('ID')
+        
+        dialog = CharNodeEditorDialog(data, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            save_data = dialog.get_values()
+            
+            save_data.update({'ID': char_id})
+
+            save_data.pop('name')
+
+            # Save and Refresh
+            bus.publish(Events.REL_CHAR_DETAILS_SAVE, data=save_data)
+            bus.publish(Events.REL_CHAR_DATA_REQUESTED, data={'entity_type': EntityType.RELATIONSHIP})
+            bus.publish(Events.GRAPH_LOAD_REQUESTED)
+            bus.publish(Events.REL_CHAR_DATA_REQUESTED)

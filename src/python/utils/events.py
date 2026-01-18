@@ -72,8 +72,12 @@ class Events(str, Enum):
     REL_TYPES_RECEIVED = "graph.rel_types_received"
     REL_TYPE_DETAILS_REQUESTED = "graph.rel_type_details_requested"
     REL_TYPE_DETAILS_RETURN = "graph.rel_types_details_return"
+
     REL_CHAR_DATA_REQUESTED = "graph.rel_char_data_requested"
     REL_CHAR_DATA_RETURN = "graph.rel_char_data_return"
+    REL_CHAR_DETAILS_REQUESTED = "graph.rel_char_details_requested"
+    REL_CHAR_DETAILS_RETURN = "graph.rel_char_details_return"
+    REL_CHAR_DETAILS_SAVE = "graph.rel_char_details_save"
 
     REL_CREATE_REQUESTED = "graph.rel_create"
     REL_UPDATE_REQUESTED = "graph.rel_update"

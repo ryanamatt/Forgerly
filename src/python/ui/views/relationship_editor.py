@@ -607,8 +607,6 @@ class RelationshipEditor(QWidget):
         """
         self.is_label_visible = not self.is_label_visible
 
-        # for edge_id, edge in self.edges.items():
-        #     print
         for edge in self.edges:
             edge.label_item.setVisible(self.is_label_visible)
 

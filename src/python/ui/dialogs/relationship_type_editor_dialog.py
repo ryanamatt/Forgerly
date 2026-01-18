@@ -6,7 +6,19 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QColor
 
 class RelationshipTypeEditorDialog(QDialog):
-    def __init__(self, parent=None, details=None):
+    """
+    A Dialog to edit the Relationship Type Attributes.
+    """
+    def __init__(self, details: dict, parent=None):
+        """
+        Instantiates the RelationshipTypeEditorDialog
+        
+        :param details: The details needed containing {
+            (Name: str, Short_Label: str, color: str, style: str, is_directed: bool)}
+        :param parent: The parent.
+        :type parent: QWidget
+        :rtype: None
+        """
         super().__init__(parent)
         self.setWindowTitle("Edit Relationship Type")
         self.setMinimumWidth(350)
