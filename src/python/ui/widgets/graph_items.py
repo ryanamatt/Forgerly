@@ -1,10 +1,10 @@
 # src\python\ui\widgets/graph_items.py
 
 from PySide6.QtWidgets import (
-    QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem, QMenu, QWidget
+    QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem, QMenu
 )
 from PySide6.QtCore import Qt, QPointF, Signal, QRectF, QObject, QLineF, QEvent
-from PySide6.QtGui import QColor, QPen, QBrush, QFont, QMouseEvent, QCursor, QPainter, QPainterPath
+from PySide6.QtGui import QColor, QPen, QBrush, QFont, QMouseEvent, QCursor, QPainter
 import math
 from typing import Any, TYPE_CHECKING
 
@@ -297,66 +297,6 @@ class CharacterNode(QGraphicsEllipseItem):
             bus.publish(Events.GRAPH_NODE_LOCKED_CHANGED, data={
                 'ID': self.char_id, 'is_locked': self.is_locked
             })
-
-    def paint(self, painter: QPainter, option: Any, widget: QWidget) -> None:
-        """
-        Overrides the default painting to handle multiple shapes.
-        
-        :param painter: The Painter object.
-        :type painter: QPainter
-        :param option: The option
-        :type option: Any
-        :param widget: The Widget.
-        :type widget: QWidget
-        :rtype: None
-        """
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setBrush(self.brush())
-        painter.setPen(self.pen())
-
-        r = self.NODE_RADIUS
-        rect = QRectF(-r, -r, 2 * r, 2 * r)
-
-        if self.node_shape == 'Box':
-            painter.drawRect(rect)
-        
-        elif self.node_shape == 'Diamond':
-            points = [QPointF(0, -r), QPointF(r, 0), QPointF(0, r), QPointF(-r, 0)]
-            painter.drawPolygon(points)
-
-        elif self.node_shape == 'Triangle':
-            # Drawing an equilateral-ish triangle within the bounds
-            points = [QPointF(0, -r), QPointF(r, r), QPointF(-r, r)]
-            painter.drawPolygon(points)
-
-        elif self.node_shape == 'Star':
-            path = self._get_star_path(r)
-            painter.drawPath(path)
-
-        else: # Default to Circle
-            painter.drawEllipse(rect)
-
-    def _get_star_path(self, r: float) -> QPainterPath:
-        """
-        Calculates a 5-pointed star path.
-        
-        :param r: The Radius of the star.
-        :type r: float
-        :rtype: QPainterPath
-        """
-        path = QPainterPath()
-        points = []
-        for i in range(10):
-            angle = i * math.pi / 5 - (math.pi / 2)
-            # Alternate between outer radius and inner radius
-            radius = r if i % 2 == 0 else r * 0.4
-            points.append(QPointF(math.cos(angle) * radius, math.sin(angle) * radius))
-        
-        path.moveTo(points[0])
-        for p in points[1:]:
-            path.lineTo(p)
-        path.closeSubpath()
-        return path
 
 class RelationshipEdge(QGraphicsLineItem):
     """

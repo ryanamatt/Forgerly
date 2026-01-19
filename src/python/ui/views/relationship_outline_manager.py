@@ -526,7 +526,6 @@ class RelationshipOutlineManager(QWidget):
         
         :rtype: None
         """
-        print('details before', data)
         char_id = data.pop('ID')
         
         dialog = CharNodeEditorDialog(data, self)
@@ -534,8 +533,6 @@ class RelationshipOutlineManager(QWidget):
             save_data = dialog.get_values()
             
             save_data.update({'ID': char_id})
-
-            print('details_after', save_data)
 
             save_data.pop('name')
 
