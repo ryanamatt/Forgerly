@@ -9,7 +9,6 @@ from PySide6.QtGui import QColor, QIcon
 
 from ...resources_rc import *
 from ..dialogs.relationship_type_editor_dialog import RelationshipTypeEditorDialog
-from ..dialogs.char_node_editor_dialog import CharNodeEditorDialog
 from ...utils.constants import EntityType
 from ...utils.events import Events
 from ...utils.event_bus import bus, receiver
@@ -477,70 +476,3 @@ class RelationshipOutlineManager(QWidget):
         
         if reply == QMessageBox.StandardButton.Yes:
             bus.publish(Events.ITEM_DELETE_REQUESTED, data={'entity_type': EntityType.RELATIONSHIP, 'ID': type_id})
-
-    # --- Char Related Functions ---
-
-    def _show_char_context_menu(self, position: QPoint) -> None:
-        """
-        Shows the context menu for the characters list widget at the right-click position.
-
-        :param position: The position where the right-click occurred, relative to the list widget.
-        :type position: :py:class:`~PySide6.QtCore.QPoint`
-        
-        :rtype: None
-        """
-        item = self.char_list_widget.itemAt(position)
-        
-        menu = QMenu(self)
-
-        if item:
-            # Actions available for a selected item
-            edit_action = menu.addAction("Edit Character Node Properties...")
-            
-            edit_action.triggered.connect(lambda: self._call_char_editor_details(item))
-
-        menu.exec(self.char_list_widget.mapToGlobal(position))
-
-    def _call_char_editor_details(self, item: QListWidgetItem) -> None:
-        """
-        Calls for all the details for the character node.
-        When received it will call the _open_type_editor to open
-        up all the details.
-        
-        :param item: The item that was clicked on.
-        :type item: QListWidgetItem
-
-        :rtype: None
-        """
-        char_id = item.data(Qt.ItemDataRole.UserRole + 1)
-        bus.publish(Events.REL_CHAR_DETAILS_REQUESTED, data={'ID': char_id})
-
-    @receiver(Events.REL_CHAR_DETAILS_RETURN)
-    def _open_char_editor(self, data: dict) -> None:
-        """
-        Opens a multi-step input dialog flow to edit the core properties of 
-        the selected character node (Node_Color, Node_Shape, Is_Hidden, Is_Locked).
-
-        :param data: The dict of data needed to open the char editor.
-        :type data: dict
-        
-        :rtype: None
-        """
-        print('details before', data)
-        char_id = data.pop('ID')
-        
-        dialog = CharNodeEditorDialog(data, self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            save_data = dialog.get_values()
-            
-            save_data.update({'ID': char_id})
-
-            print('details_after', save_data)
-
-            save_data.pop('name')
-
-            # Save and Refresh
-            bus.publish(Events.REL_CHAR_DETAILS_SAVE, data=save_data)
-            bus.publish(Events.REL_CHAR_DATA_REQUESTED, data={'entity_type': EntityType.RELATIONSHIP})
-            bus.publish(Events.GRAPH_LOAD_REQUESTED)
-            bus.publish(Events.REL_CHAR_DATA_REQUESTED)
