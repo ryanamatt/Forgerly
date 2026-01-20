@@ -217,23 +217,26 @@ class StoryExporter(Exporter):
         f.write(f"<!DOCTYPE html><html><head><title>{self.project_title}</title>")
         f.write("<meta charset='UTF-8'>")
         f.write("""
-                    <style>
-                        body {
-                            font-family: Arial, sans-serif;
-                            line-height: 1.6;
-                            max-width: 800px;
-                            margin: 40px auto;
-                        }
-                        h1 {
-                            color: #333;
-                            border-bottom: 2px solid #ccc;
-                            padding-bottom: 5px;
-                        }
-                        h2 {
-                            color: #555;
-                        }
-                    </style>
-                    """)
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    max-width: 800px;
+                    margin: 40px auto;
+                    background-color: #ffffff;
+                    color: #000000 !important; /* Force black text */
+                }
+                /* Target the spans specifically since they hold the white color */
+                span, p {
+                    color: #000000 !important;
+                }
+                h1 {
+                    color: #333;
+                    border-bottom: 2px solid #ccc;
+                    padding-bottom: 5px;
+                }
+            </style>
+        """)
         f.write("</head><body>\n")
         
         # Content Loop
