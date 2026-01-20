@@ -2,7 +2,7 @@
 
 class ApplicationError(Exception):
     """
-    Base class for all custom exceptions in Narrative Forge.
+    Base class for all custom exceptions in Forgerly.
 
     All specific exceptions should inherit from this class.
     """

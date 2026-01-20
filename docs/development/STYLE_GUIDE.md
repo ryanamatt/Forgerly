@@ -1,6 +1,6 @@
-# **Narrative Forge Coding Standards**
+# **Forgerly Coding Standards**
 
-This document outlines the technical standards and best practices for contributing to Narrative Forge. Following these guidelines ensures consistency across the Python frontend and C++ core.
+This document outlines the technical standards and best practices for contributing to Forgerly. Following these guidelines ensures consistency across the Python frontend and C++ core.
 
 ## **1\. General Principles**
 

@@ -220,8 +220,8 @@ class MainMenuBar(QMenuBar):
         logger.info("Displaying About Dialog.")
         QMessageBox.about(
             self,
-            f"About The Narrative Forge v{self.app_version}",
-            f"<h2>The Narrative Forge</h2>"
+            f"About The Forgerly v{self.app_version}",
+            f"<h2>The Forgerly</h2>"
             f"<p>Version: {self.app_version}</p>"
             f"<p>A writing application designed for worldbuilders and novel writers.</p>"
             f"<p>Built with Python and PySide6.</p>"

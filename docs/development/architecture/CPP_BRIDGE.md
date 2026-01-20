@@ -4,7 +4,7 @@ This document outlines the architecture for the bridge between the **Python fron
 
 ## **1\. Architecture Overview**
 
-Narrative Forge uses a modular hybrid architecture. The bridge is split into three components to 
+Forgerly uses a modular hybrid architecture. The bridge is split into three components to 
 manage a single shared library handle efficiently:
 
 * **Core Configuration (ffi\_base.py):** Centralizes ffi.dlopen() to ensure the .dll/.so is loaded 

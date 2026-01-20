@@ -1,5 +1,5 @@
 -- schema_v1.sql
--- Complete SQLite Schema for The Narrative Forge
+-- Complete SQLite Schema for The Forgerly
 
 -- Enable Foreign Key constraints enforcement, crucial for data integrity checks
 PRAGMA foreign_keys = ON;

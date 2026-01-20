@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.12.3"
 license = { text = "MIT" }
 authors = [
-    { name = "Narrative Forge Maintainers" }
+    { name = "Forgerly Maintainers" }
 ]
 keywords = ["writing", "worldbuilding", "storytelling", "pyside6", "sqlite"]
 classifiers = [

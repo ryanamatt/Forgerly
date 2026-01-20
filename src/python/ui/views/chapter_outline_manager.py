@@ -24,7 +24,7 @@ class ChapterOutlineManager(BaseOutlineManager):
     CHAPTER_ID_ROLE = Qt.ItemDataRole.UserRole + 1
     """The int role used to store the database ID of a Chapter on an item."""
 
-    def __init__(self, project_title: str = "Narrative Forge Project") -> None:
+    def __init__(self, project_title: str = "Forgerly Project") -> None:
         """
         Initializes the ChapterOutlineManager.
         

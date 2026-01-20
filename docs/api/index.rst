@@ -1,4 +1,4 @@
-Welcome to Narrative Forge's Documentation!
+Welcome to Forgerly's Documentation!
 ===========================================
 
 .. toctree::
