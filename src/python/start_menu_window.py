@@ -50,7 +50,7 @@ class StartMenuWindow(QMainWindow):
         bus.register_instance(self)
 
         self.settings_manager = settings_manager
-        self.setWindowTitle(f"Narrative Forge - Start Menu - {__version__}")
+        self.setWindowTitle(f"Forgerly - Start Menu - {__version__}")
         self.setFixedSize(650, 450)
 
         self._create_widgets()
@@ -66,7 +66,7 @@ class StartMenuWindow(QMainWindow):
         :rtype: None
         """
         # Main Title
-        self.title_label = QLabel("Narrative Forge")
+        self.title_label = QLabel("Forgerly")
         self.title_label.setObjectName("StartMenuTitle")
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         font = self.title_label.font()
@@ -136,7 +136,7 @@ class StartMenuWindow(QMainWindow):
 
     def _scaffold_project(self, project_path: Path, project_name: str) -> bool:
         """
-        Creates the standard Narrative Forge project folder structure and initial files.
+        Creates the standard Forgerly project folder structure and initial files.
 
         The structure should be:
         [ProjectName]/

@@ -122,7 +122,7 @@ def generate_fake_data(db_connector: DBConnector, profile_name: str):
 
 def run_data_faker():
     """Main execution point for the data faker utility, handling arguments."""
-    print("--- Narrative Forge Data Faker Utility ---")
+    print("--- Forgerly Data Faker Utility ---")
     
     parser = argparse.ArgumentParser(
         description="Populate the database with test data.",

@@ -24,7 +24,7 @@ class CharacterOutlineManager(BaseOutlineManager):
     CHARACTER_ID_ROLE = Qt.ItemDataRole.UserRole + 1
     """The :py:obj:`int` role used to store the database ID of a Character on an item."""
 
-    def __init__(self, project_title: str = "Narrative Forge Project") -> None:
+    def __init__(self, project_title: str = "Forgerly Project") -> None:
         """
         Initializes the :py:class:`.CharacterOutlineManager`.
         

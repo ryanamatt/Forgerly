@@ -1,4 +1,4 @@
-# Narrative Forge Project Structure
+# Forgerly Project Structure
 
 The project directory is designed to be self-contained, ensuring portability between different installations of the application.
 

@@ -33,7 +33,7 @@ logger = get_logger(__name__)
 
 class MainWindow(QMainWindow):
     """
-    The main window of the Narrative Forge application.
+    The main window of the Forgerly application.
     
     It is responsible for:
     
@@ -51,7 +51,7 @@ class MainWindow(QMainWindow):
         Initializes the main window, connecting to the database and setting up 
         all sub-components and services.
         
-        :param project_path: The path to the narrative forge project.
+        :param project_path: The path to the Forgerly project.
         :type project_path: str
         :param settings_manager: The settings manager class to manage all settings.
         :type settings_manager: :py:class:'~services.SettingsManager`
@@ -87,7 +87,7 @@ class MainWindow(QMainWindow):
         # Temporary Project Title will need to be changed to actual users project title
         self.project_title = project_settings.get('project_name', 'Project Title')
 
-        self.setWindowTitle(f"The Narrative Forge v{__version__}")
+        self.setWindowTitle(f"The Forgerly v{__version__}")
         self.setGeometry(100, 100, 1200, 800)
         self.setWindowIcon(QIcon(self.get_resource_path('resources/logo.ico')))
 

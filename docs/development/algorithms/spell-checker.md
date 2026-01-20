@@ -45,7 +45,7 @@ procedure SearchSuggestions(node, letter, target, prevRow, maxCost, currentWord)
 end
 ```
 
-## **Design Decisions (Narrative Forge vs. Standard)**
+## **Design Decisions (Forgerly vs. Standard)**
 
 | Change | Rationale |
 | :---- | :---- |

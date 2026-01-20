@@ -1,8 +1,8 @@
-# **✍️ Narrative Forge**
+# **✍️ Forgerly**
 
-Narrative Forge is a comprehensive desktop application designed to assist **authors, storytellers, and worldbuilders** in organizing and developing their fictional universes. Built using **Python** and **PySide6**, it provides dedicated tools for managing chapters, characters, lore, and the relationships between them.
+Forgerly is a comprehensive desktop application designed to assist **authors, storytellers, and worldbuilders** in organizing and developing their fictional universes. Built using **Python** and **PySide6**, it provides dedicated tools for managing chapters, characters, lore, and the relationships between them.
 
-![Screenshot of Narrative Forge Main Interface](docs/user/screenshots/character_editor.png)
+![Screenshot of Forgerly Main Interface](docs/user/screenshots/character_editor.png)
 
 ## **✨ Key Features**
 
@@ -38,7 +38,7 @@ Each user project is self-contained:
 
 ## 🐛 Reporting Bugs & Issues
 
-Narrative Forge is under active development. If you encounter a bug or have a feature request, please help us improve by following these steps:
+Forgerly is under active development. If you encounter a bug or have a feature request, please help us improve by following these steps:
 
 1. **Check the Roadmap:** See [docs/maintenance/TODO.md](docs/maintenance/TODO.md) to see if the issue is already being tracked.
 
@@ -58,7 +58,7 @@ Narrative Forge is under active development. If you encounter a bug or have a fe
 
 ### **💾 Project Structure**
 
-Narrative Forge follows a modular architecture separating the GUI, business logic, and high-performance core:
+Forgerly follows a modular architecture separating the GUI, business logic, and high-performance core:
 
 narrative-forge/  
 ├── src/  
@@ -96,7 +96,7 @@ Technical specifications and project guides are maintained in the docs/ director
 
 -[C++ Bridge API](docs/development/architecture/CPP_BRIDGE.md): Reference for the cffi layer, memory management, and C-API exports.
 
--[Project Standards](docs/development/project-structure/NarrativeForgeProjectFolder.md): Specifications for the .nforge portable project directory.
+-[Project Standards](docs/development/project-structure/ForgerlyProjectFolder.md): Specifications for the .nforge portable project directory.
 
 #### Algorithms & Logic
 
@@ -155,14 +155,14 @@ g++ -shared -o src/c_lib/nf_core_lib.dll src/c_lib/text_stats/text_stats_engine.
 
 4. Packaging (Creating a Portable EXE)
 
-    We use PyInstaller to bundle the application. The configuration is handled in NarrativeForge.spec.
+    We use PyInstaller to bundle the application. The configuration is handled in Forgerly.spec.
 
 ```Terminal
-pyinstaller NarrativeForge.spec
+pyinstaller Forgerly.spec
 ```
 
 
-The resulting executable will be found in the dist/NarrativeForge/ folder.
+The resulting executable will be found in the dist/Forgerly/ folder.
 
 🚀 Running the App
 
@@ -179,7 +179,7 @@ This project is licensed under the MIT License \- see the [LICENSE](LICENSE) fil
 ### Project Logo (`resources/logo.ico`)
 
 **License:** All Rights Reserved / Proprietary
-The Narrative Forge logo is the intellectual property of the maintainers. 
+The Forgerly logo is the intellectual property of the maintainers. 
 
 - Personal Use: You may use the logo for personal use while running the software. 
 
@@ -192,7 +192,7 @@ The Narrative Forge logo is the intellectual property of the maintainers.
 **License:** Apache License 2.0
 All icons in this directory are sourced from [Remix Icon](https://remixicon.com/).
 
-* **Modifications:** Some filenames have been changed from the original Remix Icon set to better match the Narrative Forge project naming conventions.
+* **Modifications:** Some filenames have been changed from the original Remix Icon set to better match the Forgerly project naming conventions.
 
 - **Restrictions:** Per the Remix Icon license, these icons may not be sold individually or as an icon pack.
 - See [`resources/icons/LICENSE`](resources/icons/LICENSE) for the full Apache 2.0 text.

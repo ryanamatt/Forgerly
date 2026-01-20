@@ -192,7 +192,7 @@ class ApplicationFlowManager:
 
 def main() -> None:
     """
-    The entry point of the Narrative Forge application.
+    The entry point of the Forgerly application.
     
     :rtype: None
     """
@@ -205,7 +205,7 @@ def main() -> None:
     logger = get_logger(__name__)
     install_system_exception_hook()
 
-    logger.info("Narrative Forge application is starting up.")
+    logger.info("Forgerly application is starting up.")
     if DEBUG_MODE:
         logger.debug(f"Debug Mode is active. Logging level set to DEBUG.")
 

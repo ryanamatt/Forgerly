@@ -1,6 +1,6 @@
 # **🗄️ Database Schema Reference**
 
-This document provides a detailed breakdown of the SQLite schema for Narrative Forge. All data is stored in the .nforge (SQLite) project file.
+This document provides a detailed breakdown of the SQLite schema for Forgerly. All data is stored in the .nforge (SQLite) project file.
 
 ## **Base Content Tables**
 

@@ -38,7 +38,7 @@ for i := 1 to iterations do begin
 end
 ```
 
-## Narrative Forge Modified Fruchterman-Reingold Algorithm
+## Forgerly Modified Fruchterman-Reingold Algorithm
 
 ```PseudoCode
 { --- Initialization --- }
@@ -96,7 +96,7 @@ for i := 1 to max_iterations do begin
 end
 ```
 
-## Design Decisions (Narrative Forge vs. Standard)
+## Design Decisions (Forgerly vs. Standard)
 
 | Change | Rationale |
 | :--- | :--- |

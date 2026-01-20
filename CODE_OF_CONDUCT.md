@@ -2,7 +2,7 @@
 
 ## Our Commitment
 
-Narrative Forge is committed to providing a welcoming, inclusive, and respectful environment for all contributors, users, and community members. We believe that creativity and collaboration thrive when people feel safe and respected.
+Forgerly is committed to providing a welcoming, inclusive, and respectful environment for all contributors, users, and community members. We believe that creativity and collaboration thrive when people feel safe and respected.
 
 ## Our Standards
 
@@ -56,8 +56,8 @@ If you experience or witness unacceptable behavior, please report it by contacti
 
 ## Attribution
 
-We are committed to making participation in this project a positive experience for everyone. Thank you for helping make Narrative Forge a welcoming community.
+We are committed to making participation in this project a positive experience for everyone. Thank you for helping make Forgerly a welcoming community.
 
 ---
 
-*This Code of Conduct is adapted for the specific needs of the Narrative Forge project.*
+*This Code of Conduct is adapted for the specific needs of the Forgerly project.*

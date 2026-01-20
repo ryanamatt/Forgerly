@@ -19,7 +19,7 @@ def run_db_reset(db_path: Path) -> bool:
     
     Returns True on success, False otherwise.
     """
-    print("--- Narrative Forge Database Reset Utility ---")
+    print("--- Forgerly Database Reset Utility ---")
     
     # --- Step 1: Delete existing database file ---
     if db_path.exists():

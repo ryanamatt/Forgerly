@@ -45,7 +45,7 @@ def print_table_data_summary(conn: sqlite3.Connection, table_name: str, limit: i
 
 def run_db_inspector(db_path: Path): # Modified signature
     """Main function to run the database inspection."""
-    print(f"--- Narrative Forge Database Inspector ---")
+    print(f"--- Forgerly Database Inspector ---")
     
     if not db_path.exists():
         print(f"❌ ERROR: Database file not found at {db_path}.")
