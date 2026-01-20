@@ -234,8 +234,9 @@ class BasicTextEditor(QWidget):
 
         # Apply red underlines to misspelled words
         text = self.editor.toPlainText()
-        for match in re.finditer(r'\b[A-Za-z]+\b', text):
+        for match in re.finditer(r"\b[A-Za-z']+\b", text):
             word = match.group()
+            word = word.replace("'", "")
             if not self.spell_checker.is_correct(word):
                 cursor.setPosition(match.start())
                 cursor.setPosition(match.end(), QTextCursor.KeepAnchor)
