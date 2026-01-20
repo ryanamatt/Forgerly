@@ -60,7 +60,7 @@ Forgerly is under active development. If you encounter a bug or have a feature r
 
 Forgerly follows a modular architecture separating the GUI, business logic, and high-performance core:
 
-narrative-forge/  
+Forgerly/  
 ├── src/  
 │   ├── c\_lib/          \# C++ Core (Graph layout & Text stats engines)  
 │   ├── python/  
