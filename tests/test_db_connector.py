@@ -14,7 +14,7 @@ from src.python.utils.exceptions import DatabaseError
 @pytest.fixture
 def initialized_connector(tmp_path):
     # Use a temporary file for the database to ensure clean state per test
-    db_path = tmp_path / "test_narrative_forge.db"
+    db_path = tmp_path / "temp_test_db.db"
     
     # Create a minimal schema file for initialization
     schema_content = """

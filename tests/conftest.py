@@ -22,7 +22,7 @@ def clean_connector(db_path_temp):
     """
     from src.python.db_connector import DBConnector
     # The schema path will point to the real one, but the db_path is temporary
-    connector = DBConnector(db_path=str(db_path_temp))
+    connector = DBConnector(db_path=str(db_path_temp), schema_path=SCHEMA_PATH)
     return connector
 
 @pytest.fixture
@@ -34,7 +34,7 @@ def initialized_connector(clean_connector):
     from src.python.db_connector import DBConnector
     
     # Use a pure in-memory database for ultra-fast, isolated testing
-    connector = DBConnector(db_path=':memory:') 
+    connector = DBConnector(db_path=':memory:', schema_path=SCHEMA_PATH) 
     
     # 1. Connect
     assert connector.connect() is True
