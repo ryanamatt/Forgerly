@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
         if sys.platform.startswith('win'):
             try:
                 # We use an application ID to group windows under the correct icon on the taskbar
-                appID = f"narrative-forge.{__version__}"
+                appID = f"Forgerly.{__version__}"
                 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(appID)
                 logger.info(f"Windows AppUserModelID set to '{appID}'.")
             except AttributeError:
