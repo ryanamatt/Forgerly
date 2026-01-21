@@ -175,7 +175,7 @@ class CharacterOutlineManager(BaseOutlineManager):
                 rename_action = menu.addAction("Rename Character")
                 delete_action = menu.addAction("Delete Character")
                 
-                rename_action.triggered.connect(lambda: self.editItem(item, 0))
+                rename_action.triggered.connect(lambda: self.tree_widget.editItem(item, 0))
                 # Wrap the delete action to ensure save check occurs
                 delete_action.triggered.connect(lambda: self.check_save_and_delete(item))
 
