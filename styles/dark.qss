@@ -169,6 +169,7 @@ QTreeWidget, QTreeView {
 
 QTreeWidget::item, QTreeView::item {
     padding: 3px;
+    min-height: 28px;
 }
 
 QTreeWidget::item:hover, QTreeView::item:hover {
