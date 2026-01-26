@@ -1,24 +1,11 @@
 # 🚀 Project Roadmap
-
-1. **Implement a Notes Feature**
- 
-    - [ ] Enable Ctrl+Shift+L inter-entry lookup and tagging support to link notes with Characters and Lore
-
-3. **Implement Locations**
-
-    - [ ] Create location_repository.py and a LocationOutlineManager to support the existing hierarchical Parent_Location_ID structure.
-
-    - [ ] Build a LocationEditor view that allows users to assign "Primary Settings" to chapters and link "Residents" (Characters) or "Lore" to specific places.
-
-    - [ ] Implement filtering and organization based on the Type attribute (e.g., City, Building, Planet).
-
-4. **Update Relationships Graph**
+- **Update Relationships Graph**
 
     - [ ] Intensity Threshold Slider: Add a QSlider to dynamically hide edges with an Intensity score below a user-defined value, reducing visual clutter in complex character webs.
 
     - [ ] Snapshot/Export: Create a "Save as Image" action that renders the current QGraphicsScene into a high-resolution .png or .svg for external story bibles.
 
-5. **Better Exporting**
+- **Better Exporting**
 
     - [ ] Expanded Format Library: Add support for .docx, .rtf, .odt, and .mobi.
 
@@ -28,7 +15,7 @@
 
     - [ ] Full Project Export: Allow "Bundle" exports that include Chapters, Notes, Lore, and Locations in a single formatted directory or file.
 
-6. **Version Control** > *Note: Consider using C++ for the core logic if speed becomes an issue.*
+ - **Version Control** > *Note: Consider using C++ for the core logic if speed becomes an issue.*
 
     - [ ] Snapshots Table: Add a Snapshots table to the schema to store entity ID, timestamp, and delta data.
 
@@ -38,7 +25,7 @@
 
     - [ ] Rollback Logic: Add the ability to "Restore" a snapshot, replacing the current live text in the database.
 
-7. **Importing Functionality**
+- **Importing Functionality**
 
     - [ ] Multi-Format Ingestion: Develop importers for .docx, .rtf, and .md to allow migration from external editors.
 
