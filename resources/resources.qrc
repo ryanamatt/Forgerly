@@ -40,5 +40,6 @@
     <file>icons/zoom-reset.svg</file>
     <file>icons/lock.svg</file>
     <file>icons/unlock.svg</file>
+    <file>icons/export.svg</file>
   </qresource>
 </RCC>
