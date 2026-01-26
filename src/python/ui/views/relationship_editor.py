@@ -2,7 +2,7 @@
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QGraphicsView, QGraphicsScene, QGraphicsLineItem, QMessageBox, 
-    QFrame, QDialog, QToolBar
+    QFrame, QDialog, QToolBar, QSlider, QLabel, QHBoxLayout
 )
 from PySide6.QtCore import Qt, QLineF, QPointF
 from PySide6.QtGui import QPen, QAction, QIcon
@@ -55,6 +55,7 @@ class RelationshipEditor(QWidget):
 
         self.bulk_is_locked: bool = False
         self.is_label_visible: bool = True
+        self.intensity_threshold: int = 0
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 
@@ -76,8 +77,10 @@ class RelationshipEditor(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         self._setup_toolbar()
+        self._setup_intensity_slider()
 
         main_layout.addWidget(self.toolbar)
+        main_layout.addWidget(self.intensity_slider_widget)
         main_layout.addWidget(self.view)
 
     def _setup_toolbar(self) -> None:
@@ -108,6 +111,73 @@ class RelationshipEditor(QWidget):
 
         self.reset_zoom_action = add_btn("Reset Zoom", "zoom-reset.svg", self.reset_view_zoom)
         self.toggle_labels_action = add_btn("Toggle Label Visbility", "visible-on", self.toggle_labels, True)
+
+    def _setup_intensity_slider(self) -> None:
+        """
+        Sets up the intensity threshold slider widget.
+        
+        :rtype: None
+        """
+        self.intensity_slider_widget = QWidget()
+        slider_layout = QHBoxLayout(self.intensity_slider_widget)
+        slider_layout.setContentsMargins(10, 5, 10, 5)
+
+        # Label
+        self.intensity_label = QLabel("Intensity Threshold: 0")
+        slider_layout.addWidget(self.intensity_label)
+
+        # Slider
+        self.intensity_slider = QSlider(Qt.Orientation.Horizontal)
+        self.intensity_slider.setMinimum(0)
+        self.intensity_slider.setMaximum(10)
+        self.intensity_slider.setValue(0)
+        self.intensity_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.intensity_slider.setTickInterval(1)
+        self.intensity_slider.valueChanged.connect(self._on_intensity_threshold_changed)
+        slider_layout.addWidget(self.intensity_slider)
+
+        # Value display
+        self.intensity_value_label = QLabel("0")
+        self.intensity_value_label.setMinimumWidth(30)
+        slider_layout.addWidget(self.intensity_value_label)
+
+    def _on_intensity_threshold_changed(self, value: int) -> None:
+        """
+        Handles changes to the intensity threshold slider.
+        
+        :param value: The new threshold value (0-10).
+        :type value: int
+        
+        :rtype: None
+        """
+        self.intensity_threshold = value
+        self.intensity_label.setText(f"Intensity Threshold: {value}")
+        self.intensity_value_label.setText(str(value))
+
+        self._apply_intensity_filter()
+
+    def _apply_intensity_filter(self) -> None:
+        """
+        Filters edges based on the current intensity threshold.
+        Edges with intensity below the threshold are hidden.
+        
+        :rtype: None
+        """
+        for edge in self.edges:
+            edge_intensity = edge.edge_data.get('intensity', 5)
+            
+            # Check if edge should be visible based on intensity
+            should_be_visible = edge_intensity >= self.intensity_threshold
+            
+            # Also respect node visibility and type visibility
+            source_hidden = edge.source_node.is_hidden
+            target_hidden = edge.target_node.is_hidden
+            
+            # Edge is only visible if it meets intensity threshold AND nodes are visible
+            final_visibility = should_be_visible and not source_hidden and not target_hidden
+            
+            edge.setVisible(final_visibility)
+            edge.label_item.setVisible(final_visibility and self.is_label_visible)
 
     @receiver(Events.REL_TYPES_RECEIVED)
     def set_available_relationship_types(self, data: dict) -> None:
@@ -349,6 +419,8 @@ class RelationshipEditor(QWidget):
                     self.scene.addItem(edge)
                     self.edges.append(edge)
 
+            self._apply_intensity_filter()
+
             # Fit the view to the new content (or center on (0,0) if empty)
             if self.nodes:
                 # Calculate the bounding box for all nodes
@@ -474,9 +546,17 @@ class RelationshipEditor(QWidget):
             return
         
         for edge in self.edges:
-            if edge.edge_data.get('type_id') == target_type_id:
-                edge.setVisible(is_visible)
-                edge.label_item.setVisible(is_visible)
+            data = edge.edge_data
+            if data.get('type_id', 5) == target_type_id:
+                if is_visible:
+                    edge_intensity = data.get('intensity', 5)
+                    should_be_visible = edge_intensity >= self.intensity_threshold
+                    edge.setVisible(should_be_visible)
+                    edge.label_item.setVisible(should_be_visible and self.is_label_visible)
+
+                else:
+                    edge.setVisible(False)
+                    edge.label_item.setVisible(False)
 
     @receiver(Events.GRAPH_NODE_VISIBILTY_CHANGED)
     def handle_node_visibility(self, data: dict) -> None:
@@ -499,7 +579,12 @@ class RelationshipEditor(QWidget):
             # Make Connected Edges Invisible
             for edge in self.edges:
                 if edge.source_node == node_item or edge.target_node == node_item:
-                    edge.setVisible(is_visible)
+                    if is_visible:
+                        edge_intensity = edge.edge_data.get('intensity', 5)
+                        should_be_visible = edge_intensity >= self.intensity_threshold
+                        edge.setVisible(should_be_visible)
+                    else:
+                        edge.setVisible(False)
 
     # --- Toolbar Connection Functions ---
 
@@ -607,10 +692,9 @@ class RelationshipEditor(QWidget):
         """
         self.is_label_visible = not self.is_label_visible
 
-        # for edge_id, edge in self.edges.items():
-        #     print
         for edge in self.edges:
-            edge.label_item.setVisible(self.is_label_visible)
+            if edge.isVisible():
+                edge.label_item.setVisible(self.is_label_visible)
 
         icon_name = "visible-on.svg" if self.is_label_visible else "visible-off.svg"
         self.toggle_labels_action.setIcon(QIcon(f":icons/{icon_name}"))
