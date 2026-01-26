@@ -1,8 +1,6 @@
 # 🚀 Project Roadmap
 - **Update Relationships Graph**
 
-    - [ ] Intensity Threshold Slider: Add a QSlider to dynamically hide edges with an Intensity score below a user-defined value, reducing visual clutter in complex character webs.
-
     - [ ] Snapshot/Export: Create a "Save as Image" action that renders the current QGraphicsScene into a high-resolution .png or .svg for external story bibles.
 
 - **Better Exporting**
