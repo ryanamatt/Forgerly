@@ -275,6 +275,8 @@ class CharacterNode(QGraphicsEllipseItem):
 
         lock_node_action_text = "Unlock Character" if self.is_locked else "Lock Character"
         lock_node_action = menu.addAction(lock_node_action_text)
+
+        edit_node_details_action = menu.addAction("Edit Node Details")
     
         view = self.scene().views()[0]
         editor: 'RelationshipEditor' = view.parent()
@@ -297,6 +299,9 @@ class CharacterNode(QGraphicsEllipseItem):
             bus.publish(Events.GRAPH_NODE_LOCKED_CHANGED, data={
                 'ID': self.char_id, 'is_locked': self.is_locked
             })
+
+        elif action == edit_node_details_action:
+            bus.publish(Events.REL_CHAR_DETAILS_REQUESTED, data={'ID': self.char_id})
 
     def paint(self, painter: QPainter, option: Any, widget: QWidget) -> None:
         """
