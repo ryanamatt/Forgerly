@@ -86,6 +86,6 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='Forgerly.app',
-    icon='resources/icon.ico',
+    icon='resources/logo.ico',
     bundle_identifier='com.forgerly.app'
 )
