@@ -27,21 +27,29 @@ jobs:
           python-version: '3.12'
           cache: 'pip'
 
+      # Install system dependencies BEFORE Python dependencies
       - name: Install System Dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libcairo2-dev pkg-config
+          sudo apt-get install -y libcairo2-dev pkg-config python3-dev
 
       - name: Install System Dependencies (macOS)
         if: matrix.os == 'macos-latest'
         run: brew install cairo pkg-config
 
-      - name: Install Dependencies
-        run: pip install -e .
+      - name: Install System Dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install pkgconfiglite
+        shell: pwsh
+
+      # Now install Python dependencies
+      - name: Install Python Dependencies
+        run: pip install -e .[dev]
 
       - name: Compile Resources
-        run: python tools/compiles_resources.py
+        run: python compile_resources.py
 
       - name: Build C++ Core (Make)
         run: make
