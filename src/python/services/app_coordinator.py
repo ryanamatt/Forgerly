@@ -924,6 +924,24 @@ class AppCoordinator(QObject):
     
     # --- Spell Checker ---
 
+    def _load_custom_dict_words(self) -> list[str]:
+        """
+        Gets the Name of Characters and Lore Entries from
+        their respective repos and returns them to add to
+        the custom Trie for spelling suggestions.
+        
+        :return: A list of names.
+        :rtype: list[str]
+        """
+        results = []
+        char_data = self.character_repo.get_all_character_names()
+        lore_data = self.lore_repo.get_all_lore_entry_titles()
+
+        results.extend(char_data)
+        results.extend(lore_data)
+
+        return results
+
     def _initialize_spell_checker(self) -> None:
         """
         Loads the default dictionary file.
@@ -931,18 +949,21 @@ class AppCoordinator(QObject):
         :rtype: None
         """
         try:
-            # 1. Resolve the base path (Normal dev vs PyInstaller _MEIPASS)
+            # Resolve the base path (Normal dev vs PyInstaller _MEIPASS)
             if hasattr(sys, '_MEIPASS'):
                 base_path = sys._MEIPASS
             else:
                 base_path = os.path.abspath(".")
 
-            # 2. Construct the absolute path to the dictionary
+            # Construct the absolute path to the dictionary
             dict_path = os.path.join(base_path, 'dictionaries', 'en_US.txt')
             
-            # 3. Get the checker and load
+            # Get the checker and load
             checker = get_spell_checker()
             words_loaded = checker.load_dictionary_from_file(dict_path)
+
+            custom_words = self._load_custom_dict_words()
+            checker.load_custom_words(custom_words)
             
             logger.info(f"Spell checker initialized with {words_loaded} words from {dict_path}")
             

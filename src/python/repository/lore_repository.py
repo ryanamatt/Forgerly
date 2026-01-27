@@ -50,6 +50,25 @@ class LoreRepository:
         except DatabaseError as e:
             logger.error("Failed to retrieve all lore entries.", exc_info=True)
             raise e
+        
+    def get_all_lore_entry_titles(self) -> list[str]:
+        """
+        Retrieves a list of all lore entry titles.
+
+        :returns: A list each index containing the lore entry's Title.
+        :rtype: list[str]
+        """
+        query = "SELECT Title FROM Lore_Entries;"
+        try:
+            lore_dict = self.db._execute_query(query, fetch_all=True)
+            results = []
+            for lore in lore_dict:
+                results.append(lore['Title'])
+            logger.info(f"Retrieved {len(results)} of all Lore Entry Titles.")
+            return results
+        except DatabaseError as e:
+            logger.error("Failed to retrieve all lore entry titles.", exc_info=True)
+            raise e
     
     def get_content_by_title(self, title: str) -> dict | None:
         """
