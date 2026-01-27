@@ -42,7 +42,11 @@ void SpellCheckerEngine::addCustomWord(const char* word) {
 }
 
 void SpellCheckerEngine::removeCustomWord(const char* word) {
-    // TOD Implement trie node removal
+    if (!word || word[0] == '\0') {
+        return;
+    }
+    std::string normalized = toLowerCase(word);
+    removeWordRecursive(customTrie, normalized, 0);
 }
 
 bool SpellCheckerEngine::isCorrect(const char* word) const {
@@ -152,6 +156,47 @@ void SpellCheckerEngine::insertWord(TrieNode* root, const std::string& word) {
         curr = curr->children[index];
     }
     curr->isEndOfWord = true;
+}
+
+bool SpellCheckerEngine::removeWordRecursive(TrieNode* node, const std::string& word, size_t depth) {
+    if (!node) return false;
+
+    // Base Case: Reach End of Word
+    if (depth == word.length()) {
+        if (node ->isEndOfWord) {
+            node->isEndOfWord = false;
+        }
+
+        // Return True if the node hs no children (safe to delete)
+        for (int i = 0; i < 26; i++) {
+            if (node->children[i]) return false;
+        }
+        return true;
+    }
+
+    // Recursive Case: move down to the next character
+    int index = word[depth] - 'a';
+    if (index < 0 || index >= 26 || !node->children[index]) {
+        return false;
+    }
+
+    bool shouldDeleteChild = removeWordRecursive(node->children[index], word, depth + 1);
+
+    if (shouldDeleteChild) {
+        delete node->children[index];
+        node->children[index] = nullptr;
+
+        // If this node is not the end of another word and has no other children, 
+        // tell the parent to delete this node too
+        if (!node->isEndOfWord) {
+            for (int i = 0; i < 26; i++) {
+                if (node->children[i]) return false;
+            }
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool SpellCheckerEngine::searchWord(TrieNode* root, const std::string& word) const {
