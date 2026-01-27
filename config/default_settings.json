@@ -1,5 +1,5 @@
 {
-    "debug_mode": true,
+    "debug_mode": false,
     "last_project_path": "",
     "theme": "Blue",
     "window_size": "1200x800",
@@ -8,5 +8,6 @@
     "window_height": 800,
     "window_pos_x": 100,
     "window_pos_y": 100,
-    "words_per_minute": 250
+    "words_per_minute": 250,
+    "is_spell_checking": false
 }

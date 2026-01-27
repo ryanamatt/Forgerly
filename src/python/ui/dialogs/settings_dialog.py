@@ -3,7 +3,7 @@
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QGroupBox, QComboBox, 
     QLabel, QDialogButtonBox, QHBoxLayout, QPushButton,
-    QMessageBox, QSpinBox
+    QMessageBox, QSpinBox, QCheckBox
 )
 from typing import Any
 
@@ -41,6 +41,7 @@ class SettingsDialog(QDialog):
         self.setGeometry(200, 200, 600, 400)
 
         self.settings_manager = settings_manager
+        self.current_settings = current_settings
         self._new_settings = current_settings.copy()
 
         self._setup_ui()
@@ -122,6 +123,17 @@ class SettingsDialog(QDialog):
         wpm_layout.addStretch()
         stats_layout.addLayout(wpm_layout)
 
+        # Is Spell Checking Setting
+        spell_layout = QHBoxLayout()
+        spell_label = QLabel("Toggle on/off Spell Checking:")
+        self.spell_box = QCheckBox()
+        self.spell_box.setChecked(self.current_settings.get('is_spell_checking', False))
+
+        spell_layout.addWidget(spell_label)
+        spell_layout.addWidget(self.spell_box)
+        spell_layout.addStretch()
+        stats_layout.addLayout(spell_layout)
+
         # --- Appearance Group Box (Themes) ---
         appearance_group = QGroupBox("Appearance")
         themes_layout = QVBoxLayout(appearance_group)
@@ -187,8 +199,11 @@ class SettingsDialog(QDialog):
         self._new_settings['outline_width_pixels'] = self.outline_width_spinbox.value()
         new_wpm = self.wpm_spinBox.value()
         self._new_settings['words_per_minute'] = new_wpm
+        new_is_spell_checking = self.spell_box.isChecked()
+        self._new_settings['is_spell_checking'] = new_is_spell_checking
 
         bus.publish(Events.WPM_CHANGED, data={'new_wpm': new_wpm})
+        bus.publish(Events.IS_SPELL_CHECKING_CHANGED, data={'is_spell_checking': new_is_spell_checking})
         
         self.accept()
 

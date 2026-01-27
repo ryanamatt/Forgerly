@@ -375,7 +375,7 @@ class MainWindow(QMainWindow):
             logger.debug(f"WPM setting changed: {old_wpm} -> {new_wpm}. Updating ChapterEditor.")
             self.view_manager.set_wpm(new_wpm)
 
-        # CRITICAL: Update the main window's internal state to the new settings dictionary
+        # Update the main window's internal state to the new settings dictionary
         self.current_settings = new_settings
 
         # 2. Apply Theme

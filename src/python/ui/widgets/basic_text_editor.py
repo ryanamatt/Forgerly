@@ -25,10 +25,12 @@ class BasicTextEditor(QWidget):
     public access functions to get the text contained in the editor.
     """
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, is_spell_checking: bool = False, parent=None) -> None:
         """
         Initializes the BasicTextEditor and connects its signals
 
+        :param is_spell_checking: Tells whether to spell check or not. Default False.
+        :type is_spell_checking: bool
         :param parent: The parent widget. Defaults to ``None``.
         :type parent: :py:class:`PySide6.QtWidgets.QWidget`
         :rtype: None
@@ -39,11 +41,12 @@ class BasicTextEditor(QWidget):
 
         bus.register_instance(self)
 
+        self.is_spell_checking = is_spell_checking
         self.spell_checker = get_spell_checker()
         self.spell_check_timer = QTimer(self)
         self.spell_check_timer.setSingleShot(True)
         self.spell_check_timer.setInterval(2500) # 2.5 Seconds
-        self.spell_check_timer.timeout.connect(self.run_spell_check)
+        self.spell_check_timer.timeout.connect(self.check_spell_check)
 
         # State tracking for unsaved changes
         self._is_dirty = False
@@ -205,6 +208,15 @@ class BasicTextEditor(QWidget):
             logger.warning(f"Failed to Mark the Text Editor as saved: {e}", exc_info=True)
             QMessageBox.warning(self, "Mark Save Error", "Failed to Mark Saved due to a UI issue.")
 
+    def check_spell_check(self) -> None:
+        """
+        Docstring for check_spell_check
+        
+        :param self: Description
+        """
+        if self.is_spell_checking:
+             self.run_spell_check()
+
     def run_spell_check(self) -> None:
         """
         Runs the Spell Checking and underlines the in correct word.
@@ -259,6 +271,50 @@ class BasicTextEditor(QWidget):
         selected_text = self.get_selected_text().strip()
 
         bus.publish(Events.PERFORM_DATABASE_LOOKUP, data={'selected_text': selected_text})
+
+    @receiver(Events.IS_SPELL_CHECKING_CHANGED)
+    def update_is_spell_checking(self, data: dict) -> None:
+        """
+        Updates the internal spell checking to the new bool value.
+        
+        :param data: The data dict containing {'is_spell_checking': bool}
+        :type data: dict
+        :rtype: None
+        """
+        new_state = data.get('is_spell_checking', False)
+
+        if new_state:
+            self.run_spell_check()
+        else:
+            self._clear_spell_check_formatting()
+            
+        self.is_spell_checking = new_state
+
+    def _clear_spell_check_formatting(self) -> None:
+        """
+        Removes all spell-check underlines from the document.
+
+        :rtype: None
+        """
+        self.editor.blockSignals(True)
+        cursor = self.editor.textCursor()
+        original_position = cursor.position()
+
+        # Define the format to clear underlines
+        clear_underline_format = QTextCharFormat()
+        clear_underline_format.setUnderlineStyle(QTextCharFormat.NoUnderline)
+
+        cursor.beginEditBlock()
+        cursor.select(QTextCursor.Document)
+        # mergeCharFormat ensures we don't wipe out bold/italic/font settings
+        cursor.mergeCharFormat(clear_underline_format)
+        cursor.endEditBlock()
+
+        # Restore original cursor position
+        cursor.setPosition(original_position)
+        self.editor.setTextCursor(cursor)
+        self.editor.blockSignals(False)
+        logger.debug("Spell check formatting cleared.")
 
     # --- Public Accessors for Content ---
 

@@ -37,16 +37,18 @@ class RichTextEditor(BasicTextEditor):
     :vartype editor: :py:class:`PySide6.QtWidgets.QTextEdit`
     """
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, current_settings: dict={}, parent=None) -> None:
         """
         Initializes the RichTextEditor and connects its signals
 
+        :param current_settings: A dictionary containing initial application settings.
+        :type current_settings: dict
         :param parent: The parent widget. Defaults to ``None``.
         :type parent: :py:class:`PySide6.QtWidgets.QWidget`
 
         :rtype: None
         """
-        super().__init__(parent)
+        super().__init__(is_spell_checking=current_settings.get('is_spell_checking', False), parent=parent)
 
         logger.debug("Initializing RichTextEditor (including its toolbar).")
 

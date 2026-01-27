@@ -54,7 +54,7 @@ class ChapterEditor(BaseEditor):
         self.current_lookup_dialog = None
 
         # --- Sub-components ---
-        self.text_editor = RichTextEditor()
+        self.text_editor = RichTextEditor(self.current_settings)
         
         # --- Statistics Labels ---
         self.word_count_label = QLabel("Words: 0")

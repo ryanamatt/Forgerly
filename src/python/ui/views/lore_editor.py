@@ -27,10 +27,12 @@ class LoreEditor(BaseEditor):
     current_lore_id: int | None = None
     """The database ID of the Lore Entry currently loaded in the editor, or :py:obj:`None`."""
     
-    def __init__(self, parent=None) -> None:
+    def __init__(self, current_settings: dict, parent=None) -> None:
         """
         Initializes the :py:class:`.LoreEditor` widget.
         
+        :param current_settings: A dictionary containing initial application settings.
+        :type current_settings: dict
         :param parent: The parent widget.
         :type parent: :py:class:`~PySide6.QtWidgets.QWidget`, optional
 
@@ -41,9 +43,11 @@ class LoreEditor(BaseEditor):
         bus.register_instance(self)
 
         self._dirty = False
+
+        is_spell_checking = current_settings.get('is_spell_checking')
         
         # --- Sub-components ---
-        self.text_editor = BasicTextEditor()
+        self.text_editor = BasicTextEditor(is_spell_checking)
 
         # --- Lore-Specific Components (Title and Category) ---
         self.title_input = QLineEdit()
