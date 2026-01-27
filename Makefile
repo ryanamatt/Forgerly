@@ -6,11 +6,20 @@ ifeq ($(OS),Windows_NT)
     DLL_LINK_FLAGS := -Wl,--out-implib,$(SRC_DIR)/libnf_core.a
     STATIC_FLAGS   := -static-libstdc++ -static-libgcc -static
 else
-    DETECTED_OS := $(shell uname -s)
-    LIB_EXT     := .so
-    DLL_LINK_FLAGS := 
-    # Static linking flags often differ or are unnecessary on Linux depending on the distro
-    STATIC_FLAGS   := -fPIC 
+    UNAME_S := $(shell uname -s)
+    ifeq ($(UNAME_S),Darwin)
+        DETECTED_OS := macOS
+        LIB_EXT := .dylib
+        LDFLAGS := -dynamicLib
+        STATIC_FLAGS := -fPIC
+        DLL_LINK_FLAGS := 
+    else
+        DETECTED_OS := $(shell uname -s)
+        LIB_EXT     := .so
+        DLL_LINK_FLAGS := 
+        # Static linking flags often differ or are unnecessary on Linux depending on the distro
+        STATIC_FLAGS   := -fPIC 
+    endif
 endif
 
 # --- Variables ---
