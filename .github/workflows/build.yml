@@ -1,0 +1,78 @@
+name: Build and Package Forgerly
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*' # Trigger release job when a tag starting with 'v' is pushed
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: pip install .[dev]
+
+      - name: Compile Resources
+        run: python tools/compiles_resources.py
+
+      - name: Build C++ Core (Make)
+        run: make
+
+      - name: Build Executable with PyInstaller
+        run: pyinstaller Forgerly.spec
+
+      # Zip the output to keep it clean for the release
+      - name: Zip Dist Folder (Windows)
+        if: matrix.os == 'windows-latest'
+        run: Compress-Archive -Path dist/Forgerly/* -DestinationPath Forgerly-Windows.zip
+
+      - name: Zip Dist Folder (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        run: zip -r Forgerly-${{ runner.os }}.zip dist/Forgerly/
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Forgerly-${{ matrix.os }}
+          path: Forgerly-*.zip
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') # Only run if this is a tag push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to create a release
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/Forgerly-*.zip
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
