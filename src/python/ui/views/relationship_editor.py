@@ -13,6 +13,7 @@ from ...resources_rc import *
 from ..widgets.graph_items import CharacterNode, RelationshipEdge
 from ..widgets.relationship_canvas import RelationshipCanvas
 from ..dialogs.relationship_dialog import RelationshipCreationDialog
+from ..dialogs.graph_export_dialog import GraphExportDialog
 from ...utils.graph_layout import GraphLayoutEngineWrapper
 from ...utils.constants import EntityType
 from ...utils.events import Events
@@ -111,6 +112,10 @@ class RelationshipEditor(QWidget):
 
         self.reset_zoom_action = add_btn("Reset Zoom", "zoom-reset.svg", self.reset_view_zoom)
         self.toggle_labels_action = add_btn("Toggle Label Visbility", "visible-on", self.toggle_labels, True)
+
+        self.toolbar.addSeparator()
+
+        self.export_action = add_btn("Export Graph", "export.svg", self.show_export_dialog)
 
     def _setup_intensity_slider(self) -> None:
         """
@@ -698,6 +703,15 @@ class RelationshipEditor(QWidget):
 
         icon_name = "visible-on.svg" if self.is_label_visible else "visible-off.svg"
         self.toggle_labels_action.setIcon(QIcon(f":icons/{icon_name}"))
+
+    def show_export_dialog(self) -> None:
+        """
+        Shows the graph export dialog with preview and options.
+        
+        :rtype: None
+        """
+        dialog = GraphExportDialog(self.scene, self.view, self)
+        dialog.exec()
 
     # --- State Managers --- 
 
