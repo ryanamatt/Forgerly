@@ -28,7 +28,7 @@ jobs:
           cache: 'pip'
 
       - name: Install Dependencies
-        run: pip install .[dev]
+        run: pip install -e .
 
       - name: Compile Resources
         run: python tools/compiles_resources.py
