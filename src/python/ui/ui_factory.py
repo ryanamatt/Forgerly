@@ -36,10 +36,10 @@ class UIFactory:
             'chapter_editor': ChapterEditor(settings),
             
             'lore_outline': LoreOutlineManager(project_title=project_title),
-            'lore_editor': LoreEditor(),
+            'lore_editor': LoreEditor(settings),
             
             'character_outline': CharacterOutlineManager(project_title=project_title),
-            'character_editor': CharacterEditor(),
+            'character_editor': CharacterEditor(settings),
             
             'note_outline': NoteOutlineManager(project_title=project_title),
             'note_editor': NoteEditor(settings),

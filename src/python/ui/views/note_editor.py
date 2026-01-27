@@ -42,7 +42,7 @@ class NoteEditor(BaseEditor):
         self.current_lookup_dialog = None
 
         # --- Sub-components ---
-        self.text_editor = RichTextEditor()
+        self.text_editor = RichTextEditor(current_settings)
 
         # --- Layout ---
         main_layout = QVBoxLayout(self)

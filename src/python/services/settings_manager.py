@@ -65,7 +65,8 @@ class SettingsManager:
                     "window_width": 1200,
                     "window_height": 800,
                     "window_pos_x": 100,
-                    "window_pos_y": 100
+                    "window_pos_y": 100,
+                    "is_spell_checking": False
                 }
 
                 with open(self._DEFAULT_FILE,'w') as f:
@@ -99,9 +100,6 @@ class SettingsManager:
         merged_settings.update(user_settings)
         
         logger.info(f"Settings loaded and merged successfully. Keys: {len(merged_settings)}.")
-        
-        # CRITICAL FIX: The save_settings call is absent here.
-        # This prevents the repetitive loading/saving loop.
         
         return merged_settings
     

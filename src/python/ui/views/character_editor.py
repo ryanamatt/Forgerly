@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QGroupBox, 
     QLineEdit, QComboBox, QHBoxLayout, QSpinBox
 )
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt
 from typing import Any
 
 from .base_editor import BaseEditor
@@ -35,10 +35,12 @@ class CharacterEditor(BaseEditor):
     current_char_id: int | None = None
     """The database ID of the character currently loaded in the editor, or :py:obj:`None`."""
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, current_settings: dict, parent=None) -> None:
         """
         Initializes the :py:class:`.CharacterEditor` widget.
         
+        :param current_settings: A dictionary containing initial application settings.
+        :type current_settings: dict
         :param parent: The parent widget. Defaults to ``None``.
         :type parent: :py:class:`~PySide6.QtWidgets.QWidget`, optional
 
@@ -50,9 +52,11 @@ class CharacterEditor(BaseEditor):
 
         self._dirty = False
 
+        is_spell_checking = current_settings.get('is_spell_checking')
+
         # --- 1. Sub-components ---
-        self.description_editor = BasicTextEditor()
-        self.text_editor = BasicTextEditor()  # Moved up for clarity
+        self.description_editor = BasicTextEditor(is_spell_checking)
+        self.text_editor = BasicTextEditor(is_spell_checking)  # Moved up for clarity
         self.name_input = QLineEdit()
         self.name_input.setPlaceholderText("Enter Character Name")
         
