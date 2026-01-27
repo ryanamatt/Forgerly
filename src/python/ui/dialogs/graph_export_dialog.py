@@ -3,7 +3,7 @@
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGroupBox, QRadioButton, 
     QCheckBox, QComboBox, QLabel, QPushButton, QGraphicsView, 
-    QGraphicsScene, QFileDialog, QMessageBox, QWidget, QButtonGroup
+    QGraphicsScene, QFileDialog, QMessageBox, QButtonGroup
 )
 from PySide6.QtCore import Qt, QRectF, QSize, QSizeF, QMarginsF
 from PySide6.QtGui import QImage, QPainter, QColor, QPen, QPageSize, QPageLayout, QPixmap
@@ -228,6 +228,7 @@ class GraphExportDialog(QDialog):
         export_rect.adjust(-padding, -padding, padding, padding)
 
         preview_scene = QGraphicsScene()
+        preview_scene.setBackgroundBrush(QColor('#212121'))
 
         # Render the export area to an image
         image_size = QSize(400, 300)
@@ -236,7 +237,7 @@ class GraphExportDialog(QDialog):
         if self.transparent_bg_checkbox.isChecked() and self.format_combo.currentText() == "PNG":
             image.fill(Qt.GlobalColor.transparent)
         else:
-            image.fill(QColor(255, 255, 255))
+            image.fill(QColor('#212121'))
         
         painter = QPainter(image)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -379,7 +380,7 @@ class GraphExportDialog(QDialog):
             image.fill(Qt.GlobalColor.transparent)
         else:
             image = QImage(width, height, QImage.Format.Format_RGB32)
-            image.fill(QColor(255, 255, 255))
+            image.fill(QColor('#212121'))
         
         # Render scene
         painter = QPainter(image)
@@ -427,7 +428,7 @@ class GraphExportDialog(QDialog):
         # Draw background if not transparent
         if not self.transparent_bg_checkbox.isChecked():
             painter.fillRect(QRectF(0, 0, export_rect.width(), export_rect.height()), 
-                           QColor(255, 255, 255))
+                           QColor('#212121'))
         
         self.scene.render(painter, QRectF(0, 0, export_rect.width(), export_rect.height()), 
                          export_rect)
