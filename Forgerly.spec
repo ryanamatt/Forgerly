@@ -14,7 +14,12 @@ added_files = [
     (os.path.join(pro_root, 'src', 'sql'), 'src/sql'),
 ]
 
-lib_ext = '.dll' if platform.system() == 'Windows' else '.so'
+if platform.system() == 'Windows':
+    lib_ext = '.dll'
+elif platform.system() == 'Darwin':
+    lib_ext = '.dylib'
+else:
+    lib_ext = '.so'
 lib_path = os.path.join(pro_root, 'src', 'c_lib', f'nf_core_lib{lib_ext}')
 
 added_binaries = [
@@ -76,4 +81,11 @@ coll = COLLECT(
     upx=True,
     upx_exclude=[],
     name='Forgerly',
+)
+
+app = BUNDLE(
+    coll,
+    name='Forgerly.app',
+    icon='resources/icon.ico',
+    bundle_identifier='com.forgerly.app'
 )

@@ -30,11 +30,9 @@ def compile_resources():
 
     # 1. Run the pyside6-rcc command
     try:
-        # shell=True is kept for Windows compatibility where rcc might be a script
         subprocess.run(
             ["pyside6-rcc", qrc_file, "-o", output_file],
             check=True,
-            shell=True
         )
         print(f"Successfully compiled to: {output_file}")
     except subprocess.CalledProcessError as e:
