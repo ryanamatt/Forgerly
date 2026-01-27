@@ -472,11 +472,14 @@ class GraphExportDialog(QDialog):
         # Render scene
         painter = QPainter(printer)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        full_rect = printer.pageLayout().fullRectPixels(printer.resolution())
+        paint_rect = printer.pageLayout().paintRectPixels(printer.resolution())
+
+        painter.fillRect(full_rect, QColor('#212121'))
         
-        self.scene.render(painter, printer.pageRect(QPrinter.Unit.DevicePixel).toRectF(), 
-                         export_rect)
+        self.scene.render(painter, QRectF(paint_rect), export_rect)
         
         # Draw grid if requested
         if self.include_grid_checkbox.isChecked():
-            self._draw_grid_on_painter(painter, export_rect, 
-                                      printer.pageRect(QPrinter.Unit.DevicePixel).toRectF())
+            self._draw_grid_on_painter(painter, export_rect, QRectF(paint_rect))
