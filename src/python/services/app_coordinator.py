@@ -499,7 +499,7 @@ class AppCoordinator(QObject):
             case EntityType.CHARACTER:
                 id = self.character_repo.create_character(data.get('title'))
                 name = self.character_repo.get_character_name(char_id=id)
-                self._add_custom_word(title)
+                self._add_custom_word(name)
 
             case EntityType.NOTE:
                 id = self.note_repo.create_note(data.get('title'), data.get('sort_order'))
