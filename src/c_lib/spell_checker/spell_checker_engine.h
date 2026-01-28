@@ -42,6 +42,7 @@ private:
     // Helper functions
     void bulkInsert(TrieNode* root, const char** words, int count);
     void insertWord(TrieNode* root, const std::string& word);
+    bool removeWordRecursive(TrieNode* node, const std::string& word, size_t depth);
     bool searchWord(TrieNode* root, const std::string& word) const;
     void searchSuggestions(TrieNode* node, char letter, const std::string& target,
                           const std::vector<int>& prevRow, int maxCost,

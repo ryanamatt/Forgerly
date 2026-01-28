@@ -46,6 +46,25 @@ class CharacterRepository:
         except DatabaseError as e:
             logger.error("Failed to retrieve all characters.", exc_info=True)
             raise e
+        
+    def get_all_character_names(self) -> list[str]:
+        """
+        Retrieves a list of all character names.
+
+        :returns: A list each index containing the character's Name.
+        :rtype: list[str]
+        """
+        query = "SELECT NAME FROM Characters;"
+        try:
+            char_dict = self.db._execute_query(query, fetch_all=True)
+            results = []
+            for char in char_dict:
+                results.append(char['Name'])
+            logger.info(f"Retrieved {len(results)} of all character names.")
+            return results
+        except DatabaseError as e:
+            logger.error("Failed to retrieve all character names.", exc_info=True)
+            raise e
     
     def get_character_details(self, char_id: int) -> CharacterDetailsDict:
         """

@@ -493,9 +493,13 @@ class AppCoordinator(QObject):
 
             case EntityType.LORE:
                 id = self.lore_repo.create_lore_entry(data.get('title'))
+                title = self.lore_repo.get_lore_entry_title(lore_id=id)
+                self._add_custom_word(title)
 
             case EntityType.CHARACTER:
                 id = self.character_repo.create_character(data.get('title'))
+                name = self.character_repo.get_character_name(char_id=id)
+                self._add_custom_word(title)
 
             case EntityType.NOTE:
                 id = self.note_repo.create_note(data.get('title'), data.get('sort_order'))
@@ -533,9 +537,13 @@ class AppCoordinator(QObject):
                     self.chapter_repo.delete_chapter(id)
 
                 case EntityType.LORE:
+                    title = self.lore_repo.get_lore_entry_title(lore_id=id)
+                    self._remove_custom_word(word=title)
                     self.lore_repo.delete_lore_entry(id)
 
                 case EntityType.CHARACTER:
+                    name = self.character_repo.get_character_name(char_id=id)
+                    self._remove_custom_word(word=name)
                     self.character_repo.delete_character(id)
 
                 case EntityType.NOTE:
@@ -924,6 +932,46 @@ class AppCoordinator(QObject):
     
     # --- Spell Checker ---
 
+    def _load_custom_dict_words(self) -> list[str]:
+        """
+        Gets the Name of Characters and Lore Entries from
+        their respective repos and returns them to add to
+        the custom Trie for spelling suggestions.
+        
+        :return: A list of names.
+        :rtype: list[str]
+        """
+        results = []
+        char_data = self.character_repo.get_all_character_names()
+        lore_data = self.lore_repo.get_all_lore_entry_titles()
+
+        results.extend(char_data)
+        results.extend(lore_data)
+
+        return results
+    
+    def _add_custom_word(self, word: str) -> None:
+        """
+        Adds a custom word into the Custom dictionary Trie.
+        
+        :param word: The word to add to the custom Trie.
+        :type word: str
+        :rtype: None
+        """
+        checker = get_spell_checker()
+        checker.add_custom_word(word=word)
+
+    def _remove_custom_word(self, word: str) -> None:
+        """
+        Removes a custom word from the Custom dictionary Trie.
+        
+        :param word: The word to remove from the custom Trie.
+        :type word: str
+        :rtype: None
+        """
+        checker = get_spell_checker()
+        checker.remove_custom_word(word=word)
+
     def _initialize_spell_checker(self) -> None:
         """
         Loads the default dictionary file.
@@ -931,18 +979,21 @@ class AppCoordinator(QObject):
         :rtype: None
         """
         try:
-            # 1. Resolve the base path (Normal dev vs PyInstaller _MEIPASS)
+            # Resolve the base path (Normal dev vs PyInstaller _MEIPASS)
             if hasattr(sys, '_MEIPASS'):
                 base_path = sys._MEIPASS
             else:
                 base_path = os.path.abspath(".")
 
-            # 2. Construct the absolute path to the dictionary
+            # Construct the absolute path to the dictionary
             dict_path = os.path.join(base_path, 'dictionaries', 'en_US.txt')
             
-            # 3. Get the checker and load
+            # Get the checker and load
             checker = get_spell_checker()
             words_loaded = checker.load_dictionary_from_file(dict_path)
+
+            custom_words = self._load_custom_dict_words()
+            checker.load_custom_words(custom_words)
             
             logger.info(f"Spell checker initialized with {words_loaded} words from {dict_path}")
             
