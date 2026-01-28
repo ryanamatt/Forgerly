@@ -2,9 +2,9 @@
 
 import sqlite3
 import os
-import sys
 from typing import Any
 
+from .utils.resource_path import get_resource_path
 from .utils.exceptions import DatabaseError
 from .utils.logger import get_logger
 
@@ -35,7 +35,7 @@ class DBConnector:
         # If no path is provided, use the resolved default path
         if schema_path is None:
             default_rel_path = os.path.join('src', 'sql', 'schema_v1.sql')
-            self.schema_path = self.resource_path(default_rel_path)
+            self.schema_path = get_resource_path(default_rel_path)
         else:
             self.schema_path = schema_path
 
@@ -239,21 +239,3 @@ class DBConnector:
                 message="Error executing database transaction. All operations rolled back.",
                 original_exception=e
             ) from e
-        
-    @staticmethod
-    def resource_path(relative_path: str) -> str:
-        """
-        Get absolute path to resource, works for dev and for PyInstaller.
-        
-        :param relative_path: The relative path to the file.
-        :type relative_path: str
-        :rtype: str
-        """
-        try:
-            # PyInstaller creates a temp folder and stores path in _MEIPASS
-            base_path = sys._MEIPASS
-        except AttributeError:
-            # If _MEIPASS doesn't exist, we are in a normal dev environment
-            base_path = os.path.abspath(".")
-
-        return os.path.join(base_path, relative_path)

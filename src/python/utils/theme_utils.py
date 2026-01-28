@@ -1,9 +1,10 @@
 # src/python/utils/theme_utils.py
 
 import os
-import sys
 from PySide6.QtWidgets import QWidget
 from typing import TYPE_CHECKING, Any
+
+from .resource_path import get_resource_path
 
 if TYPE_CHECKING:
     HasStyleSheet = QWidget
@@ -26,24 +27,10 @@ ACCENT_COLORS = {
     'Orange': "#854803"
     }
 
-def resource_path(relative_path: str) -> str:
-    """
-    Get absolute path to resource, works for dev and for PyInstaller 
-    
-    :param relative_path: The relative path to the file.
-    :type relative_path: str
-    :rtype: str
-    """
-    try:
-        base_path = sys._MEIPASS
-    except AttributeError:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
-
 # --- Update these variables ---
 STYLES_DIR = 'styles'
 # Wrap the path with resource_path()
-BASE_THEME_FILE = resource_path(os.path.join(STYLES_DIR, 'dark.qss'))
+BASE_THEME_FILE = get_resource_path(os.path.join(STYLES_DIR, 'dark.qss'))
 
 def get_available_themes() -> list[str]:
     """
