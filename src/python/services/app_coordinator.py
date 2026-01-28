@@ -493,9 +493,13 @@ class AppCoordinator(QObject):
 
             case EntityType.LORE:
                 id = self.lore_repo.create_lore_entry(data.get('title'))
+                title = self.lore_repo.get_lore_entry_title(lore_id=id)
+                self._add_custom_word(title)
 
             case EntityType.CHARACTER:
                 id = self.character_repo.create_character(data.get('title'))
+                name = self.character_repo.get_character_name(char_id=id)
+                self._add_custom_word(title)
 
             case EntityType.NOTE:
                 id = self.note_repo.create_note(data.get('title'), data.get('sort_order'))
@@ -941,6 +945,28 @@ class AppCoordinator(QObject):
         results.extend(lore_data)
 
         return results
+    
+    def _add_custom_word(self, word: str) -> None:
+        """
+        Adds a custom word into the Custom dictionary Trie.
+        
+        :param word: The word to add to the custom Trie.
+        :type word: str
+        :rtype: None
+        """
+        checker = get_spell_checker()
+        checker.add_custom_word(word=word)
+
+    def _remove_custom_word(self, word: str) -> None:
+        """
+        Removes a custom word from the Custom dictionary Trie.
+        
+        :param word: The word to remove from the custom Trie.
+        :type word: str
+        :rtype: None
+        """
+        checker = get_spell_checker()
+        checker.remove_custom_word(word=word)
 
     def _initialize_spell_checker(self) -> None:
         """
