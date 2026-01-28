@@ -537,9 +537,13 @@ class AppCoordinator(QObject):
                     self.chapter_repo.delete_chapter(id)
 
                 case EntityType.LORE:
+                    title = self.lore_repo.get_lore_entry_title(lore_id=id)
+                    self._remove_custom_word(word=title)
                     self.lore_repo.delete_lore_entry(id)
 
                 case EntityType.CHARACTER:
+                    name = self.character_repo.get_character_name(char_id=id)
+                    self._remove_custom_word(word=name)
                     self.character_repo.delete_character(id)
 
                 case EntityType.NOTE:
