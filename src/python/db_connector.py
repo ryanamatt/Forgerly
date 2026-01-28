@@ -27,7 +27,6 @@ class DBConnector:
         :type db_path: str
         :param schema_path: The file path to the SQL schema file used for initialization.
         :type schema_path: str
-        
         :rtype: None
         """
         self.db_path = db_path
@@ -136,9 +135,8 @@ class DBConnector:
         :type fetch_one: bool
         :param fetch_all: If True, fetches and returns all rows (as a list of dictionaries).
         :type fetch_all: bool
-        :param fetch_lastrowid: If True, returns the ID of the last inserted row.
-        :type fetch_lastrowid: bool
-        
+        :param as_list: Returns the output as a list.
+        :type as_list: bool
         :returns: The query results (row, list of rows, last ID), the number of 
                   rows affected (for non-SELECT), or None/empty list on error.
         :rtype: Any
@@ -181,7 +179,6 @@ class DBConnector:
         :type sql: str
         :param params: A tuple of parameters to safely bind to the query. Defaults to None.
         :type params: tuple or None
-
         :returns: Returns True if successful, Returns ID if fetch_id=True, Returns None if fails.
         :rtype: bool or int or None
 
@@ -216,7 +213,6 @@ class DBConnector:
 
         :param operations: A list of tuples, where each tuple is ``(sql_query, tuple)``.
         :type operations: list[tuple[str, tuple or None]]
-        
         :returns: True if all operations succeed and the transaction commits, False otherwise.
         :rtype: bool
         """

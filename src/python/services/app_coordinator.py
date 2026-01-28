@@ -15,6 +15,7 @@ from ..repository.relationship_repository import RelationshipRepository
 
 from ..utils.text_stats import calculate_read_time
 from ..utils.spell_checker import get_spell_checker
+from ..utils.resource_path import get_resource_path
 from ..utils.constants import ViewType, EntityType, ExportType
 from ..utils.logger import get_logger
 from ..utils.events import Events
@@ -24,12 +25,11 @@ logger = get_logger(__name__)
 
 class AppCoordinator(QObject):
     """
-    Coordinates data flow between the UI components (Outline/Editor) and the 
-    database repositories. Centralizes save/load/dirty checking logic.
+    Coordinates the data logic from the repository classes.
     
     This class acts as the central hub for all application events that involve 
     data retrieval or persistence, ensuring that UI components only interact 
-    with each other via signals, and interact with the database only via this coordinator.
+    with each other via event bus, and interact with the database only via this coordinator.
     """
 
     def __init__(self, db_connector: DBConnector) -> None:
@@ -38,7 +38,6 @@ class AppCoordinator(QObject):
 
         :param db_connector: The active connection object to the SQLite database.
         :type db_connector: :py:class:`~app.db_connector.DBConnector`
-        
         :rtype: None
         """
         super().__init__()
@@ -68,6 +67,8 @@ class AppCoordinator(QObject):
         """
         Unregisters this instance from the event bus to prevent zombie calls.
         
+        :param data: An Empty dict, not needed for this function.
+        :type data: dict
         :rtype: None
         """
         bus.unregister_instance(self)
@@ -81,6 +82,7 @@ class AppCoordinator(QObject):
         :param data: The data needed to set the state variables containing
             {'entity_type': EntityType, 'ID': int}
         :type data: dict
+        :rtype: None
         """
         self.current_item_id = data.get('ID')
         self.current_entity_type = data.get('entity_type')
@@ -95,7 +97,6 @@ class AppCoordinator(QObject):
         
         :param data: The data containing {type: EntityType, id: int, new_title: str}
         :type data: dict
-
         :rtype: None
         """
         entity_type = data.get('entity_type')
@@ -126,9 +127,9 @@ class AppCoordinator(QObject):
         Called before a UI change (like switching chapters). 
         Tells the current active editor to provide its data if dirty.
         
-        :param data: Description
+        :param data: Handles the PRE_ITEM_CHANGE event by asking for a save
+            of the current items by calling SAVE_REQUESTED event.
         :type data: dict
-
         :rtype: None
         """
         data |= {'ID': self.current_item_id}
@@ -143,8 +144,10 @@ class AppCoordinator(QObject):
         Checks to see if it is dirty and if it is dirty
         asks user if they want to save.
         
-        :param data: Description
+        :param data: The data needed to help save including {'ID': int, 'parent': QWidget=None,
+            'entity_type': EntityType, 'tags': list[str]}
         :type data: dict
+        :rtype: None
         """
         id = data.get('ID')
         parent = data.pop('parent', None)
@@ -181,7 +184,6 @@ class AppCoordinator(QObject):
         :param data: The dictionary of data containing {entity_type: EntityType,
             'ID': int (Item ID), 'tags': list[str] (list of the tags)}
         :type data: dict
-
         :rtype: None
         """
         content_success, tag_success = False, False
@@ -229,7 +231,6 @@ class AppCoordinator(QObject):
             {'char_id': int, 'x_pos': float, 'y_pos': float, 'node_color': str, 
             'node_shape': str, 'is_hidden': int}
         :type data: dict
-        
         :returns: True if the save was successful, False otherwise.
         :rtype: bool
         """
@@ -243,8 +244,7 @@ class AppCoordinator(QObject):
         :param data: A dictionary containing all need data for a new relationship,
             {char_a_id: int, char_b_id: int, ID: int, description: str, intensity: int}
         :type data: dict
-
-        :return: Returns the True if successfully created and saved new relationship.
+        :returns: Returns the True if successfully created and saved new relationship.
         :rtype: bool
         """
         # 1. Save to DB
@@ -283,7 +283,6 @@ class AppCoordinator(QObject):
         :param data: A dictionary of the data containing {'ID': int,
             'is_hidden': bool}
         :type data: dict
-
         :rtype: None
         """
         self.relationship_repo.update_node_is_hidden(char_id=data.get('ID'), 
@@ -297,7 +296,6 @@ class AppCoordinator(QObject):
         :param data: A dictionary of the data containing {'ID': int,
             'is_locked': bool}
         :type data: dict
-
         :rtype: None
         """
         self.relationship_repo.update_node_is_locked(char_id=data.get('ID'), 
@@ -311,11 +309,9 @@ class AppCoordinator(QObject):
         :param data: A dictionary of the data containing {'ID': int,
             'is_locked': bool}
         :type data: dict
-
         :rtype: None
         """
         self.relationship_repo.update_node_bulk_is_locked(**data)
-
 
     # --- Update ---
 
@@ -327,7 +323,6 @@ class AppCoordinator(QObject):
         :param data: The data needed to update the relationship.
             {char_a_id: int, char_b_id: int, ID: int, description: str, intensity: int}
         :type data: dict
-
         :rtype: None
         """
         self.relationship_repo.update_relationship_details(**data)
@@ -344,7 +339,6 @@ class AppCoordinator(QObject):
         :param data: The dictionary of data needed to load the outline.
             Contains {'view': ViewType}
         :type data: dict
-
         :rtype: None
         """
         entity_type = data.get('entity_type')
@@ -383,7 +377,6 @@ class AppCoordinator(QObject):
         
         :param data: The data dictionary. Empty.
         :type data: dict
-
         :rtype: None
         """ 
         characters = self.character_repo.get_all_characters()
@@ -415,7 +408,6 @@ class AppCoordinator(QObject):
         :param data: The data dictionary containng {'entity_type': EntityType,
             'ID': int (item_id)}
         :type data: dict
-
         :rtype: None
         """
         entity_type = data.get('entity_type')
@@ -464,7 +456,6 @@ class AppCoordinator(QObject):
         
         :param data: The data needed.
         :type data: dict
-
         :rtype: None
         """
         bus.publish(Events.PRE_ITEM_CHANGE, data={
@@ -480,7 +471,6 @@ class AppCoordinator(QObject):
         :param data: The data needed to create the new item. Containing
             {type: EntityType, *Needed Item Creation Data*}
         :type data: dict
-
         :rtype: None
         """
         entity_type = data.pop('entity_type')
@@ -524,7 +514,6 @@ class AppCoordinator(QObject):
         :param data: The data needed containing {type: EntityType, ID: item id (int),
         parent: Widget}
         :type data: dict
-
         :rtype: None
         """
         entity_type = data.get('entity_type')
@@ -565,6 +554,7 @@ class AppCoordinator(QObject):
         :param data: The needed data containing {'entity_type': EntityType,
             'query': str}
         :type data: dict
+        :rtype: None
         """
         entity_type = data.get('entity_type', '')
         query = data.get('query')
@@ -599,7 +589,6 @@ class AppCoordinator(QObject):
         :param data: The data needed to update the new parent ID containing
             {'entity_type': EntityType, 'ID': int, 'new_parent_id': int}
         :type data: dict
-
         :rtype: None
         """
         entity_type = data.get('entity_type')
@@ -621,7 +610,9 @@ class AppCoordinator(QObject):
     def refresh_lore_categories(self, data: dict) -> None:
         """
         Fetches unique categories and notifies the Lore Editor.
-        
+
+        :param data: An empty dict. Not needed for this function but for when recieving event bus event.
+        :type data: dict
         :rtype: None
         """
         categories = self.lore_repo.get_unique_categories()
@@ -635,7 +626,6 @@ class AppCoordinator(QObject):
         :param data: The data neeeded to reorder. Carries {editor: 'BaseEditor',
             view: ViewType, updates: list[tuple[int, int]]}
         :type data: dict
-
         :rtype: None
         """
         view, updates = data.get('view'), data.get('updates')
@@ -656,10 +646,9 @@ class AppCoordinator(QObject):
     def load_relationship_graph_data(self, data: dict = None) -> None:
         """
         Fetches all character nodes, relationship edges, and relationship types 
-        required for the graph editor.
+        required for the graph editor. At the end calls GRAPH_DATA_LOADED event with
+        the graph data.
 
-        Emits :py:attr:`.graph_data_loaded`.
-        
         :rtype: None
         """
         # Update Coordinator State
@@ -684,9 +673,8 @@ class AppCoordinator(QObject):
         Retrieves all the details for a relationship
         and calls the event REL_DETAILS_RETURN.
         
-        :param data: Description
+        :param data: The data needed containing the relationship id with Key ID.
         :type data: dict
-
         :rtype: None
         """
         return_data = data
@@ -699,8 +687,9 @@ class AppCoordinator(QObject):
         Retrieves the relationship details for a relationship
         type and calls the event REL_TYPE_DETAILS_RETURN.
         
-        :param data: Description
+        :param data: The data needed containing the relationship type ID with key 'ID'.
         :type data: dict
+        :rtype: None
         """
         data |= self.relationship_repo.get_relationship_type_details(data.get('ID'))
         bus.publish(Events.REL_TYPE_DETAILS_RETURN, data=data)
@@ -708,10 +697,10 @@ class AppCoordinator(QObject):
     @receiver(Events.REL_DELETE_REQUESTED)
     def handle_relationship_deletion(self, data: dict) -> None:
         """
-        handles the deletion of a relationshipo
+        Handles the deletion of a relationship from the database.
         
         :param data: Dictionary containing {ID: int}
-
+        :type data: dict
         :rtype: None
         """
         self.relationship_repo.delete_relationship(data.get('ID'))
@@ -722,8 +711,9 @@ class AppCoordinator(QObject):
         """
         Retrieves the character Node details and calls the event REL_CHAR_DETAILS_RETURN.
         
-        :param data: Description
+        :param data: The data needed to update containing the character ID: {'ID': int}
         :type data: dict
+        :rtype: None
         """
         id = data.get('ID')
         data |= self.relationship_repo.get_node_details(char_id=id)
@@ -733,7 +723,8 @@ class AppCoordinator(QObject):
     def _process_graph_data(self, relationships: list[dict], node_positions: list[dict], 
                             relationship_types: list[dict]) -> dict:
         """
-        Proceess all the graph data.
+        Proceess all the graph data. It takes in the relationships, node_positions, relationship_types
+        and creates the nodes data and edges data to be returned as a dict.
         
         :param relationships: A list of relationships with the relationship attributes a dict.
         :type relationships: list[dict]
@@ -742,8 +733,7 @@ class AppCoordinator(QObject):
         :param relationship_types: A list of the types of relationships with the relationship_types
             attributes as dict.
         :type relationship_types: list[dict]
-
-        :return: Returns a dict of nodes and edges.
+        :return: Returns a dict of nodes and edges. {'nodes': nodes, 'edges': edges}
         :rtype: dict
         """
         # --- Node Processing ---
@@ -798,7 +788,6 @@ class AppCoordinator(QObject):
 
     # --- Export Logic ---
 
-    
     @receiver(Events.EXPORT_DATA_REQUESTED)
     def get_data_for_export(self, data: dict) -> None:
         """
@@ -807,6 +796,7 @@ class AppCoordinator(QObject):
         
         :param data: The data needed containg {'export_type: ExportType, selected_ids: list[int]}
         :type data: dict
+        :rtype: None
         """
         export_type = data.get('export_type')
         selected_ids = data.pop('selected_ids', None)
@@ -829,7 +819,7 @@ class AppCoordinator(QObject):
     @receiver(Events.EXPORT_LIST_REQUESTED)
     def get_export_list(self, data: dict) -> None:
         """
-        Get's the exports needed to list what to export.
+        Gets the exports needed to list what to export.
         
         :param data: The data needed containing {'entity_type': EntityType}
         :type data: dict
@@ -867,7 +857,6 @@ class AppCoordinator(QObject):
         :param data: A dict carrying {'selected text': str} 
             The highlighted text string (e.g., "Sir Kaelan").
         :type name: dict
-
         :returns: A tuple (EntityType, Title, Content) or None if not found.
         :rtype: tuple[str, str, str]
         """
@@ -905,9 +894,12 @@ class AppCoordinator(QObject):
         """
         A function to retrive the project stats from each of the repositories.
     
-
-        :returns: A dictionary of the project statistics.
-        :rtype: dict[str, int | str]
+        :param wpm: The words per minute setting
+        :type wpm: int
+        :returns: A dictionary of the project statistics. {"total_word_count": str,
+            "char_count_no_spaces": str, "read_time": str, "chapter_count": str,
+            "lore_count": str, "character_count": str} 
+        :rtype: dict[str,str]
         """
         chapter_stats = self.chapter_repo.get_all_chapters_stats()
 
@@ -938,7 +930,7 @@ class AppCoordinator(QObject):
         their respective repos and returns them to add to
         the custom Trie for spelling suggestions.
         
-        :return: A list of names.
+        :return: A list of the custom words to add to the custom Spell Checking Trie.
         :rtype: list[str]
         """
         results = []
@@ -979,14 +971,7 @@ class AppCoordinator(QObject):
         :rtype: None
         """
         try:
-            # Resolve the base path (Normal dev vs PyInstaller _MEIPASS)
-            if hasattr(sys, '_MEIPASS'):
-                base_path = sys._MEIPASS
-            else:
-                base_path = os.path.abspath(".")
-
-            # Construct the absolute path to the dictionary
-            dict_path = os.path.join(base_path, 'dictionaries', 'en_US.txt')
+            dict_path = get_resource_path(os.path.join('dictionaries', 'en_US.txt'))
             
             # Get the checker and load
             checker = get_spell_checker()

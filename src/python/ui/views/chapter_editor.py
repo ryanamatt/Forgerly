@@ -133,7 +133,7 @@ class ChapterEditor(BaseEditor):
         # Calculate statistics
         word_count = calculate_word_count(source_text)
         char_count_with_spaces = calculate_character_count(source_text, include_spaces=True)
-        read_time_str = calculate_read_time(word_count, self.wpm)
+        read_time_str = calculate_read_time(int(word_count), int(self.wpm))
 
         # Update UI Labels with dynamic prefix
         self.word_count_label.setText(f"{label_prefix} Words: {word_count:,}")

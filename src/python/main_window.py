@@ -50,7 +50,8 @@ class MainWindow(QMainWindow):
         :type settings_manager: :py:class:'~services.SettingsManager`
         :param db_connector: The database connector to connect to the database.
         :type db_connector: :py:class:'~DBConnector`
-
+        :param parent: The parent QWidget, Default is None>
+        :type parent: QWidget
         :rtype: None
         """
         super().__init__(parent)
@@ -134,7 +135,6 @@ class MainWindow(QMainWindow):
         
         :param event: The QCloseEvent object.
         :type event: :py:class:`~PySide6.QtGui.QCloseEvent`
-        
         :rtype: None
         """
 
@@ -176,7 +176,6 @@ class MainWindow(QMainWindow):
         
         :param event: The QResizeEvent object.
         :type event: :py:class:`~PySide6.QtGui.QResizeEvent`
-        
         :rtype: None
         """
         super().resizeEvent(event)
@@ -194,7 +193,6 @@ class MainWindow(QMainWindow):
         """
         Creates the main window structure, including the menu bar, the central 
         splitter, and the stacked widgets for outlines and editors.
-        
         :rtype: None
         """
         logger.info("Initializing main application UI structure.")
@@ -224,10 +222,12 @@ class MainWindow(QMainWindow):
 
     # --- Coordinator/ViewManager ---
 
-    def save_helper(self):
+    def save_helper(self) -> None:
         """
         TEMP Helper function for saving while moving from signals
         to event bus.
+
+        :rtype: None
         """
         editor = self.view_manager.get_current_editor()
         view = self.view_manager.get_current_view()
@@ -252,9 +252,9 @@ class MainWindow(QMainWindow):
         """
         Opens the :py:class:`~app.ui.dialogs.ExporterDialog`. 
 
-        :param data: Data dictionary, Empty as function doesn't need it.
+        :param data: Data dictionary, Empty as function doesn't need it but is required for 
+            event bus to function.
         :type data: dict
-        
         :rtype: None
         """
         logger.info("Export process initiated.")
@@ -283,21 +283,19 @@ class MainWindow(QMainWindow):
 
         :param data: Data dictionary, Empty as function doesn't need it.
         :type data: dict
-        
         :rtype: None
         """
 
         logger.info("Settings dialog opened.")
 
         try:
-            # 1. Initialize the dialog with current settings
             dialog = SettingsDialog(
                 current_settings=self.current_settings,
                 settings_manager=self.settings_manager,
                 parent=self
             )
 
-            # 2. Execute the dialog and check the result
+            # Execute the dialog and check the result
             if dialog.exec() == QDialog.DialogCode.Accepted:
                 
                 new_settings = dialog.get_new_settings()
@@ -307,20 +305,16 @@ class MainWindow(QMainWindow):
                 new_theme = new_settings.get('theme', 'N/A')
                 logger.info(f"Settings accepted by user. Theme change: {old_theme} -> {new_theme}.")
                 
-                # 3. Save new settings to disk and update internal reference
+                # Save new settings to disk and update internal reference
                 self.settings_manager.save_settings(new_settings)
                 
-                # CRITICAL: Update the internal reference (`self.current_settings`) 
-                # to point to the saved and returned dictionary, ensuring the main window 
-                # uses the latest values immediately.
                 self.current_settings = new_settings 
                 
-                # 4. Apply non-geometry settings (theme, etc.)
+                # Apply non-geometry settings (theme, etc.)
                 self._apply_settings(new_settings)
                 
-                # 5. Provide user feedback
-                self.statusBar().showMessage(f"Settings saved and applied. Theme: "
-                                             f"{self.current_settings['theme']}.", 5000)
+                # Provide user feedback
+                self.statusBar().showMessage("Settings saved", 5000)
                 
             else:
                 logger.info("Settings dialog closed without saving (rejected or cancelled).")
@@ -341,7 +335,6 @@ class MainWindow(QMainWindow):
 
         :param new_settings: A dictionary of the new settings e.g {window_size: 800x600}
         :type new_settings: dict
-
         :rtype: None
         """
         logger.info("Applying new application settings.")
@@ -405,7 +398,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             logger.critical("Unexpected error occurred while applying window geometry.", exc_info=True)
 
-    def _save_geometry_to_settings(self):
+    def _save_geometry_to_settings(self) -> None:
         """
         Helper method to save the current window dimensions and position
         to the internal settings dictionary.
@@ -447,7 +440,7 @@ class MainWindow(QMainWindow):
         Creates and displays a small, modal dialog containing the content of the linked entity.
         
         :param data: The data needed contains {type: EntityType, title: str, content: str}
-
+        :type data: dict
         :rtype: None
         """
         entity_type = data.get('entity_type')
@@ -470,7 +463,6 @@ class MainWindow(QMainWindow):
 
         :param data: Data dictionary, Empty as function doesn't need it.
         :type data: dict
-                
         :rtype: None
         """
         project_stats = self.coordinator.get_project_stats(wpm=self.current_settings.get('words_per_minute', 250))
