@@ -3,7 +3,6 @@
 from PySide6.QtWidgets import QMainWindow, QSplitter, QMessageBox, QDialog
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QCloseEvent, QResizeEvent, QIcon
-import os
 import sys
 import ctypes
 from typing import Any
@@ -24,6 +23,7 @@ from .services.export_service import ExportService
 
 from .utils._version import __version__
 from .utils.theme_utils import apply_theme
+from .utils.resource_path import get_resource_path
 from .utils.constants import ViewType, EntityType
 from .utils.events import Events
 from .utils.event_bus import bus, receiver
@@ -35,14 +35,7 @@ class MainWindow(QMainWindow):
     """
     The main window of the Forgerly application.
     
-    It is responsible for:
-    
-    1. **Initialization:** Setting up the database, settings, and central application coordinator.
-    2. **Layout Management:** Arranging the outline panel, editor panel, and menu bar.
-    3. **View Switching:** Managing which content editor (Chapter, Lore, Character, Relationship) 
-       is currently visible via a :py:class:`~PySide6.QtWidgets.QStackedWidget`.
-    4. **Event Handling:** Intercepting window close events to check for unsaved changes.
-    5. **Settings/Theming:** Loading and saving window geometry and applying the current theme.
+    It is responsible for managing the Main Window Application of the current project.
     """
 
     def __init__(self, project_settings: dict[str, Any], settings_manager: SettingsManager, 
@@ -51,8 +44,8 @@ class MainWindow(QMainWindow):
         Initializes the main window, connecting to the database and setting up 
         all sub-components and services.
         
-        :param project_path: The path to the Forgerly project.
-        :type project_path: str
+        :param project_settings: A dict of the project setitngs.
+        :type project_settings: dict[str, Any]
         :param settings_manager: The settings manager class to manage all settings.
         :type settings_manager: :py:class:'~services.SettingsManager`
         :param db_connector: The database connector to connect to the database.
@@ -66,7 +59,11 @@ class MainWindow(QMainWindow):
         bus.register_instance(self)
 
         self.project_settings = project_settings
+        self.settings_manager = settings_manager
+        self.db_connector = db_connector
+
         self.project_path = self.project_settings.get('project_path')
+        self.project_title = project_settings.get('project_name', 'Project Title')
 
         # need to know if macOS for differences with Ctrl or Cmd Key
         self.is_macos = sys.platform == 'darwin'
@@ -84,27 +81,19 @@ class MainWindow(QMainWindow):
                                available or AttributeError).")
                 pass
 
-        # Temporary Project Title will need to be changed to actual users project title
-        self.project_title = project_settings.get('project_name', 'Project Title')
-
         self.setWindowTitle(f"The Forgerly v{__version__}")
         self.setGeometry(100, 100, 1200, 800)
-        self.setWindowIcon(QIcon(self.get_resource_path('resources/logo.ico')))
+        self.setWindowIcon(QIcon(get_resource_path('resources/logo.ico')))
 
         # Flag to prevent geometry saving during initialization
         self._is_ready_to_save_geometry = False
-        
-        self.db_connector = db_connector
 
-        # --- Initialize Coordinator & Repositories ---
-        # Coordinator now manages all repositories and business logic
         self.coordinator = AppCoordinator(self.db_connector)
         logger.debug("AppCoordinator initialized.")
 
         self.export_service = ExportService(project_title=self.project_title)
 
         # --- Settings and Theme Management ---
-        self.settings_manager = settings_manager
         self.current_settings = self.settings_manager.load_settings()
         self._apply_settings(self.current_settings)
         logger.info(f"Current theme applied: {self.current_settings.get('theme', 'N/A')}.")
@@ -130,17 +119,7 @@ class MainWindow(QMainWindow):
         # Geomtry Save Timer
         self._geometry_save_timer = QTimer(self)
         self._geometry_save_timer.setSingleShot(True)
-        # Connect the timer's timeout signal to the save method
         self._geometry_save_timer.timeout.connect(self._save_geometry_to_settings)
-
-    def get_resource_path(self, relative_path: str) -> str:
-        """ Get absolute path to resource, works for dev and for PyInstaller """
-        try:
-            base_path = sys._MEIPASS
-        except Exception:
-            base_path = os.path.abspath(".")
-
-        return os.path.join(base_path, relative_path)
 
     # -------------------------------------------------------------------------
     # System Events

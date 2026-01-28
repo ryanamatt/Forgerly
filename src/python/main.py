@@ -7,6 +7,8 @@ from .services.settings_manager import SettingsManager
 from .db_connector import DBConnector
 from .main_window import MainWindow
 from .start_menu_window import StartMenuWindow
+
+from .utils.resource_path import get_resource_path
 from .utils.logger import setup_logger, get_logger
 from .utils.exceptions import ConfigurationError
 from .utils.error_handler import install_system_exception_hook
@@ -122,7 +124,7 @@ class ApplicationFlowManager:
         project_title = project_config.get('project_name')
         
         # --- DBConnector Logic Initialization---
-        schema_path = DBConnector.resource_path(os.path.join('src', 'sql', 'schema_v1.sql'))
+        schema_path = get_resource_path(os.path.join('src', 'sql', 'schema_v1.sql'))
         
         self.db_connector = DBConnector(
             db_path=project_config['db_file_path'],
