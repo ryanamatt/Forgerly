@@ -425,7 +425,7 @@ class RelationshipEdge(QGraphicsLineItem):
             case 'dash':
                 pen.setStyle(Qt.PenStyle.DashLine)
             
-            case 'dott':
+            case 'dot':
                 pen.setStyle(Qt.PenStyle.DotLine)
 
             case 'dashdot':
@@ -448,7 +448,7 @@ class RelationshipEdge(QGraphicsLineItem):
         :rtype: None
         """
         self._update_pen()
-        
+
         # Get Center Points
         p1 = self.source_node.scenePos()
         p2 = self.target_node.scenePos()
