@@ -500,6 +500,33 @@ class RelationshipEdge(QGraphicsLineItem):
         self.update_position()
         super().paint(painter, option, widget)
 
+        if self.edge_data.get('is_directed'):
+            self._draw_arrowhead(painter)
+
+    def _draw_arrowhead(self, painter: QPainter) -> None:
+        """
+        Draws a triangular arrowhead at the target end of the edge.
+        
+        :param painter: THe painter object.
+        :type painter: QPainter
+        :rtype: None
+        """
+        line = self.line()
+        if line.length() < 10:
+            return
+        
+        painter.setBrush(self.pen().color())
+        painter.setPen(Qt.PenStyle.NoPen)
+
+        angle = math.atan2(-line.dy(), line.dx())
+        arrow_size = 10 + (self.pen().width() * 2.5)
+
+        p1 = line.p2()
+        p2 = p1 - QPointF(math.cos(angle + math.pi / 6) * arrow_size, -math.sin(angle + math.pi / 6) * arrow_size)
+        p3 = p1 - QPointF(math.cos(angle - math.pi / 6) * arrow_size, -math.sin(angle - math.pi / 6) * arrow_size)
+
+        painter.drawPolygon([p1, p2, p3])
+
     def _calculate_angle(self, p1: QPointF, p2: QPointF) -> float:
         """
         Calculates the angle of the line for rotating the label. Flips the
