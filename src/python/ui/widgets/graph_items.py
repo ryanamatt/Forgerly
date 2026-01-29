@@ -395,7 +395,6 @@ class RelationshipEdge(QGraphicsLineItem):
         # Add a label in the middle of the edge
         self.label_item = QGraphicsTextItem(self.edge_data.get('label', ''), self)
 
-        self._update_pen()
         self.update_position()
 
     def _update_pen(self):
@@ -423,10 +422,10 @@ class RelationshipEdge(QGraphicsLineItem):
         # Line Style (Apply Solid, Dash, or Dot based on Data)
         match self.edge_data['style'].lower():
 
-            case 'dashed':
+            case 'dash':
                 pen.setStyle(Qt.PenStyle.DashLine)
             
-            case 'dotted':
+            case 'dott':
                 pen.setStyle(Qt.PenStyle.DotLine)
 
             case 'dashdot':
@@ -448,6 +447,8 @@ class RelationshipEdge(QGraphicsLineItem):
         
         :rtype: None
         """
+        self._update_pen()
+        
         # Get Center Points
         p1 = self.source_node.scenePos()
         p2 = self.target_node.scenePos()
