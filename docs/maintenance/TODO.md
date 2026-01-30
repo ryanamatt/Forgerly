@@ -1,7 +1,7 @@
 # 🚀 Project Roadmap
-- **Update Relationships Graph**
+- **Create the Recent Projects for Start Menu**
 
-    - [ ] Snapshot/Export: Create a "Save as Image" action that renders the current QGraphicsScene into a high-resolution .png or .svg for external story bibles.
+    - [ ] Create the Recent Projects showing the 3 most recent projects. Will need to store last 3 recent project paths in User Settings.
 
 - **Better Exporting**
 
@@ -32,8 +32,15 @@
     - [ ] Entity Discovery: Implement a C++ scanner to identify potential Characters and Locations within imported text for quick database entry.
 
     - [ ] Bulk Data Import: Support .csv and .json imports for Characters, Lore, and Locations.
+ 
+- **Create Sequal Functionality**
+  - [ ] An Option when Creating a New Project to be made a Sequel of a previous project.
+ 
+  - [ ]  Correctly Fill the New Sequel Project with everything from the databse except Chapters.
 
 ## 💡 Future Ideas (Not in Any Order)
+
+These are ideas no on the roadmap but may be interesting to add.
 
 - Chronological Timeline View
 
@@ -49,4 +56,4 @@
 
 - Focus-Mode
 
-*Last Updated: 2025-1-13*
+*Last Updated: 2025-1-30*
