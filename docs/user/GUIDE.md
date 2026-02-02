@@ -1,0 +1,118 @@
+# **User Guide**
+
+Learn how to use Forgerly with this User Guide
+
+## **First Steps**
+
+### **Creating Your First Project**
+
+When first launching the Forgerly Application you will come across this screen.
+
+![Image of the Start Menu](screenshots/start_menu.png)
+
+Click Create Project. Select the Folder you would like the Forgerly Project to be in. 
+Enter Name of Project and Click Ok or Press Enter. Congratulations, You Created your first Forgerly Project.
+
+### **Creating Your First Chapter**
+
+To Create your first Chapter, Click on File Button in the Menu Bar. 
+
+![Image of Creating a Chapter](screenshots/create_chapter.png)
+
+Enter the Name of the Chapter, and Click Ok. You will see your chapter Appear in the Outline on the Left and
+you can start writing your story.
+
+You can also right click on the Outline at any time to rename the Chapter, Delete the Chapter, or Add a new Chapter.
+
+### **Switching the View**
+
+You can switch the View from the default Chapter View to Lore View, Character View, or Note View. To Switch the view navigate and Click on the View Button in the Menu Bar.
+
+![Image of Switching the View](screenshots/view_switch.png)
+
+Switching the View allows you to view your other entities and see Project Statistics.
+
+### **Creating Your First Lore Entry, Character, or Note**
+
+Creating a Lore Entry, Character and Note is the same
+as creating a new Chapter. Navigate to the File Button or in the Menu Bar or Switch to their view and right click on their outlines.
+
+
+## **Relationship Graph**
+
+The Relationship Graph allows you to view your Characters
+and their relationships to other Characters.
+
+![Image of a Relationship Graph](screenshots/relationship_graph.png)
+
+
+First, You want to ensure you have created Characters. To Learn how to Create a Character, See [Creating a Character](#creating-your-first-lore-entry-character-or-note).
+
+### Create a Relationship Type
+
+You Can Create a New Relationship Type by Clicking the Button New Relationship Type. Select the Styling you would like for that Relationship Type and Click Ok.
+
+### Assign a Relationship To Two Characters
+
+To Assign a Relationship to Two Characters right click on first node and select "Connect to Character" on the Context Menu. You will know the Character is selected because the Character will appear with a Yellow Highlight like in the Image below.
+
+![Image of Relationship Graph when a Character is Selected](screenshots/relationship_graph_character_selected.png)
+
+To Finish Assigning a Relationship, Right Click on the Next Code and select "Connect to Character".
+
+A Dialog Window will appear allowing you to determine the parameters of the Relationship.
+The Intensity Parameter determines the Thickness of the Line on the Relationship Graph.
+
+### Character Nodes
+
+TODO
+
+### Relationship Edges
+
+TODO
+
+### Relationship Graph Tool Bar
+
+There are Several Buttons on the Tool Bar to help you build your perfect Graph.
+
+### Toggle Grid
+
+<img src="../../resources/icons/grid.svg" width="10%" alt="The Toggle Grid Icon" />
+
+This Buttons Toggles On/Off the Grid in the Background. Default is On.
+
+### Toggle Snap to Grid
+
+<img src="../../resources/icons/snap-grid.svg" width="10%" alt="The Snap to Grid Icon" />
+
+This Button Toggles the Snap to Grid when moving Characters around on the Graph. Default is On.
+
+### Auto Layout
+
+<img src="../../resources/icons/auto-layout.svg" width="10%" alt="The Auto Layout Icon" />
+
+This button triggers the Auto Layout. The Auto Layout uses the Fruchterman-Reingold Algorithm to Place you Characters in the prettiest way possible. Will not apply to Characters that are Locked.
+
+### Lock All Nodes
+
+<img src="../../resources/icons/lock.svg" width="10%" alt="The Lock All Nodes Icon" />
+
+This button locks all nodes. This means that if the Auto Layout Button is pressed, the Characters will not move. This does not stop manually moving the Characters around.
+
+### Reset Zoom
+
+<img src="../../resources/icons/zoom-reset.svg" width="10%" alt="The Reset Zoom Icon" />
+
+This button Resets the Zoom to where all nodes are Visible.
+
+### Toggle Label Visibility
+
+<img src="../../resources/icons/lock.svg" width="10%" alt="The Toggle Label Visibility Icon" />
+
+This button Toggles whether or not you are able to see the Short Labels visible on the Graph.
+
+### Screenshot
+
+<img src="../../resources/icons/export.svg" width="10%" alt="The Toggle Label Visibility Icon" />
+
+This button opens a Dialog with options to tag the perfect Screenshot of your Graph.
