@@ -50,6 +50,7 @@ class ChapterEditor(BaseEditor):
 
         self.current_settings = current_settings
         self.wpm = current_settings.get('words_per_minute')
+        self.is_showing_stats = current_settings.get('is_showing_chapter_stats', 'FAILED')
 
         self.current_lookup_dialog = None
 
@@ -76,20 +77,21 @@ class ChapterEditor(BaseEditor):
         # 2. Editor and Stats (Modified Layout)
         
         # Statistics Bar at the bottom of everything but on top of RichTextEditor
-        stats_bar = QWidget()
-        stats_layout = QHBoxLayout(stats_bar)
+        self.stats_bar = QWidget()
+        stats_layout = QHBoxLayout(self.stats_bar)
         stats_layout.setContentsMargins(0, 0, 0, 0)
         stats_layout.addStretch()
         stats_layout.addWidget(self.word_count_label)
         stats_layout.addWidget(self.char_count_label)
         stats_layout.addWidget(self.read_time_label)
         stats_layout.addStretch() # Push stats to the left
+        self.stats_bar.setVisible(self.is_showing_stats)
         
         # Combine the editor and the stats bar
         editor_group = QWidget()
         editor_vbox = QVBoxLayout(editor_group)
         editor_vbox.setContentsMargins(0, 0, 0, 0)
-        editor_vbox.addWidget(stats_bar)
+        editor_vbox.addWidget(self.stats_bar)
         editor_vbox.addWidget(self.text_editor)
         
         editor_splitter = QSplitter(Qt.Orientation.Vertical)
@@ -155,6 +157,19 @@ class ChapterEditor(BaseEditor):
 
         self.wpm = new_wpm
         self._update_stats_display({'editor': self.text_editor})
+
+    @receiver(Events.IS_SHOWING_CHAP_STATS_CHANGED)
+    def set_chapter_stats_visibility(self, data: dict) -> None:
+        """
+        Catches the Change in the visibilty of the Chapter Stats Change and updates
+        the Chapter Stats Visibility.
+
+        :param data: A dict containing {'is_showing_chapter_stats': bool}
+        :type data: dict
+        :rtype: None
+        """
+        is_showing = data.get('is_showing_chapter_stats', True)
+        self.stats_bar.setVisible(is_showing)
 
     @receiver(Events.MARK_SAVED)
     def mark_saved_connection(self, data: dict) -> None:

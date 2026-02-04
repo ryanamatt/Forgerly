@@ -123,16 +123,28 @@ class SettingsDialog(QDialog):
         wpm_layout.addStretch()
         stats_layout.addLayout(wpm_layout)
 
+        # Layout to show Spell Checking and Show Chapter stats
+        # Check box on the same line
+        spell_and_show_stats_layout = QHBoxLayout()
+
         # Is Spell Checking Setting
-        spell_layout = QHBoxLayout()
         spell_label = QLabel("Toggle on/off Spell Checking:")
         self.spell_box = QCheckBox()
         self.spell_box.setChecked(self.current_settings.get('is_spell_checking', False))
 
-        spell_layout.addWidget(spell_label)
-        spell_layout.addWidget(self.spell_box)
-        spell_layout.addStretch()
-        stats_layout.addLayout(spell_layout)
+        spell_and_show_stats_layout.addWidget(spell_label)
+        spell_and_show_stats_layout.addWidget(self.spell_box)
+        spell_and_show_stats_layout.addStretch()
+
+        # Is Showing Chapter Stats
+        show_stats_label = QLabel("Toggle on/off showing Chapter Stats")
+        self.show_stats_box = QCheckBox()
+        self.show_stats_box.setChecked(self.current_settings.get('is_showing_chapter_stats', False))
+
+        spell_and_show_stats_layout.addWidget(self.show_stats_box)
+        spell_and_show_stats_layout.addWidget(show_stats_label)
+
+        stats_layout.addLayout(spell_and_show_stats_layout)
 
         # --- Appearance Group Box (Themes) ---
         appearance_group = QGroupBox("Appearance")
@@ -193,6 +205,7 @@ class SettingsDialog(QDialog):
 
         :rtype: None
         """
+        current_settings: dict = self._new_settings.copy()
         # Update the internal settings dictionary with current UI values
         self._new_settings['theme'] = self.theme_combo.currentText()
         self._new_settings['window_size'] = self.window_size_combo.currentText()
@@ -201,9 +214,16 @@ class SettingsDialog(QDialog):
         self._new_settings['words_per_minute'] = new_wpm
         new_is_spell_checking = self.spell_box.isChecked()
         self._new_settings['is_spell_checking'] = new_is_spell_checking
+        new_is_showing_chapter_stats = self.show_stats_box.isChecked()
+        self._new_settings['is_showing_chapter_stats'] = new_is_showing_chapter_stats
 
-        bus.publish(Events.WPM_CHANGED, data={'new_wpm': new_wpm})
-        bus.publish(Events.IS_SPELL_CHECKING_CHANGED, data={'is_spell_checking': new_is_spell_checking})
+        if new_wpm != current_settings.get('words_per_minute'):
+            bus.publish(Events.WPM_CHANGED, data={'new_wpm': new_wpm})
+        if new_is_spell_checking != current_settings.get('is_spell_checking'):
+            bus.publish(Events.IS_SPELL_CHECKING_CHANGED, data={'is_spell_checking': new_is_spell_checking})
+        if new_is_showing_chapter_stats != current_settings.get('is_showing_chapter_stats'):
+            bus.publish(Events.IS_SHOWING_CHAP_STATS_CHANGED, 
+                        data={'is_showing_chapter_stats': new_is_showing_chapter_stats})
         
         self.accept()
 

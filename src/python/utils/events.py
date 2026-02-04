@@ -98,6 +98,7 @@ class Events(str, Enum):
     SETTINGS_CHANGED = "settings.changed"
     WPM_CHANGED = "settings.wpm_changed"
     IS_SPELL_CHECKING_CHANGED = "settings.is_spell_checking_changed"
+    IS_SHOWING_CHAP_STATS_CHANGED = "settings.is_showing_chapter_stats_changed"
     
     # Project Events
     PROJECT_NEW_REQUESTED = "project.new_requested"
