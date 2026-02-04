@@ -70,19 +70,50 @@ as creating a new Chapter. Navigate to the File Button or in the Menu Bar or Swi
 
 ## **Chapter Editor**
 
-TODO
+The Chapter Editor is the Default Editor. It is where you can write and forge your story. You may Create, Delete and Reorder Chapters using the outline on the Left.
+
+When you click on a Chapter in the outline in it will appear in the editor on the right. You may use all the Rich Text Features you like when writing your chapter.
+
+You can Tag your Chapter. Using Tags allows you to set a Tag and search for such Tags to find Chapters. You can add Tags to easily see what a Chapter is about, POV or whatever you like.
+
+When editing a chapter and you forget details about a Character or Lore Entry, you can highlight the text and go to Tools -> Lookup Text and it will bring a Dialog Window showing that Entity and its description. This empowers your writing, preventing long look up times.
+
+For Exporting, your chapter see [Exporting](#exporting)
 
 ## **Lore Entry Editor**
 
-TODO
+The Lore Entry Editor is where you can write and forge lore entries. You may Create, Delete, Reorder, and event next Lore Entries under other Lore Entries.
+
+When you click on a Lore Entry in the outline in it will appear in the editor on the right. You can write your Lore Entry, Add it to a Category or event add Tags.
+
+You can use the search bar at the top of the outline to search for Lore Entrys by Title, Category, or Tag.
+
+You can Tag your Lore Entry. Using Tags allows you to set a Tag and search for such Tags to find Lore Entries. You can add Tags to easily see what a Lore Entry is about, POV or whatever you like.
+
+For Exporting, your lore entry see [Exporting](#exporting)
 
 ## **Character Editor**
 
-TODO
+The Character Editor is where you can write and edit Characters for your story. You may Create or Delete Characters on the outline.
+
+When you click on a Character in the outline in it will appear in the editor on the right. You can write all sorts of things for your Character: description, physical descriptuon, age, occupation, status or tags.
+
+You can use the search bar at the top of the outline to search for Characters by Name or Tag.
+
+You can Tag your Character. Using Tags allows you to set a Tag and search for such Tags to find Characters. You can add Tags to easily see what a Character is about or whatever you like.
+
+For Exporting, your Character see [Exporting](#exporting)
 
 ## **Note Editor**
 
-TODO
+The Note Editor is an editor that allows to write notes.
+ Notes are basically whatever you want for your project.
+
+ The Note Editor operates the same as the Chapter Editor.
+
+ You can use it to write an outline or write out ideas.
+
+ There is currently no way to export notes.
 
 ## **Relationship Graph**
 
@@ -111,11 +142,18 @@ The Intensity Parameter determines the Thickness of the Line on the Relationship
 
 ### Character Nodes
 
-TODO
+The Character Nodes are the Nodes on the Graph.
+
+You can edit a node by right clicking on one and selecting the edit node option. This allows you to custom their color, shape, visbility, lock status.
+
+Character Nodes are the basis of the Graph.
 
 ### Relationship Edges
 
-TODO
+The Relationship Edges are edges or relationships that connect to Character Nodes together.
+
+You can edit a relationship by right clicking on the relationship and selecting edit relationship. You can edit the relationship type, description, and intensity.
+See [Edit Relationship Type](#create-a-relationship-type) to edit and create a relationship type.
 
 ### Relationship Graph Tool Bar
 
@@ -165,14 +203,10 @@ This button opens a Dialog with options to tag the perfect Screenshot of your Gr
 
 ## **Project Statistics**
 
-TODO
+The Project Statistics is a Dialog Window that you can acess by going to View -> Project Statistics. This Window displays many of the statstics for your project.
 
 ## **Exporting**
 
-TODO
+You are able to export Chapters, Lore Entries, Characters. You can export all of them or none of them.
 
-## **Menu Bar**
-
-## **Shortcuts**
-
-TODO
+Export Types: HTML, Markdown, Plaint Text, EPUB, PDF, JSON, YAML.
