@@ -8,8 +8,30 @@ Learn how to use Forgerly with this User Guide
     - [Creating First Project](#creating-your-first-project)
     - [Creating First Chapter](#creating-your-first-chapter)
     - [Switching the View](#switching-the-view)
+    - [Creating Your First Lore Entry, Character, or Note](#creating-your-first-lore-entry-character-or-note)
+
+- **[Chapter Editor](#chapter-editor)**
+
+- **[Lore Entry Editor](#lore-entry-editor)**
+
+- **[Character Editor](#character-editor)**
+
+- **[Note Editor](#note-editor)**
 
 - **[Relationship Graph](#relationship-graph)**
+    - [Create A Relationship Type](#create-a-relationship-type)
+    - [Assign a Relationship to Two Characters](#assign-a-relationship-to-two-characters)
+    - [Character Nodes](#character-nodes)
+    - [Relationship Edges](#relationship-edges)
+    - [Relationship Graph Tool Bar](#relationship-graph-tool-bar)
+
+- **[Project Statistics](#project-statistics)**
+
+- **[Exporting](#exporting)**
+
+- **[Menu Bar](#menu-bar)**
+
+- **[Shortcuts](#shortcuts)**
 
 ## **First Steps**
 
@@ -46,6 +68,21 @@ Switching the View allows you to view your other entities and see Project Statis
 Creating a Lore Entry, Character and Note is the same
 as creating a new Chapter. Navigate to the File Button or in the Menu Bar or Switch to their view and right click on their outlines.
 
+## **Chapter Editor**
+
+TODO
+
+## **Lore Entry Editor**
+
+TODO
+
+## **Character Editor**
+
+TODO
+
+## **Note Editor**
+
+TODO
 
 ## **Relationship Graph**
 
@@ -84,44 +121,58 @@ TODO
 
 There are Several Buttons on the Tool Bar to help you build your perfect Graph.
 
-### Toggle Grid
+#### Toggle Grid
 
 <img src="../../resources/icons/grid.svg" width="5%" alt="The Toggle Grid Icon" />
 
 This Buttons Toggles On/Off the Grid in the Background. Default is On.
 
-### Toggle Snap to Grid
+#### Toggle Snap to Grid
 
 <img src="../../resources/icons/snap-grid.svg" width="5%" alt="The Snap to Grid Icon" />
 
 This Button Toggles the Snap to Grid when moving Characters around on the Graph. Default is On.
 
-### Auto Layout
+#### Auto Layout
 
 <img src="../../resources/icons/auto-layout.svg" width="5%" alt="The Auto Layout Icon" />
 
 This button triggers the Auto Layout. The Auto Layout uses the Fruchterman-Reingold Algorithm to Place you Characters in the prettiest way possible. Will not apply to Characters that are Locked.
 
-### Lock All Nodes
+#### Lock All Nodes
 
 <img src="../../resources/icons/lock.svg" width="5%" alt="The Lock All Nodes Icon" />
 
 This button locks all nodes. This means that if the Auto Layout Button is pressed, the Characters will not move. This does not stop manually moving the Characters around.
 
-### Reset Zoom
+#### Reset Zoom
 
 <img src="../../resources/icons/zoom-reset.svg" width="5%" alt="The Reset Zoom Icon" />
 
 This button Resets the Zoom to where all nodes are Visible.
 
-### Toggle Label Visibility
+#### Toggle Label Visibility
 
 <img src="../../resources/icons/lock.svg" width="5%" alt="The Toggle Label Visibility Icon" />
 
 This button Toggles whether or not you are able to see the Short Labels visible on the Graph.
 
-### Screenshot
+#### Screenshot
 
 <img src="../../resources/icons/export.svg" width="5%" alt="The Toggle Label Visibility Icon" />
 
 This button opens a Dialog with options to tag the perfect Screenshot of your Graph.
+
+## **Project Statistics**
+
+TODO
+
+## **Exporting**
+
+TODO
+
+## **Menu Bar**
+
+## **Shortcuts**
+
+TODO
