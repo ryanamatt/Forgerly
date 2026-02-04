@@ -9,5 +9,6 @@
     "window_pos_x": 100,
     "window_pos_y": 100,
     "words_per_minute": 250,
-    "is_spell_checking": false
+    "is_spell_checking": false,
+    "is_showing_chapter_stats": true
 }
