@@ -113,7 +113,7 @@ class RichTextEditor(BasicTextEditor):
             # Font Size Selector
             self.size_combo = QComboBox(self.toolbar)
             self.size_combo.setEditable(True)
-            self.size_combo.setFixedWidth(50)
+            self.size_combo.setFixedWidth(60)
             # Standard sizes for rich text editors
             self.size_combo.addItems([
                 "8", "9", "10", "11", "12", "14", "16", "18", "20", "22", "24", "26", "28", "36", "48", "72"
