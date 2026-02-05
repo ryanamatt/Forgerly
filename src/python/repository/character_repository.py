@@ -244,8 +244,9 @@ class CharacterRepository:
         :type char_id: int
         :param new_name: The new name of the characters
         :type new_name: str
+        :rtype: None
         """
-        query = "UPDATE CHARACTERS SET Name ? WHERE ID = ?;"
+        query = "UPDATE CHARACTERS SET Name = ? WHERE ID = ?;"
         try:
             success = self.db._execute_commit(query, (new_name, char_id))
             if success:

@@ -321,10 +321,9 @@ class CharacterEditor(BaseEditor):
         """
         if self.current_char_id is not None:
             bus.publish(Events.OUTLINE_NAME_CHANGE, data={
-                'editor': self,
+                'entity_type': EntityType.CHARACTER,
                 'ID': self.current_char_id,
-                'title': self.name_input.text().strip(),
-                'view': ViewType.CHARACTER_EDITOR
+                'new_title': self.name_input.text().strip(),
             })
 
     def get_save_data(self) -> dict:
