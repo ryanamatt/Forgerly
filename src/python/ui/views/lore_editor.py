@@ -2,7 +2,7 @@
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QGroupBox, QSplitter, 
-    QLineEdit, QComboBox, QHBoxLayout
+    QLineEdit, QComboBox, QHBoxLayout, QLabel
 )
 from PySide6.QtCore import Qt
 from typing import Any
@@ -49,34 +49,40 @@ class LoreEditor(BaseEditor):
         # --- Sub-components ---
         self.text_editor = BasicTextEditor(is_spell_checking)
 
-        # --- Lore-Specific Components (Title and Category) ---
-        self.title_input = QLineEdit()
-        self.title_input.setPlaceholderText("Enter Lore Entry Title (e.g., 'The Sunken City of K'tal')")
-
-        self.category_combo = QComboBox()
-        self.category_combo.setEditable(True) 
-
         # --- Layout Setup ---
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
 
-        # 1. Title Input (Top)
-        main_layout.addWidget(self.title_input)
+        # --- Lore-Specific Components (Title and Category) ---
 
-        # 2. Category Group Box
+        # Title
+        title_group = QWidget()
+        title_layout = QHBoxLayout(title_group)
+        self.title_input = QLineEdit()
+        self.title_input.setPlaceholderText("Enter Lore Entry Title (e.g., 'The Sunken City of K'tal')")
+        title_label = QLabel("Title:")
+        
+        title_layout.addWidget(title_label)
+        title_layout.addWidget(self.title_input)
+        main_layout.addWidget(title_group)
+
+        # Category Group Box
+        self.category_combo = QComboBox()
+        self.category_combo.setEditable(True) 
+
         cat_group = QGroupBox("Lore Type")
         cat_layout = QHBoxLayout(cat_group)
         cat_layout.addWidget(QLabel("Category:"))
         cat_layout.addWidget(self.category_combo)
         
-        # 3. Tagging Group Box
+        # Tagging Group Box
         tag_group = QGroupBox("Lore Tags")
         tag_layout = QVBoxLayout(tag_group)
         tag_layout.setContentsMargins(10, 15, 10, 10)
         tag_layout.addWidget(self.tag_manager)
 
-        # 4. Vertical Splitter for Metadata (Category/Tags) and Content
+        # Vertical Splitter for Metadata (Category/Tags) and Content
         content_splitter = QSplitter(Qt.Orientation.Vertical)
         
         metadata_container = QWidget()
