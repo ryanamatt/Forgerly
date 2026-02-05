@@ -255,10 +255,9 @@ class LoreEditor(BaseEditor):
         """
         if self.current_lore_id is not None:
             bus.publish(Events.OUTLINE_NAME_CHANGE, data={
-                'editor': self,
+                'entity_type': EntityType.LORE,
                 'ID': self.current_lore_id,
-                'title': self.title_input.text().strip(),
-                'view': ViewType.LORE_EDITOR
+                'new_title': self.title_input.text().strip(),
             })
 
     def get_save_data(self) -> dict:
