@@ -145,7 +145,7 @@ class QFlowLayout(QLayout):
         logger.debug(f"Calculating height for width: {width}")
 
         rect = QRect(0, 0, width, 0)
-        return self._do_layout(rect, test_only=True)
+        return self._do_layout(rect)
 
     def setGeometry(self, rect) -> None:
         """
@@ -213,7 +213,7 @@ class QFlowLayout(QLayout):
         logger.debug(f"Minimum size calculated: {min_size.width()}x{min_size.height()}.")
         return min_size
     
-    def _do_layout(self, rect: QRect, test_only) -> int:
+    def _do_layout(self, rect: QRect, test_only = False) -> int:
         """
         Performs the actual layout calculation, determining item positions and wrapping.
         
