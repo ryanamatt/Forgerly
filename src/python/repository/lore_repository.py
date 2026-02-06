@@ -72,7 +72,7 @@ class LoreRepository:
     
     def get_content_by_title(self, title: str) -> dict | None:
         """
-        Retrieves full content for a Lore Entry based on its title.
+        Retrieves full content for all the Lore Entry that match the title.
         
         :param title: The title of the Lore Entry  to get content for.
         :type title: str
@@ -83,7 +83,7 @@ class LoreRepository:
         search_term = f"%{title.strip()}%"
         query = "SELECT ID, Title, Content FROM Lore_Entries WHERE Title Like ? COLLATE NOCASE;"
         try:
-            result = self.db._execute_query(query, (search_term,), fetch_one=True)
+            result = self.db._execute_query(query, (search_term,), fetch_all=True)
             logger.debug(f"Retrieved content by title search: '{title}'. Found: {result is not None}")
             return result
         except DatabaseError as e:

@@ -112,9 +112,9 @@ class CharacterRepository:
             logger.error(f"Failed to retrieve name for character ID: {char_id}.", exc_info=True)
             raise e
     
-    def get_content_by_name(self, name: str) -> dict | None:
+    def get_content_by_name(self, name: str) -> list[dict] | None:
         """
-        Retrieves full description for a character based on its title.
+        Retrieves full description for characters matching its name.
         
         :param title: The title of the character to get description for.
         :type title: str
@@ -124,10 +124,8 @@ class CharacterRepository:
         """ 
         search_term = f"%{name.strip()}%"
         query = "SELECT ID, Name, Description FROM Characters WHERE Name Like ? COLLATE NOCASE;"
-        search_term = f"%{name.strip()}%"
-        query = "SELECT ID, Name, Description FROM Characters WHERE Name Like ? COLLATE NOCASE;"
         try:
-            result = self.db._execute_query(query, (search_term,), fetch_one=True)
+            result = self.db._execute_query(query, (search_term,), fetch_all=True)
             logger.debug(f"Retrieved content by name search: '{name}'. Found: {result is not None}")
             return result
         except DatabaseError as e:

@@ -443,16 +443,8 @@ class MainWindow(QMainWindow):
         :type data: dict
         :rtype: None
         """
-        entity_type = data.get('entity_type')
-        title = data.get('title')
-        content = data.get('content')
 
-        lookup_dialog = LookupDialog(
-            entity_type=entity_type,
-            title=title,
-            content=content,
-            parent=self
-        )
+        lookup_dialog = LookupDialog(lookup_data=data, parent=self)
 
         lookup_dialog.show()
 

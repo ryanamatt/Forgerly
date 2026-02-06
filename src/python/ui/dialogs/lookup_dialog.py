@@ -2,10 +2,10 @@
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-    QTextEdit, QPushButton, QScrollArea, QWidget, QFrame
+    QTextEdit, QPushButton, QFrame, QListWidget, QListWidgetItem, QSplitter
 )
-from PySide6.QtCore import Qt, QSize
-from PySide6.QtGui import QColor, QPalette, QFont
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
 
 from ...utils.constants import EntityType
 
@@ -19,32 +19,56 @@ class LookupDialog(QDialog):
     - Entity-specific formatting (Character vs Lore)
     - Compact but informative display
     - Always-on-top window for easy reference
+    - Multiple entity selection when needed
     """
     
-    def __init__(self, entity_type: EntityType, title: str, content: str, parent=None) -> None:
+    def __init__(self, lookup_data: dict[str, dict[str, str]], parent=None) -> None:
         """
         Initializes the Lookup Window with enhanced display features.
         
-        :param entity_type: The Entity type (CHARACTER or LORE).
-        :type entity_type: EntityType
-        :param title: The Title/Name of the Entity.
-        :type title: str
-        :param content: The main content/description.
-        :type content: str
+        :param lookup_data: The data needed to lookup containing {'char_data': list, 'lore_data': list}
+        :type lookup_data: dict
         :param parent: The parent widget.
+        :type parent: QWidget
         :rtype: None
         """
         super().__init__(parent)
 
-        self.entity_type = entity_type
-        self.title = title
-        self.content = content
+        self.char_data = lookup_data.get('char_data', [])
+        self.lore_data = lookup_data.get('lore_data', [])
+        
+        # Combine all entities for selection
+        self.all_entities = []
+        for char in self.char_data:
+            self.all_entities.append({
+                'type': EntityType.CHARACTER,
+                'title': char.get('Name', 'Unnamed Character'),
+                'content': char.get('Description', ''),
+                'data': char
+            })
+        for lore in self.lore_data:
+            self.all_entities.append({
+                'type': EntityType.LORE,
+                'title': lore.get('Title', 'Untitled Lore'),
+                'content': lore.get('Content', ''),
+                'data': lore
+            })
+        
+        # Current selection
+        self.current_entity = None
+        self.show_selection = len(self.all_entities) > 1
+        
+        # Set initial entity if only one exists
+        if len(self.all_entities) == 1:
+            self.current_entity = self.all_entities[0]
+            self.entity_type = self.current_entity['type']
+            self.title = self.current_entity['title']
+            self.content = self.current_entity['content']
 
         # Window configuration
-        self.setWindowTitle(f"Quick Reference: {title}")
+        self.setWindowTitle(f"Quick Reference Search Results")
         self.setMinimumSize(450, 350)
-        self.setMaximumSize(600, 700)
-        self.resize(500, 500)
+        self.setBaseSize(500, 500)
         
         # Keep on top but allow clicking through to parent if needed
         self.setWindowFlags(
@@ -65,20 +89,124 @@ class LookupDialog(QDialog):
         main_layout.setContentsMargins(16, 16, 16, 16)
         main_layout.setSpacing(12)
         
-        # Header Section
-        self._create_header(main_layout)
+        # Selection list (only shown when multiple entities exist)
+        if self.show_selection:
+            self._create_selection_section(main_layout)
+        else:
+            self._rebuild_ui()
+    
+    def _create_selection_section(self, layout: QVBoxLayout) -> None:
+        """
+        Creates the selection interface for multiple entities.
+        
+        :param layout: The main layout to add widgets to.
+        :type layout: QVBoxLayout
+        :rtype: None
+        """
+        # Selection header
+        selection_header = QLabel("Multiple Results Found - Select One:")
+        selection_header.setStyleSheet("font-weight: bold; font-size: 12pt; color: #888;")
+        layout.addWidget(selection_header)
+        
+        # Entity list
+        self.entity_list = QListWidget()
+        for entity in self.all_entities:
+            item = QListWidgetItem()
+            
+            # Create display text with entity type badge
+            if entity['type'] == EntityType.CHARACTER:
+                badge = "👤"
+                type_text = "Character"
+            else:
+                badge = "📚"
+                type_text = "Lore"
+            
+            item.setText(f"{badge} {entity['title']} ({type_text})")
+            item.setData(Qt.ItemDataRole.UserRole, entity)
+            self.entity_list.addItem(item)
+        
+        # Connect selection
+        self.entity_list.itemDoubleClicked.connect(self._confirm_selection)
+        
+        layout.addWidget(self.entity_list, stretch=1)
+        
+        # Selection buttons
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(8)
+        
+        select_btn = QPushButton("View Selected")
+        select_btn.setFixedWidth(120)
+        select_btn.clicked.connect(self._confirm_selection)
+        select_btn.setDefault(True)
+        
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.setFixedWidth(80)
+        cancel_btn.clicked.connect(self.close)
+        
+        button_layout.addStretch()
+        button_layout.addWidget(select_btn)
+        button_layout.addWidget(cancel_btn)
+        
+        layout.addLayout(button_layout)
+    
+    def _confirm_selection(self) -> None:
+        """
+        Confirm the selected entity and switch to detail view.
+        
+        :rtype: None
+        """
+        current_item = self.entity_list.currentItem()
+        if not current_item:
+            return
+        
+        # Get the selected entity
+        self.current_entity = current_item.data(Qt.ItemDataRole.UserRole)
+        self.entity_type = self.current_entity['type']
+        self.title = self.current_entity['title']
+        self.content = self.current_entity['content']
+        
+        # Clear and rebuild the UI with detail view
+        self.show_selection = False
+        self._rebuild_ui()
+    
+    def _rebuild_ui(self) -> None:
+        """
+        Rebuilds the UI to show the detail view.
+        
+        :rtype: None
+        """
+        layout = self.layout()
+        self._clear_layout(layout)
+        
+        # Rebuild with detail view
+        self._create_header(layout)
         
         # Separator line
         separator = QFrame()
         separator.setFrameShape(QFrame.Shape.HLine)
         separator.setFrameShadow(QFrame.Shadow.Sunken)
-        main_layout.addWidget(separator)
+        layout.addWidget(separator)
         
         # Content Section
-        self._create_content_section(main_layout)
+        self._create_content_section(layout)
         
         # Footer with quick actions
-        self._create_footer(main_layout)
+        self._create_footer(layout)
+    
+    def _clear_layout(self, layout) -> None:
+        """
+        Recursively clears a layout.
+        
+        :param layout: The layout to clear.
+        :type layout: QLayout
+        :rtype: None
+        """
+        while layout.count():
+            child = layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+            elif child.layout():
+                self._clear_layout(child.layout())
         
     def _create_header(self, layout: QVBoxLayout) -> None:
         """
@@ -234,5 +362,8 @@ class LookupDialog(QDialog):
         # Close on Escape
         if event.key() == Qt.Key.Key_Escape:
             self.close()
+        # Confirm selection on Enter/Return when in selection mode
+        elif self.show_selection and event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            self._confirm_selection()
         else:
             super().keyPressEvent(event)
