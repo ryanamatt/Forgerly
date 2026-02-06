@@ -862,6 +862,7 @@ class AppCoordinator(QObject):
         """
 
         name = data.get('selected_text', '').strip()
+        print(name)
         if not name: return
 
         # Start Searching For Characters

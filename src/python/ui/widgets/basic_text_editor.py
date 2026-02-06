@@ -270,6 +270,8 @@ class BasicTextEditor(QWidget):
         """
         selected_text = self.get_selected_text().strip()
 
+        if not selected_text: return
+
         bus.publish(Events.PERFORM_DATABASE_LOOKUP, data={'selected_text': selected_text})
 
     @receiver(Events.IS_SPELL_CHECKING_CHANGED)
