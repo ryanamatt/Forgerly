@@ -860,34 +860,15 @@ class AppCoordinator(QObject):
         :returns: A tuple (EntityType, Title, Content) or None if not found.
         :rtype: tuple[str, str, str]
         """
-
-        name = data.get('selected_text', '').strip()
-        print(name)
-        if not name: return
-
-        # Start Searching For Characters
-        if hasattr(self, 'character_repo'):
-            char_data = self.character_repo.get_content_by_name(name=name)
-            if char_data and char_data.get('Description'): # Check if match exists
-                bus.publish(Events.LOOKUP_RESULT, data={
-                    'entity_type': EntityType.CHARACTER,
-                    'title': char_data.get('Name', name),
-                    'content': char_data.get('Description', '')
-                })
-                return
+        text = data.get('selected_text')
+        if not text: return
             
-        # Search Through Lore Entries
-        if hasattr(self, 'lore_repo'):
-            lore_data = self.lore_repo.get_content_by_title(title=name)
-            if lore_data and lore_data.get('Content'):
-                bus.publish(Events.LOOKUP_RESULT, data={
-                    'entity_type': EntityType.LORE,
-                    'title': lore_data.get('Title', name),
-                    'content': lore_data.get('Content', '')
-                })
-                return
-            
-        return
+        char_data = self.character_repo.get_content_by_name(name=text)
+        lore_data = self.lore_repo.get_content_by_title(title=text)
+
+        data = {}
+        data.update({'char_data': char_data, 'lore_data': lore_data})
+        bus.publish(Events.LOOKUP_RESULT, data=data)
             
     # --- Project Stats ---
     
