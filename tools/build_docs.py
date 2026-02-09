@@ -1,9 +1,15 @@
+# tools/build_docs.py
+
 import subprocess
 import os
+import io
 import sys
 import shutil
 from pathlib import Path
 from typing import List
+
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # --- Configuration: Define paths relative to the project root ---
 # Assumes the script is run from the project root directory
