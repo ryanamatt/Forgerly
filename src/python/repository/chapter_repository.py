@@ -281,21 +281,20 @@ class ChapterRepository:
         :rtype: dict
         """
         clean_query = user_query.strip()
-        if not clean_query:
-            return None
-
-        # Wildcard pattern for case-insensitive LIKE Search
         like_pattern = f'%{clean_query}%'
-
         query = """
-        SELECT DISTINCT ID, Title, Sort_Order
-        FROM Chapters
-        WHERE Title LIKE ?
-        ORDER BY Sort_Order ASC;
+            SELECT DISTINCT C.ID, C.Title, C.Sort_Order
+            FROM Chapters AS C
+            LEFT JOIN Chapter_Tags AS CT ON C.ID = CT.Chapter_ID
+            LEFT JOIN Tags AS T ON CT.Tag_ID = T.ID
+            WHERE
+                C.Title LIKE ? OR
+                T.NAME LIKE ?
+            ORDER BY Sort_Order ASC;
         """
-        params = (like_pattern)
+        params = (like_pattern, like_pattern)
         try:
-            results = self.db._execute_query(query, (like_pattern,), fetch_all=True)
+            results = self.db._execute_query(query, params, fetch_all=True)
             logger.info(f"Chapter search for '{clean_query}' returned {len(results)} results.")
             return results
         except DatabaseError as e:

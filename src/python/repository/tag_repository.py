@@ -148,8 +148,9 @@ class TagRepository:
             logger.error(f"Failed to set tags for chapter ID: {chapter_id}. Tag list: {tag_names}", 
                          exc_info=True)
             raise e
-        
+              
     # --- Tags for Lore ---
+
     def get_tags_for_lore_entry(self, lore_id: int) -> TagTupleList:
         """"
         Retrieves all tags (ID, Name) for a given lore entry.
