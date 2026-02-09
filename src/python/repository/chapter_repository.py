@@ -267,6 +267,40 @@ class ChapterRepository:
         except DatabaseError as e:
             logger.error(f"Failed to delete chapter ID: {chapter_id}.", exc_info=True)
             raise e
+        
+    def search_chapters(self, user_query: str) -> None:
+        """
+        Accepts a keyword query and performs a hybrid search:
+        1. Search on Name, Status (ranked results).
+        2. Merges and deduplicates the results, prioritizing FTS rank.
+
+        :param user_query: The users search query.
+        :type user_query: str
+
+        :returns: A dictionary is found something in search otherwise None
+        :rtype: dict
+        """
+        clean_query = user_query.strip()
+        if not clean_query:
+            return None
+
+        # Wildcard pattern for case-insensitive LIKE Search
+        like_pattern = f'%{clean_query}%'
+
+        query = """
+        SELECT DISTINCT ID, Title, Sort_Order
+        FROM Chapters
+        WHERE Title LIKE ?
+        ORDER BY Sort_Order ASC;
+        """
+        params = (like_pattern)
+        try:
+            results = self.db._execute_query(query, (like_pattern,), fetch_all=True)
+            logger.info(f"Chapter search for '{clean_query}' returned {len(results)} results.")
+            return results
+        except DatabaseError as e:
+            logger.error(f"Failed to execute search for chapters with query: '{clean_query}'.", exc_info=True)
+            raise e
 
     def update_chapter_title(self, chapter_id: int, title: str) -> bool:
         """

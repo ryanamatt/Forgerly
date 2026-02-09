@@ -42,8 +42,6 @@ class ChapterOutlineManager(BaseOutlineManager):
             type=EntityType.CHAPTER
         )
 
-        self.search_input.setHidden(True)
-
         bus.register_instance(self)
 
         self.tree_widget.order_changed.connect(self._update_sort_orders)
@@ -59,7 +57,7 @@ class ChapterOutlineManager(BaseOutlineManager):
         :rtype: None
         """
         entity_type = data.get('entity_type')
-        chapter_data = data.get('chapters')
+        chapter_data = data.get('chapters') or data.get('search_results')
         if entity_type != EntityType.CHAPTER or not chapter_data: 
             return
 

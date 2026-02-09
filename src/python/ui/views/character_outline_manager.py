@@ -61,7 +61,7 @@ class CharacterOutlineManager(BaseOutlineManager):
         :rtype: None
         """
         entity_type = data.get('entity_type')
-        char_data = data.get('characters')
+        char_data = data.get('characters') or data.get('search_results')
         if entity_type != EntityType.CHARACTER or not char_data: 
             return
 
@@ -78,49 +78,6 @@ class CharacterOutlineManager(BaseOutlineManager):
             self.tree_widget.addTopLevelItem(item)
 
         self.tree_widget.expandAll()
-
-    def _send_search_request(self, query: str) -> None:
-        """
-        Filters the visible items in the outline based on the text entered in 
-        the search bar.
-        
-        The search is case-insensitive.
-        
-        :param text: The current text in the search input field.
-        :type text: :py:class:`str`
-
-        :rtype: None
-        """
-        clean_query = query.strip()
-        if clean_query:
-            bus.publish(Events.OUTLINE_SEARCH_REQUESTED, data={
-                'entity_type': EntityType.CHARACTER, 'query': clean_query
-            })
-        else:
-            bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': EntityType.CHARACTER})
-
-    @receiver(Events.OUTLINE_SEARCH_RETURN)
-    def _handle_search_return(self, data: dict) -> None:
-        """
-        Handles the return of the neede search data.
-        
-        :param data: The return search data containing
-            {'entity_type': EntityType.CHARACTER, 'characters': dict}
-        :type data: dict
-
-        :rtype: None
-        """
-        search_results = data.get('characters')
-        entity_type = data.get('entity_type')
-        if entity_type != EntityType.CHARACTER: return
-
-        if search_results:
-            self.load_outline(data)
-        else:
-            self.tree_widget.clear()
-            no_result_item = QTreeWidgetItem(self.tree_widget, ["No search results found."])
-            no_result_item.setData(0, self.id_role, -1)
-            self.tree_widget.expandAll()
 
     def _handle_item_renamed(self, item: QTreeWidgetItem, column: int) -> None:
         """

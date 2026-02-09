@@ -160,7 +160,38 @@ class BaseOutlineManager(QWidget):
 
         :rtype: None
         """
-        raise NotImplementedError("Subclasses must implement _handle_search_input")
+        # raise NotImplementedError("Subclasses must implement _handle_search_input")
+        clean_query = query.strip()
+        if clean_query:
+            bus.publish(Events.OUTLINE_SEARCH_REQUESTED, data={
+                'entity_type': self.type, 'query': clean_query
+            })
+        else:
+            bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': self.type})
+
+    @receiver(Events.OUTLINE_SEARCH_RETURN)
+    def _handle_search_return(self, data: dict) -> None:
+        """
+        Handles the return of the neede search data.
+        
+        :param data: The return search data containing
+            {'entity_type': EntityType.CHARACTER, 'characters': dict}
+        :type data: dict
+
+        :rtype: None
+        """
+        search_results = data.get('search_results')
+        entity_type = data.get('entity_type')
+        if entity_type != self.type: 
+            return
+
+        if search_results:
+            self.load_outline(data)
+        else:
+            self.tree_widget.clear()
+            no_result_item = QTreeWidgetItem(self.tree_widget, ["No search results found."])
+            no_result_item.setData(0, self.id_role, -1)
+            self.tree_widget.expandAll()
 
     def _show_context_menu(self, position: QPoint):
         """

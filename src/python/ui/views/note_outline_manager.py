@@ -66,7 +66,9 @@ class NoteOutlineManager(BaseOutlineManager):
         """
         if data.get('entity_type') != EntityType.NOTE:
             return
-        notes_data = data.get('notes')
+        notes_data = data.get('notes') or data.get('search_results')
+        if not notes_data:
+            return
 
         self.tree_widget.clear()
 
@@ -95,49 +97,6 @@ class NoteOutlineManager(BaseOutlineManager):
                 self.tree_widget.addTopLevelItem(child_item)
                 
         self.tree_widget.expandAll()
-
-    def _send_search_request(self, query: str) -> None:
-        """
-        Filters the visible items in the outline based on the text entered in 
-        the search bar.
-        
-        The search is case-insensitive.
-        
-        :param text: The current text in the search input field.
-        :type text: :py:class:`str`
-
-        :rtype: None
-        """
-        clean_query = query.strip()
-        if clean_query:
-            bus.publish(Events.OUTLINE_SEARCH_REQUESTED, data={
-                'entity_type': EntityType.NOTE, 'query': clean_query
-            })
-        else:
-            bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': EntityType.NOTE})
-
-    @receiver(Events.OUTLINE_SEARCH_RETURN)
-    def _handle_search_return(self, data: dict) -> None:
-        """
-        Handles the return of the search query data.
-        
-        :param data: The return data in the form {'entity_type': EntityType.NOTE,
-            'notes': dict}
-        :type data: dict
-
-        :rtype: None
-        """
-        search_results = data.get('notes')
-        entity_type = data.get('entity_type')
-        if entity_type != EntityType.NOTE: return
-
-        if search_results:
-            self.load_outline(data)
-        else:
-            self.tree_widget.clear()
-            no_result_item = QTreeWidgetItem(self.tree_widget, ["No search results found."])
-            no_result_item.setData(0, self.id_role, -1)
-            self.tree_widget.expandAll()
 
     def _handle_item_renamed(self, item: QTreeWidgetItem, column: int) -> None:
         """

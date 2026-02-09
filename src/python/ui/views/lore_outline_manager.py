@@ -61,7 +61,7 @@ class LoreOutlineManager(BaseOutlineManager):
         :rtype: None
         """
         entity_type = lore_data.get('entity_type')
-        lore_entries = lore_data.get('lore_entries')
+        lore_entries = lore_data.get('lore_entries') or lore_data.get('search_results')
         if entity_type != EntityType.LORE or not lore_entries:
             return
                     
@@ -92,47 +92,6 @@ class LoreOutlineManager(BaseOutlineManager):
                 self.tree_widget.addTopLevelItem(child_item)
                 
         self.tree_widget.expandAll()
-
-    def _send_search_request(self, query: str) -> None:
-        """
-        Handles text changes in the search bar. 
-        Sends out an Event Signal to 
-
-        :param query: The search query to search for.
-        :type query: str
-
-        :rtype: None
-        """
-        clean_query = query.strip()
-        if clean_query:
-            bus.publish(Events.OUTLINE_SEARCH_REQUESTED, data={
-                'entity_type': EntityType.LORE, 'query': clean_query
-            })
-        else:
-            bus.publish(Events.OUTLINE_LOAD_REQUESTED, data={'entity_type': EntityType.LORE})
-
-    @receiver(Events.OUTLINE_SEARCH_RETURN)
-    def _handle_search_return(self, data: dict) -> None:
-        """
-        Handles the return of the search query data.
-        
-        :param data: The search data in the form {'entity_type': EntityType.LORE,
-            'lore_entries': dict}
-        :type data: dict
-
-        :rtype: None
-        """
-        search_results = data.get('lore_entries')
-        entity_type = data.get('entity_type')
-        if entity_type != EntityType.LORE: return
-
-        if search_results:
-            self.load_outline(data)
-        else:
-            self.tree_widget.clear()
-            no_result_item = QTreeWidgetItem(self.tree_widget, ["No search results found."])
-            no_result_item.setData(0, self.id_role, -1)
-            self.tree_widget.expandAll()
 
     def _handle_item_renamed(self, item: QTreeWidgetItem, column: int) -> None:
         """
