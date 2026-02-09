@@ -560,23 +560,22 @@ class AppCoordinator(QObject):
         query = data.get('query')
 
         results = {}
-        results_name = ''
 
         match entity_type:
+            case EntityType.CHAPTER:
+                results = self.chapter_repo.search_chapters(query)
+
             case EntityType.LORE:
                 results = self.lore_repo.search_lore_entries(query)
-                results_name = 'lore_entries'
 
             case EntityType.CHARACTER:
                 results = self.character_repo.search_characters(query)
-                results_name = 'characters'
 
             case EntityType.NOTE:
                 results = self.note_repo.search_notes(query)
-                results_name = 'notes'
 
         bus.publish(Events.OUTLINE_SEARCH_RETURN, data={
-            'entity_type': entity_type, results_name: results
+            'entity_type': entity_type, 'search_results': results
         })
 
     # --- Updating Parent ID / Reordering ---
