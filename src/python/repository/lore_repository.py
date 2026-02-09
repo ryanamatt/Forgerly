@@ -364,7 +364,7 @@ class LoreRepository:
             T.Name LIKE ?
         ORDER BY LE.Title ASC;
         """
-        params = (like_pattern, like_pattern, like_pattern, like_pattern)
+        params = (like_pattern, like_pattern, like_pattern)
         try:
             results = self.db._execute_query(query, params, fetch_all=True)
             logger.info(f"Lore search for '{clean_query}' returned {len(results)} results.")

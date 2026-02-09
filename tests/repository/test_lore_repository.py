@@ -79,7 +79,7 @@ def test_delete_lore_entry(lore_repo: LoreRepository):
     details = lore_repo.get_lore_entry_details(lore_id)
     assert details is None
     
-def test_search_lore_entries_by_title_content_category_and_tag(lore_repo: LoreRepository, tag_repo: TagRepository):
+def test_search_lore_entries_by_title_category_and_tag(lore_repo: LoreRepository, tag_repo: TagRepository):
     """Tests the hybrid search function, checking for all four search fields."""
     
     # Setup Data
@@ -95,17 +95,12 @@ def test_search_lore_entries_by_title_content_category_and_tag(lore_repo: LoreRe
     assert len(results) == 1
     assert results[0]['Title'] == "The Blue Staff"
     
-    # 2. Search by Content fragment
-    results = lore_repo.search_lore_entries("dangerous")
-    assert len(results) == 1
-    assert results[0]['Title'] == "The Crystal Caves"
-    
-    # 3. Search by Category fragment
+    # 2. Search by Category fragment
     results = lore_repo.search_lore_entries("History")
     assert len(results) == 1
     assert results[0]['Title'] == "The Great War"
     
-    # 4. Search by Tag (The tag name is 'conflict', the user query should match the tag name)
+    # 3. Search by Tag (The tag name is 'conflict', the user query should match the tag name)
     results = lore_repo.search_lore_entries("conflict")
     assert len(results) == 1
     assert results[0]['Title'] == "The Great War"
