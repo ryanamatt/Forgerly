@@ -360,7 +360,6 @@ class LoreRepository:
         LEFT JOIN Tags AS T ON LT.Tag_ID = T.ID
         WHERE
             LE.Title LIKE ? OR
-            LE.Content LIKE ? OR
             LE.Category LIKE ? OR
             T.Name LIKE ?
         ORDER BY LE.Title ASC;

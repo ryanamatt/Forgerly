@@ -300,10 +300,6 @@ class NoteRepository:
         :rtype: list[dict]
         """
         clean_query = user_query.strip()
-        if not clean_query:
-            return None
-
-        # Wildcard pattern for case-insensitive LIKE Search
         like_pattern = f'%{clean_query}%'
 
         query = """
@@ -313,11 +309,10 @@ class NoteRepository:
         LEFT JOIN Tags AS T ON NT.Tag_ID = T.ID
         WHERE
             N.Title LIKE ? OR
-            N.Content LIKE ? OR
             T.Name LIKE ?
         ORDER BY N.Title ASC;
         """
-        params = (like_pattern, like_pattern, like_pattern)
+        params = (like_pattern, like_pattern)
         try:
             results = self.db._execute_query(query, params, fetch_all=True)
             logger.info(f"Note search for '{clean_query}' returned {len(results)} results.")
