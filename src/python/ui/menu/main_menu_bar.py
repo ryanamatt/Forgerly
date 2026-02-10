@@ -95,6 +95,11 @@ class MainMenuBar(QMenuBar):
         new_character_action.setIcon(QIcon(":icons/character.svg"))
         new_character_action.triggered.connect(lambda: bus.publish(Events.NEW_CHARACTER_REQUESTED))
         file_menu.addAction(new_character_action)
+
+        new_note_action = QAction("New Note", self)
+        new_note_action.setIcon(QIcon(":icons/note.svg"))
+        new_note_action.triggered.connect(lambda: bus.publish(Events.NEW_NOTE_REQUESTED))
+        file_menu.addAction(new_note_action)
         
         file_menu.addSeparator()
 
