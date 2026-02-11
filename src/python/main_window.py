@@ -16,6 +16,7 @@ from .ui.dialogs.settings_dialog import SettingsDialog
 from .ui.dialogs.exporter_dialog import ExporterDialog
 from .ui.dialogs.project_stats_dialog import ProjectStatsDialog
 from .ui.dialogs.lookup_dialog import LookupDialog
+from .ui.dialogs.user_guide_dialog import UserGuideDialog
 
 from .services.settings_manager import SettingsManager
 from .services.app_coordinator import AppCoordinator
@@ -463,3 +464,15 @@ class MainWindow(QMainWindow):
                                           user_settings=self.current_settings, parent=self)
 
         stats_dialog.exec()
+
+    @receiver(Events.VIEW_SHOW_GUIDE)
+    def _open_user_guide_dialog(self, data: dict = None) -> None:
+        """
+        Opens the User Guide Dialog.
+
+        :param data: Empty dictionary.
+        :type dict:
+        :rtype: None
+        """
+        user_guide_dialog = UserGuideDialog()
+        user_guide_dialog.exec()

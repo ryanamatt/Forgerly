@@ -203,11 +203,20 @@ class MainMenuBar(QMenuBar):
         :rtype: None
         """
         help_menu = self.addMenu("&Help")
+
+        # About Action
         about_action = QAction("&About", self)
         about_action.setIcon(QIcon(":icons/information.svg"))
         about_action.setShortcut(f"{self._mod_key}+H")
         about_action.triggered.connect(self._show_about_dialog)
         help_menu.addAction(about_action)
+
+        # Guide Action
+        guide_action = QAction("User Guide", self)
+        guide_action.setIcon(QIcon(":icons/information.svg"))
+        guide_action.setShortcut(f"{self._mod_key}+G")
+        guide_action.triggered.connect(lambda: bus.publish(Events.VIEW_SHOW_GUIDE))
+        help_menu.addAction(guide_action)
 
     def _show_about_dialog(self) -> None:
         """

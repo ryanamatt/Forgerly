@@ -12,6 +12,7 @@ added_files = [
     (os.path.join(pro_root, 'dictionaries'), 'dictionaries'),
     (os.path.join(pro_root, 'styles'), 'styles'),
     (os.path.join(pro_root, 'src', 'sql'), 'src/sql'),
+    (os.path.join(pro_root, 'docs', 'user', 'GUIDE.md'), 'docs/user'),
 ]
 
 if platform.system() == 'Windows':

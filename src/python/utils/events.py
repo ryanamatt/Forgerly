@@ -11,6 +11,7 @@ class Events(str, Enum):
     # View/Navigation Events
     VIEW_SWITCH_REQUESTED = "view.switch_requested"
     VIEW_CHANGED = "view.changed"
+    VIEW_SHOW_GUIDE = "view.show_guide"
 
     # Content/Selection
     CONTENT_CHANGED = "editor.content_changed"
