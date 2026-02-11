@@ -1,6 +1,6 @@
 # src/python/ui/menu/main_menu_bar.py
 
-from PySide6.QtWidgets import QMenuBar, QMessageBox
+from PySide6.QtWidgets import QMenuBar, QMessageBox, QLineEdit
 from PySide6.QtGui import QAction, QActionGroup, QIcon
 
 from ...resources_rc import *
@@ -53,6 +53,7 @@ class MainMenuBar(QMenuBar):
         :rtype: None
         """
         self._setup_file_menu()
+        self._setup_edit_menu()
         self._setup_view_menu()
         self._setup_tools_menu()
         self._setup_help_menu()
@@ -132,13 +133,27 @@ class MainMenuBar(QMenuBar):
         file_menu.addSeparator()
 
         # Exit Action
-        exit_action = QAction("E&xit", self)
+        exit_action = QAction("&Exit", self)
         exit_action.setIcon(QIcon(":icons/exit.svg"))
         exit_action.setShortcut(f"{self._mod_key}+Q")
         exit_action.triggered.connect(self.parent().close) # Use parent() close for convenience
         file_menu.addAction(exit_action)
 
-        logger.debug("All QActions created and connected.")
+    def _setup_edit_menu(self) -> None:
+        """
+        Sets up the Edit Button and menu in the Menu bar.
+        
+        :rtype None:
+        """
+        edit_menu = self.addMenu("&Edit")
+
+        # Find Action
+        find_action = QAction("Find", self)
+        find_action.setIcon(QIcon(":icons/find.svg"))
+        find_action.setShortcut(f"{self._mod_key}+F")
+        find_action.triggered.connect(lambda: bus.publish(Events.TOGGLE_SEARCH_BAR))
+
+        edit_menu.addAction(find_action)
 
     def _setup_view_menu(self) -> None:
         """
@@ -197,7 +212,6 @@ class MainMenuBar(QMenuBar):
         lookup_action = QAction("Lookup Selected Text", self)
         lookup_action.setIcon(QIcon(":icons/search.svg"))
         lookup_action.setShortcut(f"{self._mod_key}+Shift+L")
-    
         lookup_action.triggered.connect(lambda: bus.publish(Events.LOOKUP_REQUESTED, data={}))
         tools_menu.addAction(lookup_action)
 
