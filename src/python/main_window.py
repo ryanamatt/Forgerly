@@ -1,6 +1,8 @@
 # src/python/main_window.py
 
-from PySide6.QtWidgets import QMainWindow, QSplitter, QMessageBox, QDialog
+from PySide6.QtWidgets import (
+    QMainWindow, QSplitter, QMessageBox, QDialog, QFrame, QHBoxLayout, QLineEdit
+)
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QCloseEvent, QResizeEvent, QIcon
 import sys
@@ -185,6 +187,14 @@ class MainWindow(QMainWindow):
             self._geometry_save_timer.start(500) 
             logger.debug("Resize event received. Debouncing geometry save.")
 
+        if hasattr(self, 'search_container'):
+            # Position at Top-Right, just below the Menu Bar height
+            menu_height = self.menuBar().height()
+            padding = 30
+            x = self.width() - self.search_container.width() - padding
+            y = menu_height
+            self.search_container.move(x, y)
+
     # -------------------------------------------------------------------------
     # UI Setup
     # -------------------------------------------------------------------------
@@ -218,7 +228,44 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(self.main_splitter)
 
+        self._setup_search_bar()
+
         logger.info("UI setup finalized.")
+
+    def _setup_search_bar(self) -> None:
+        """
+        Sets up the search bar for when the user searches.
+        
+        :rtype: None
+        """
+        self.search_container = QFrame(self)
+        self.search_container.setObjectName("SearchContainer")
+        self.search_container.setFixedHeight(45) 
+        # Style it to look like a floating bar below the menu
+        self.search_container.setStyleSheet("""
+            QFrame#SearchContainer {
+                background: rgba(45, 45, 45, 230); 
+                border: 1px solid #555555;
+                border-top: none; /* Blends into the menu bar */
+                border-bottom-left-radius: 8px;
+                border-bottom-right-radius: 8px;
+            }
+        """)
+
+        layout = QHBoxLayout(self.search_container)
+        # Increase the bottom margin to prevent clipping the QLineEdit focus border
+        layout.setContentsMargins(10, 5, 10, 8)
+
+        self.search_bar = QLineEdit()
+        self.search_bar.setPlaceholderText("Search...")
+        
+        layout.addWidget(self.search_bar)
+        self.search_container.hide() # Hidden by default
+
+        # Connect to the event bus
+        self.search_bar.textChanged.connect(
+            lambda: bus.publish(Events.SEARCH_CONTENT, data={'search_text': self.search_bar.displayText()})
+        )
 
     # --- Coordinator/ViewManager ---
 
@@ -463,3 +510,21 @@ class MainWindow(QMainWindow):
                                           user_settings=self.current_settings, parent=self)
 
         stats_dialog.exec()
+
+    @receiver(Events.TOGGLE_SEARCH_BAR)
+    def _toggle_search(self, data: dict = None):
+        """
+        Toggles whether you can see the search bar or not.
+        
+        :param data: Empty Dict needed for recieving
+        :type data: dict
+        :rtype: None
+        """
+        if self.search_container.isHidden():
+            self.search_container.show()
+            self.search_container.raise_()
+            self.search_bar.setFocus()
+        else:
+            bus.publish(Events.SEARCH_CLOSED)
+            self.search_bar.setText("")
+            self.search_container.hide()

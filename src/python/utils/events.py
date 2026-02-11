@@ -13,7 +13,9 @@ class Events(str, Enum):
     VIEW_CHANGED = "view.changed"
 
     # Edit Menu Bar Events
-    SEARCH_CONTENT = "editr.search_content"
+    SEARCH_CONTENT = "edit.search_content"
+    TOGGLE_SEARCH_BAR = "edit.toggle_search_bar"
+    SEARCH_CLOSED = "edit.search_hide"
 
     # Content/Selection
     CONTENT_CHANGED = "editor.content_changed"

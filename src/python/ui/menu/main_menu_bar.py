@@ -151,14 +151,8 @@ class MainMenuBar(QMenuBar):
         find_action = QAction("Find", self)
         find_action.setIcon(QIcon(":icons/find.svg"))
         find_action.setShortcut(f"{self._mod_key}+F")
-        find_action.triggered.connect(lambda: self.search_bar.setHidden(not self.search_bar.isHidden()))
+        find_action.triggered.connect(lambda: bus.publish(Events.TOGGLE_SEARCH_BAR))
 
-        self.search_bar = QLineEdit(self)
-        self.search_bar.setPlaceholderText("Search...")
-        self.search_bar.setHidden(True)
-        self.search_bar.textChanged.connect(lambda: bus.publish(Events.SEARCH_CONTENT, data={
-            'search_text': self.search_bar.displayText()}))
-        
         edit_menu.addAction(find_action)
 
     def _setup_view_menu(self) -> None:

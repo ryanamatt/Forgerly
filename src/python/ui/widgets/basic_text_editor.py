@@ -3,7 +3,7 @@
 from PySide6.QtWidgets import (
     QTextEdit, QWidget, QVBoxLayout, QMessageBox
 )
-from PySide6.QtGui import QTextCharFormat, QTextCursor, QColor, QAction
+from PySide6.QtGui import QTextCharFormat, QTextCursor, QColor, QAction, QHideEvent
 from PySide6.QtCore import QTimer, Qt, QPoint
 import re
 
@@ -160,6 +160,7 @@ class BasicTextEditor(QWidget):
         """
         self._set_dirty()
         self.spell_check_timer.start()
+        self.editor.setExtraSelections([])
 
     # --- Dirty Flag Management ---
 
@@ -303,10 +304,50 @@ class BasicTextEditor(QWidget):
         """
         search_text = data.get('search_text')
 
-        if not self.isEnabled():
+        if not self.isEnabled() or not search_text:
+            self.editor.setExtraSelections([]) # Clear highlights if empty
             return
+    
+        extra_selections = []
+
+        cursor = self.editor.document().find(search_text)
+
+        while not cursor.isNull():
+            selection = QTextEdit.ExtraSelection()
+
+            selection.format.setBackground(QColor("Yellow"))
+            selection.format.setForeground(QColor("Black"))
+
+            selection.cursor = cursor
+
+            extra_selections.append(selection)
+
+            cursor = self.editor.document().find(search_text, cursor)
+
+        # Apply all highlights at once
+        self.editor.setExtraSelections(extra_selections)
         
-        print(search_text)
+        # Scroll the first match into view
+        if extra_selections:
+            # Get a copy of the match cursor
+            nav_cursor = extra_selections[0].cursor
+            # Collapse the selection so the system accent color doesn't hide the searching yellow
+            nav_cursor.clearSelection() 
+            self.editor.setTextCursor(nav_cursor)
+            
+        logger.debug(f"Search for '{search_text}' found {len(extra_selections)} matches.")
+
+    @receiver(Events.SEARCH_CLOSED)
+    def _clear_search_highlights(self, data: dict = None) -> None:
+        """
+        Clears all search-related highlights from the editor.
+
+        :param data: Empty dict
+        :type data: dict
+        :rtype: None
+        """
+        self.editor.setExtraSelections([])
+        logger.debug("Search highlights cleared via SEARCH_CLOSED event.")
 
     def _clear_spell_check_formatting(self) -> None:
         """
