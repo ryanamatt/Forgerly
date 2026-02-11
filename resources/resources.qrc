@@ -41,5 +41,6 @@
     <file>icons/lock.svg</file>
     <file>icons/unlock.svg</file>
     <file>icons/export.svg</file>
+    <file>icons/find.svg</file>
   </qresource>
 </RCC>

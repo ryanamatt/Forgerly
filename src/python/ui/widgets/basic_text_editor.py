@@ -292,6 +292,22 @@ class BasicTextEditor(QWidget):
             
         self.is_spell_checking = new_state
 
+    @receiver(Events.SEARCH_CONTENT)
+    def _search_text(self, data: dict) -> None:
+        """
+        Searchs the text for the search content.
+        
+        :param data: dict carrying 'search_text': str
+        :type data: dict
+        :rtype: None
+        """
+        search_text = data.get('search_text')
+
+        if not self.isEnabled():
+            return
+        
+        print(search_text)
+
     def _clear_spell_check_formatting(self) -> None:
         """
         Removes all spell-check underlines from the document.

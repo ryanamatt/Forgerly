@@ -82,7 +82,7 @@ class MainWindow(QMainWindow):
                                available or AttributeError).")
                 pass
 
-        self.setWindowTitle(f"The Forgerly v{__version__}")
+        self.setWindowTitle(f"Forgerly v{__version__}")
         self.setGeometry(100, 100, 1200, 800)
         self.setWindowIcon(QIcon(get_resource_path('resources/logo.ico')))
 
@@ -94,7 +94,7 @@ class MainWindow(QMainWindow):
 
         self.export_service = ExportService(project_title=self.project_title)
 
-        # --- Settings and Theme Management ---
+        # Settings
         self.current_settings = self.settings_manager.load_settings()
         self._apply_settings(self.current_settings)
         logger.info(f"Current theme applied: {self.current_settings.get('theme', 'N/A')}.")

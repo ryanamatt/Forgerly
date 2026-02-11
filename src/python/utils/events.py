@@ -12,6 +12,9 @@ class Events(str, Enum):
     VIEW_SWITCH_REQUESTED = "view.switch_requested"
     VIEW_CHANGED = "view.changed"
 
+    # Edit Menu Bar Events
+    SEARCH_CONTENT = "editr.search_content"
+
     # Content/Selection
     CONTENT_CHANGED = "editor.content_changed"
     SELECTION_CHANGED = "editor.selection_changed"
