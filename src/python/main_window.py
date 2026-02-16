@@ -3,7 +3,7 @@
 from PySide6.QtWidgets import (
     QMainWindow, QSplitter, QMessageBox, QDialog, QFrame, QHBoxLayout, QLineEdit
 )
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QTimer, QThread, Signal
 from PySide6.QtGui import QCloseEvent, QResizeEvent, QIcon
 import sys
 import ctypes
@@ -18,10 +18,12 @@ from .ui.dialogs.settings_dialog import SettingsDialog
 from .ui.dialogs.exporter_dialog import ExporterDialog
 from .ui.dialogs.project_stats_dialog import ProjectStatsDialog
 from .ui.dialogs.lookup_dialog import LookupDialog
+from .ui.dialogs.update_dialog import UpdateDialog
 
 from .services.settings_manager import SettingsManager
 from .services.app_coordinator import AppCoordinator
 from .services.export_service import ExportService
+from .services.update_checker import UpdateChecker
 
 from .utils._version import __version__
 from .utils.theme_utils import apply_theme
@@ -32,6 +34,24 @@ from .utils.event_bus import bus, receiver
 from .utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+class UpdateCheckThread(QThread):
+    """
+    Background thread for checking updates without blocking the UI.
+    """
+    update_checked = Signal(bool, object)  # (update_available, release_info)
+    
+    def __init__(self, owner: str, repo: str, current_version: str, parent=None):
+        super().__init__(parent)
+        self.owner = owner
+        self.repo = repo
+        self.current_version = current_version
+    
+    def run(self):
+        """Runs the update check in a background thread."""
+        checker = UpdateChecker(self.owner, self.repo, self.current_version)
+        update_available, release_info = checker.check_for_updates()
+        self.update_checked.emit(update_available, release_info)
 
 class MainWindow(QMainWindow):
     """
@@ -123,6 +143,9 @@ class MainWindow(QMainWindow):
         self._geometry_save_timer = QTimer(self)
         self._geometry_save_timer.setSingleShot(True)
         self._geometry_save_timer.timeout.connect(self._save_geometry_to_settings)
+
+        if self.current_settings.get('check_for_updates', True):
+            QTimer.singleShot(2000, lambda: self._check_for_updates())
 
     # -------------------------------------------------------------------------
     # System Events
@@ -528,3 +551,71 @@ class MainWindow(QMainWindow):
             bus.publish(Events.SEARCH_CLOSED)
             self.search_bar.setText("")
             self.search_container.hide()
+
+    # --- Update Checking ---
+
+    def _check_for_updates(self) -> None:
+        """
+        Checks for application updates in the background.
+        
+        This method runs on a slight delay after startup to avoid interfering 
+        with the initial window load. The check runs in a background thread 
+        to prevent UI freezing.
+        
+        :rtype: None
+        """
+        # Get the skipped version from settings (if any)
+        skipped_version = self.current_settings.get('skipped_update_version', '')
+        
+        # Create and start the update check thread
+        self.update_thread = UpdateCheckThread(
+            owner="YourGitHubUsername",  # TODO: Replace with your GitHub username
+            repo="Forgerly",              # TODO: Replace with your repo name if different
+            current_version=__version__,
+            parent=self
+        )
+        
+        # Connect the signal to handle results
+        self.update_thread.update_checked.connect(
+            lambda available, info: self._on_update_checked(available, info, skipped_version)
+        )
+        
+        # Start the background check
+        self.update_thread.start()
+        logger.debug("Update check thread started.")
+
+    def _on_update_checked(self, update_available: bool, release_info: dict, 
+                        skipped_version: str) -> None:
+        """
+        Handles the result of the update check.
+        
+        :param update_available: Whether an update is available.
+        :type update_available: bool
+        :param release_info: Information about the latest release.
+        :type release_info: dict
+        :param skipped_version: The version the user chose to skip (if any).
+        :type skipped_version: str
+        :rtype: None
+        """
+        if not update_available or not release_info:
+            logger.debug("No updates available or check failed.")
+            return
+        
+        latest_version = release_info.get('version')
+        
+        # Don't show the dialog if the user previously skipped this version
+        if latest_version == skipped_version:
+            logger.info(f"Update v{latest_version} is available but was previously skipped by user.")
+            return
+        
+        # Show the update dialog
+        logger.info(f"Displaying update notification for v{latest_version}")
+        dialog = UpdateDialog(release_info, __version__, parent=self)
+        
+        dialog_result = dialog.exec()
+        
+        # Save the skipped version if the user chose to skip it
+        if dialog.should_skip_version():
+            self.current_settings['skipped_update_version'] = latest_version
+            self.settings_manager.save_setting('skipped_update_version', latest_version)
+            logger.info(f"User chose to skip version {latest_version}")
