@@ -174,6 +174,8 @@ class SettingsDialog(QDialog):
         main_layout.addWidget(appearance_group)
         main_layout.addWidget(stats_group)
 
+        self._setup_update_section(parent_layout=main_layout)
+
         # --- Standard OK/Cancel Buttons and Revert ---
         
         # 1. Revert Button
@@ -195,6 +197,59 @@ class SettingsDialog(QDialog):
         
         main_layout.addLayout(h_layout)
 
+    def _setup_update_section(self, parent_layout: QVBoxLayout) -> None:
+        """
+        Creates the update checker settings section.
+        
+        :param parent_layout: The parent layout to add widgets to.
+        :type parent_layout: QVBoxLayout
+        :rtype: None
+        """
+        # Update Settings Group
+        update_group = QGroupBox("Update Settings")
+        update_layout = QVBoxLayout()
+        
+        # Enable/disable update checks
+        self.update_check_checkbox = QCheckBox("Check for updates on startup")
+        self.update_check_checkbox.setChecked(
+            self.current_settings.get('check_for_updates', True)
+        )
+        self.update_check_checkbox.setToolTip(
+            "Automatically check for new versions when the application starts"
+        )
+        update_layout.addWidget(self.update_check_checkbox)
+        
+        # Show skipped version info
+        skipped_version = self.current_settings.get('skipped_update_version', '')
+        if skipped_version:
+            info_label = QLabel(f"Currently skipping version: v{skipped_version}")
+            info_label.setStyleSheet("color: #888; font-style: italic;")
+            update_layout.addWidget(info_label)
+            
+            # Reset button to clear skipped version
+            reset_button = QPushButton("Reset Skipped Versions")
+            reset_button.setMaximumWidth(200)
+            reset_button.clicked.connect(self._on_reset_skipped_version)
+            update_layout.addWidget(reset_button)
+        
+        update_group.setLayout(update_layout)
+        parent_layout.addWidget(update_group)
+
+    def _on_reset_skipped_version(self):
+        """
+        Clears the skipped version setting so the user will see all future updates.
+        
+        :rtype: None
+        """
+        self.current_settings['skipped_update_version'] = ''
+        QMessageBox.information(
+            self,
+            "Reset Complete",
+            "You will now be notified about all future updates."
+        )
+        # Refresh the dialog to hide the reset button
+        self.close()
+
     def _on_accept(self):
         """
         A handler for the 'OK' button press.
@@ -208,14 +263,18 @@ class SettingsDialog(QDialog):
         current_settings: dict = self._new_settings.copy()
         # Update the internal settings dictionary with current UI values
         self._new_settings['theme'] = self.theme_combo.currentText()
+
         self._new_settings['window_size'] = self.window_size_combo.currentText()
         self._new_settings['outline_width_pixels'] = self.outline_width_spinbox.value()
+
         new_wpm = self.wpm_spinBox.value()
         self._new_settings['words_per_minute'] = new_wpm
         new_is_spell_checking = self.spell_box.isChecked()
         self._new_settings['is_spell_checking'] = new_is_spell_checking
         new_is_showing_chapter_stats = self.show_stats_box.isChecked()
         self._new_settings['is_showing_chapter_stats'] = new_is_showing_chapter_stats
+
+        self._new_settings['check_for_updates'] = self.update_check_checkbox.isChecked()
 
         if new_wpm != current_settings.get('words_per_minute'):
             bus.publish(Events.WPM_CHANGED, data={'new_wpm': new_wpm})

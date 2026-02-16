@@ -67,7 +67,8 @@ class SettingsManager:
                     "window_pos_x": 100,
                     "window_pos_y": 100,
                     "is_spell_checking": False,
-                    "is_showing_chapter_stats": True
+                    "is_showing_chapter_stats": True,
+                    "check_for_updates": True
                 }
 
                 with open(self._DEFAULT_FILE,'w') as f:
