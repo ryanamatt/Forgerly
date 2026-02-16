@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to Forgerly will be documented in this file.
 
-## v0.4.8 - UNRELEASED
+## v0.4.8 - 2026-2-16
 
 ## ✨ Added
 
@@ -22,7 +22,6 @@ Chapter Editor.
 - Fix Bug where Relationship Edge Line Style did not update when changed.
 - Fix Bug  when showing the Text Size in the Text Editor allowing the user to see the full number.
 - Fix Bug when renaming a Character's name using the Text Box in the Character Editor.
-- 
 
 ## v0.4.7 - 2026-01-26
 
