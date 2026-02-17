@@ -25,7 +25,7 @@
 
 ### **Data & Schema**
 
-- [ ] Database Schema change (`schema_v1.sql`)
+- [ ] Database Schema change
 - [ ] Migration of project folder structure
 
 ## ✅ Quality Checklist'

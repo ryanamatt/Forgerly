@@ -45,9 +45,6 @@ def initialized_connector(tmp_path):
 def test_dbconnector_init(clean_connector):
     """Tests basic initialization of paths and connection attribute."""
     assert clean_connector.conn is None
-    # NOTE: These path assertions depend on a 'clean_connector' fixture from conftest.py
-    # assert clean_connector.db_path.endswith("temp_test_db.db") 
-    # assert clean_connector.schema_path.endswith("schema_v1.sql")
 
 def test_dbconnector_connect_and_close(clean_connector, db_path_temp):
     """Tests connection establishment and proper closure."""
@@ -56,10 +53,6 @@ def test_dbconnector_connect_and_close(clean_connector, db_path_temp):
     success = clean_connector.connect() # The updated connect now raises DatabaseError on failure
     assert success is True
     assert isinstance(clean_connector.conn, sqlite3.Connection)
-    
-    # Check that the database file was created (if not using :memory:)
-    # If using db_path_temp (which is a file path), it should exist now.
-    # assert os.path.exists(db_path_temp) # NOTE: depends on conftest's clean_connector and db_path_temp
 
     # 2. Check PRAGMAs (e.g., Row Factory)
     cursor = clean_connector.conn.execute("SELECT 1 AS value")
@@ -75,7 +68,7 @@ def test_initialize_schema(initialized_connector):
     """Tests that the schema is loaded and a table exists."""
     # The initialized_connector fixture already runs connect() and initialize_schema()
     
-    # Verify a known table from schema_v1.sql exists and is empty
+    # Verify a known table from the schema exists and is empty
     sql = "SELECT COUNT(*) FROM Chapters"
     result = initialized_connector._execute_query(sql, fetch_one=True)
     
