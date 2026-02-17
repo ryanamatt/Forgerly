@@ -102,7 +102,6 @@ class RelationshipEditor(QWidget):
             self.toolbar.addAction(action)
             return action
 
-
         self.grid_action = add_btn("Show Grid", "grid.svg", self.view.toggle_grid, True)
         self.snap_action = add_btn("Snap to Grid", "snap-grid.svg", self.view.toggle_snap, True)
         self.layout_action = add_btn("Auto Layout", "auto-layout.svg", self.apply_auto_layout)
@@ -590,6 +589,25 @@ class RelationshipEditor(QWidget):
                         edge.setVisible(should_be_visible)
                     else:
                         edge.setVisible(False)
+
+    @receiver(Events.REL_CHAR_CLICKED_ON)
+    def _handle_char_click_to_zoom(self, data: dict) -> None:
+        """
+        Handles when a char on the outline is clicked shifting the view to the char and zooming in
+        on the character.
+        
+        :param data: The data dict containing ID of the character node {'ID': str}
+        :type data: dict
+        :rtype: None
+        """
+        id = data.get('ID')
+        if not id: return
+
+        for node_id, node in self.nodes.items():
+            if id == node_id:
+                pos = node.pos()
+                self.view.scale(1.5, 1.5)
+                self.view.centerOn(pos.x(), pos.y())
 
     # --- Toolbar Connection Functions ---
 

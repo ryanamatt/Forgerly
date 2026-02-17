@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QPushButton, QMenu, QMessageBox, QDialog, QLabel, QTabWidget, QFrame
 )
 from PySide6.QtCore import Qt, QPoint
-from PySide6.QtGui import QColor, QIcon
+from PySide6.QtGui import QIcon
 
 from ...resources_rc import *
 from ..dialogs.relationship_type_editor_dialog import RelationshipTypeEditorDialog
@@ -102,6 +102,7 @@ class RelationshipOutlineManager(QWidget):
         # Char List Widget
         self.char_list_widget.customContextMenuRequested.connect(self._show_char_context_menu)
         self.char_list_widget.itemDoubleClicked.connect(self._call_char_editor_details)
+        self.char_list_widget.itemClicked.connect(self._handle_char_click)
         
     @receiver(Events.OUTLINE_DATA_LOADED)
     @receiver(Events.REL_CHAR_DATA_RETURN)
@@ -541,3 +542,14 @@ class RelationshipOutlineManager(QWidget):
             bus.publish(Events.REL_CHAR_DATA_REQUESTED, data={'entity_type': EntityType.RELATIONSHIP})
             bus.publish(Events.GRAPH_LOAD_REQUESTED)
             bus.publish(Events.REL_CHAR_DATA_REQUESTED)
+
+    def _handle_char_click(self, item: QListWidgetItem) -> None:
+        """
+        Handles the click on a specific character.
+        
+        :param item: The item clicked on.
+        :type item: QListWidgetItem
+        :rtype: None
+        """
+        # print('click', item.data(Qt.ItemDataRole.UserRole + 1))
+        bus.publish(Events.REL_CHAR_CLICKED_ON, data={'ID': item.data(Qt.ItemDataRole.UserRole + 1)})
