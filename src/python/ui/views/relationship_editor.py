@@ -4,8 +4,8 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QGraphicsView, QGraphicsScene, QGraphicsLineItem, QMessageBox, 
     QFrame, QDialog, QToolBar, QSlider, QLabel, QHBoxLayout
 )
-from PySide6.QtCore import Qt, QLineF, QPointF
-from PySide6.QtGui import QPen, QAction, QIcon
+from PySide6.QtCore import Qt, QLineF, QPointF, QEvent
+from PySide6.QtGui import QPen, QAction, QIcon, QKeyEvent
 from typing import Any
 import math
 
@@ -765,3 +765,15 @@ class RelationshipEditor(QWidget):
         :rtype: None
         """
         pass
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        """
+        Docstring for keyPressEvent
+        
+        :param self: Description
+        :param event: Description
+        :type event: QKeyEvent
+        """
+        if event.key() == Qt.Key.Key_Escape:
+            if self.selected_node_a:
+                self.clear_selection()
