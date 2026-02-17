@@ -8,7 +8,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # DATA_DIR and DB_PATH constants are removed
-SCHEMA_PATH = PROJECT_ROOT / 'src' / 'sql' / 'schema_v1.sql'
+SCHEMA_PATH = PROJECT_ROOT / 'src' / 'sql' / 'schema_v2.sql'
 
 def run_db_reset(db_path: Path) -> bool:
     """
@@ -36,7 +36,7 @@ def run_db_reset(db_path: Path) -> bool:
     # --- Step 2: Read SQL Schema ---
     if not SCHEMA_PATH.exists():
         print(f"❌ ERROR: Schema file not found at {SCHEMA_PATH}")
-        print("Please ensure 'schema_v1.sql' is in the 'sql/' directory.")
+        print("Please ensure 'schema_v2.sql' is in the 'sql/' directory.")
         return False
         
     try:
@@ -61,7 +61,7 @@ def run_db_reset(db_path: Path) -> bool:
         
     except sqlite3.Error as e:
         print(f"❌ ERROR: SQLite error during schema execution: {e}")
-        print("Review your 'schema_v1.sql' for syntax errors.")
+        print("Review your 'schema_v2.sql' for syntax errors.")
         return False
         
     finally:

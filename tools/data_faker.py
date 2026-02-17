@@ -171,7 +171,7 @@ def run_data_faker():
         sys.exit(0)
 
     # --- Use Dynamic Path for DBConnector ---
-    db_connector = DBConnector(db_path=str(dynamic_db_path), schema_path=os.path.join('src', 'sql', 'schema_v1.sql'))
+    db_connector = DBConnector(db_path=str(dynamic_db_path), schema_path=os.path.join('src', 'sql', 'schema_v2.sql'))
     
     if not db_connector.connect():
         print("❌ ERROR: Could not connect to the database. Ensure the database has been reset first.")

@@ -1,6 +1,6 @@
 ﻿# Database Schema Diagram
 
-*Generated automatically from src/sql/schema_v1.sql*
+*Generated automatically from src/sql/schema_v2.sql*
 
 ```mermaid
 classDiagram
@@ -43,6 +43,15 @@ classDiagram
         TEXT Content
         INTEGER Parent_Note_ID
         INTEGER Sort_Order
+    }
+    class Snapshots {
+        INTEGER ID
+        DATETIME Timestamp
+        TEXT Label
+        TEXT Entity_Type
+        INTEGER Entity_ID
+        TEXT Content_Delta
+        TEXT Author_Comment
     }
     class Tags {
         INTEGER ID

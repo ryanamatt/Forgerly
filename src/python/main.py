@@ -8,6 +8,7 @@ from .db_connector import DBConnector
 from .main_window import MainWindow
 from .start_menu_window import StartMenuWindow
 
+from .utils.migrator import SchemaMigrator
 from .utils.resource_path import get_resource_path
 from .utils.logger import setup_logger, get_logger
 from .utils.exceptions import ConfigurationError
@@ -124,7 +125,7 @@ class ApplicationFlowManager:
         project_title = project_config.get('project_name')
         
         # --- DBConnector Logic Initialization---
-        schema_path = get_resource_path(os.path.join('src', 'sql', 'schema_v1.sql'))
+        schema_path = get_resource_path(os.path.join('src', 'sql', 'schema_v2.sql'))
         
         self.db_connector = DBConnector(
             db_path=project_config['db_file_path'],
@@ -133,6 +134,10 @@ class ApplicationFlowManager:
         try:
             if self.db_connector.connect():
                 self.db_connector.initialize_schema() 
+
+                migrator = SchemaMigrator(self.db_connector, project_settings_file)
+                migrator.upgrade()
+
                 logger.info(f"Project database setup verified for: {project_title}.db.")
             else:
                 raise ConfigurationError(f"Database connection failed for project: {project_title}")

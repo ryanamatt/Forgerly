@@ -7,8 +7,6 @@
 
     - [ ] Expanded Format Library: Add support for .docx, .rtf, .odt, and .mobi.
 
-    - [ ] Data Interchange: Implement .csv export for Character and Location lists.
-
     - [ ] C++ Tokenizer Engine: Develop a C++ parser to convert rich text into a neutral intermediate format, enabling fast translation between document syntaxes (Markdown to LaTeX, etc.).
 
     - [ ] Full Project Export: Allow "Bundle" exports that include Chapters, Notes, Lore, and Locations in a single formatted directory or file.

@@ -33,7 +33,7 @@ class DBConnector:
         
         # If no path is provided, use the resolved default path
         if schema_path is None:
-            default_rel_path = os.path.join('src', 'sql', 'schema_v1.sql')
+            default_rel_path = os.path.join('src', 'sql', 'schema_v2.sql')
             self.schema_path = get_resource_path(default_rel_path)
         else:
             self.schema_path = schema_path

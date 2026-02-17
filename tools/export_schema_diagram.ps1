@@ -1,8 +1,8 @@
 <# export_schema_diagram.ps1 #>
-# Parses schema_v1.sql and generates a Mermaid.js ER/Class diagram string.
+# Parses schema_v2.sql and generates a Mermaid.js ER/Class diagram string.
 # The output can be pasted into any Markdown file (like SCHEMA.md) inside a ```mermaid block.
 
-$SchemaPath = Join-Path $PSScriptRoot "..\src\sql\schema_v1.sql"
+$SchemaPath = Join-Path $PSScriptRoot "..\src\sql\schema_v2.sql"
 $OutputPath = Join-Path $PSScriptRoot "..\docs\development\architecture\database_diagram.md"
 
 if (-not (Test-Path $SchemaPath)) {
@@ -77,7 +77,7 @@ foreach ($Table in $Tables) {
 $FinalDoc = @"
 # Database Schema Diagram
 
-*Generated automatically from src/sql/schema_v1.sql*
+*Generated automatically from src/sql/schema_v2.sql*
 
 ``````mermaid
 $($Mermaid -join "`n")
