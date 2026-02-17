@@ -75,9 +75,7 @@ class SchemaMigrator:
         
         try:
             self.db._execute_transaction([(create_snapshots_table, None)])
-            print("Successfully migrated to schema 0.5.0: Added Snapshots table.")
         except Exception as e:
-            print(f"Error during migration to 0.5.0: {e}")
             raise
 
     def _update_config_version(self, new_version: str) -> None:

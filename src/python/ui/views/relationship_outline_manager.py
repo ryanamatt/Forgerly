@@ -551,5 +551,4 @@ class RelationshipOutlineManager(QWidget):
         :type item: QListWidgetItem
         :rtype: None
         """
-        # print('click', item.data(Qt.ItemDataRole.UserRole + 1))
         bus.publish(Events.REL_CHAR_CLICKED_ON, data={'ID': item.data(Qt.ItemDataRole.UserRole + 1)})

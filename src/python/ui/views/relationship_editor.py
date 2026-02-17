@@ -768,12 +768,14 @@ class RelationshipEditor(QWidget):
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         """
-        Docstring for keyPressEvent
+        Handles when a key is pressed.
         
-        :param self: Description
-        :param event: Description
+        :param event: The key presset event that occured.
         :type event: QKeyEvent
+        :rtype: None
         """
         if event.key() == Qt.Key.Key_Escape:
             if self.selected_node_a:
                 self.clear_selection()
+
+        super().keyPressEvent(event)
