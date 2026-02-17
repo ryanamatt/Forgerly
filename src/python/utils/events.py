@@ -83,6 +83,7 @@ class Events(str, Enum):
     REL_CHAR_DETAILS_REQUESTED = "graph.rel_char_details_requested"
     REL_CHAR_DETAILS_RETURN = "graph.rel_char_details_return"
     REL_CHAR_DETAILS_SAVE = "graph.rel_char_details_save"
+    REL_CHAR_CLICKED_ON = "graph.rel_char_clicked_on"
 
     REL_CREATE_REQUESTED = "graph.rel_create"
     REL_UPDATE_REQUESTED = "graph.rel_update"
