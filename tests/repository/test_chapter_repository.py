@@ -45,19 +45,21 @@ def test_update_chapter_title(chapter_repo: ChapterRepository):
 def test_create_and_update_content(chapter_repo: ChapterRepository):
     """Tests creating a chapter and updating its text content."""
     chapter_id = chapter_repo.create_chapter("Draft Chapter", 2)
+    new_title = 'New Title'
     new_content = "<p>This is the rich text of the new chapter.</p>"
     
     # 1. Test initial content (should be "<p></p>" as set in create_chapter)
-    initial_content = chapter_repo.get_chapter_content(chapter_id)
-    assert initial_content == "<p></p>"
+    initial_data = chapter_repo.get_chapter_details(chapter_id)
+    assert initial_data.get('Text_Content') == "<p></p>"
     
     # 2. Update content
-    success = chapter_repo.update_chapter_content(chapter_id, new_content)
+    success = chapter_repo.update_chapter_content(chapter_id, new_title, new_content)
     assert success is True
     
     # 3. Test retrieved content
-    retrieved_content = chapter_repo.get_chapter_content(chapter_id)
-    assert retrieved_content == new_content
+    retrieved_data = chapter_repo.get_chapter_details(chapter_id)
+    assert retrieved_data.get('Title') == new_title
+    assert retrieved_data.get('Text_Content') == new_content
 
 def test_get_all_chapters_ordering_and_fields(chapter_repo: ChapterRepository):
     """Tests retrieval of all chapters (basic info) and correct ordering."""
