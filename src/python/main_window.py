@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt, QTimer, QTimer, QThread, Signal
 from PySide6.QtGui import QCloseEvent, QResizeEvent, QIcon
 import sys
 import ctypes
+import requests
 from typing import Any
 
 from .db_connector import DBConnector
@@ -41,14 +42,30 @@ class UpdateCheckThread(QThread):
     """
     update_checked = Signal(bool, object)  # (update_available, release_info)
     
-    def __init__(self, owner: str, repo: str, current_version: str, parent=None):
+    def __init__(self, owner: str, repo: str, current_version: str, parent=None) -> None:
+        """
+        Initailizes the UpdateCheckThread.
+        
+        :param owner: The username of the owner of the repo.
+        :type owner: str
+        :param repo: The github repo.
+        :type repo: str
+        :param current_version: The current version Ex. 0.5.0
+        :type current_version: str
+        :param parent: The Parent Widget
+        :rtype: None
+        """
         super().__init__(parent)
         self.owner = owner
         self.repo = repo
         self.current_version = current_version
     
-    def run(self):
-        """Runs the update check in a background thread."""
+    def run(self) -> None:
+        """
+        Runs the update check in a background thread.
+        
+        :rtype: None
+        """
         checker = UpdateChecker(self.owner, self.repo, self.current_version)
         update_available, release_info = checker.check_for_updates()
         self.update_checked.emit(update_available, release_info)
@@ -569,8 +586,8 @@ class MainWindow(QMainWindow):
         
         # Create and start the update check thread
         self.update_thread = UpdateCheckThread(
-            owner="YourGitHubUsername",  # TODO: Replace with your GitHub username
-            repo="Forgerly",              # TODO: Replace with your repo name if different
+            owner="ryanamatt",
+            repo="Forgerly",
             current_version=__version__,
             parent=self
         )

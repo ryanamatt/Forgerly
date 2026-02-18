@@ -73,7 +73,7 @@ class UpdateChecker:
             if not latest_version:
                 logger.warning("Could not extract version from GitHub release tag.")
                 return False, None
-            
+                        
             logger.info(f"Latest version on GitHub: {latest_version}, Current version: {self.current_version}")
             
             # Compare versions
