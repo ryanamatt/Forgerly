@@ -52,9 +52,9 @@ class ChapterRepository:
             logger.error("Failed to retrieve all basic chapters.", exc_info=True)
             raise e
     
-    def get_chapter_content(self, chapter_id: int) -> str | None:
+    def get_chapter_details(self, chapter_id: int) -> dict | None:
         """
-        Retrieves the rich text content for a specific chapter ID
+        Retrieves the rich text content for a specific chapter ID as well as its name
         
         Gathers only the text content of a chapter.
 
@@ -64,12 +64,11 @@ class ChapterRepository:
         :returns: Returns a str of the text content if successful, otherwise None
         :rtype: str or None
         """
-        query = "SELECT Text_Content FROM Chapters WHERE ID = ?;"
+        query = "SELECT Title, Text_Content FROM Chapters WHERE ID = ?;"
         try:
             result = self.db._execute_query(query, (chapter_id,), fetch_one=True)
-            content = result['Text_Content'] if result else None
-            logger.debug(f"Retrieved content for chapter ID: {chapter_id}. Found: {content is not None}")
-            return content
+            logger.debug(f"Retrieved content for chapter ID: {chapter_id}.")
+            return result
         except DatabaseError as e:
             logger.error(f"Failed to retrieve content for chapter ID: {chapter_id}.", exc_info=True)
             raise e
@@ -226,21 +225,23 @@ class ChapterRepository:
             logger.error(f"Failed to create new chapter with title: '{title}'.", exc_info=True)
             raise e
     
-    def update_chapter_content(self, chapter_id: int, content: str) -> bool:
+    def update_chapter_content(self, chapter_id: int, title: str, content: str) -> bool:
         """
         Updates the rich text content for a chapter given the Chapter ID.
         
         :param chapter_id: The chapted ID to updaes its content.
         :type chapted_id: int
+        :param title: The title of the chapter.
+        :type title: str
         :param content: The new content to set as Chapter's content.
         :type content: str
 
         :returns: True if successfully set update content otherwise False
         :rtype: bool
         """
-        query = "UPDATE Chapters SET Text_Content = ? WHERE ID = ?;"
+        query = "UPDATE Chapters SET Title = ?, Text_Content = ? WHERE ID = ?;"
         try:
-            success = self.db._execute_commit(query, (content, chapter_id))
+            success = self.db._execute_commit(query, (title, content, chapter_id))
             if success:
                 logger.info(f"Content updated for chapter ID: {chapter_id}.")
             return success
