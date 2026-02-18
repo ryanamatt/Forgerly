@@ -66,7 +66,7 @@ class BaseEditor(QWidget):
         """
         return self.text_editor.is_dirty() or self.tag_manager.is_dirty() or self._dirty
     
-    def set_dirty(self) -> None:
+    def _set_dirty(self) -> None:
         """
         Sets the text_editor and tag_manager to be dirty.
         """

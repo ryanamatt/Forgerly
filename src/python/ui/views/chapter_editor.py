@@ -1,14 +1,13 @@
 # src/python/ui/chapter_editor.py
 
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QGroupBox, QSplitter, QHBoxLayout, QTextEdit,
-    QDialog, QSizePolicy, QLabel
+    QWidget, QVBoxLayout, QLabel, QGroupBox, QSplitter, QHBoxLayout,
+    QLineEdit, QLabel
 )
 from PySide6.QtCore import Qt
 
 from .base_editor import BaseEditor
 from ...ui.widgets.rich_text_editor import RichTextEditor
-from ...ui.dialogs.lookup_dialog import LookupDialog
 from ...utils.text_stats import calculate_word_count, calculate_character_count, calculate_read_time
 from ...utils.constants import EntityType
 from ...utils.events import Events
@@ -31,6 +30,9 @@ class ChapterEditor(BaseEditor):
     :ivar rich_text_editor: The rich text editor component.
     :vartype rich_text_editor: RichTextEditor
     """
+
+    current_chapter_id: int | None = None
+    """The database ID of the Lore Entry currently loaded in the editor, or :py:obj:`None`."""
     
     def __init__(self, current_settings: dict, parent=None) -> None:
         """
@@ -67,15 +69,23 @@ class ChapterEditor(BaseEditor):
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
 
-        # 1. Tagging Group Box
+        # Title of Chapter Box
+        title_group = QWidget()
+        title_layout = QHBoxLayout(title_group)
+        self.title_input = QLineEdit()
+        self.title_input.setPlaceholderText("Enter Chapter Title (e.g., 'Chapter 1: The Sunset)")
+        title_label = QLabel("Title:")
+        
+        title_layout.addWidget(title_label)
+        title_layout.addWidget(self.title_input)
+
+        # Tagging Group Box
         tag_group = QGroupBox("Chapter Tags (Genres, Themes, POVs)")
         tag_group.setAlignment(Qt.AlignmentFlag.AlignCenter)
         tag_layout = QVBoxLayout(tag_group)
         tag_layout.setContentsMargins(10, 20, 10, 10)
         tag_layout.addWidget(self.tag_manager)
-        
-        # 2. Editor and Stats (Modified Layout)
-        
+                
         # Statistics Bar at the bottom of everything but on top of RichTextEditor
         self.stats_bar = QWidget()
         stats_layout = QHBoxLayout(self.stats_bar)
@@ -95,14 +105,18 @@ class ChapterEditor(BaseEditor):
         editor_vbox.addWidget(self.text_editor)
         
         editor_splitter = QSplitter(Qt.Orientation.Vertical)
+        editor_splitter.addWidget(title_group)
         editor_splitter.addWidget(tag_group) # Use the new group containing stats bar
         editor_splitter.addWidget(editor_group)
-        editor_splitter.setSizes([100, 900]) 
+        editor_splitter.setSizes([100, 100, 800]) 
 
         # Add the splitter to the main layout
         main_layout.addWidget(editor_splitter)
 
         self.setEnabled(False)
+
+        self.title_input.textChanged.connect(self._set_dirty)
+        self.title_input.editingFinished.connect(self._emit_title_change)
 
     @receiver(Events.CONTENT_CHANGED)
     @receiver(Events.SELECTION_CHANGED)
@@ -216,6 +230,8 @@ class ChapterEditor(BaseEditor):
         :rtype: dict
         """
         return {
+            'ID': self.current_chapter_id,
+            'title': self.title_input.text(),
             'content': self.text_editor.get_html_content(),
             'tags': self.tag_manager.get_tags()
         }
@@ -254,9 +270,88 @@ class ChapterEditor(BaseEditor):
         """
         if data.get('entity_type') != EntityType.CHAPTER:
             return
+        
+        self.current_chapter_id = data.get('ID')
+        if not self.current_chapter_id:
+            return
 
-        self.text_editor.set_html_content(data['content'])
-        self.tag_manager.set_tags(data['tags'])
+        self.title_input.setText((data.get('title')))
+        self.tag_manager.set_tags(data.get('tags'))
+        self.text_editor.set_html_content(data.get('content'))
 
         self.mark_saved()
         self.set_enabled(True)
+
+    def is_dirty(self) -> bool:
+        """
+        Returns the dirty flag to see if the editor is dirty.
+        
+        :returns: True if changes are detected, False otherwise.
+        :rtype: bool
+        """
+        return self._dirty or super().is_dirty()
+    
+    def _set_dirty(self) -> None:
+        """
+        Sets the dirty flag to be True.
+        
+        :rtype: None
+        """
+        if not self.current_chapter_id:
+            return False
+        
+        self._dirty = True
+
+    @receiver(Events.MARK_SAVED)
+    def mark_saved_connection(self, data: dict) -> None:
+        """
+        A connection for the mark saved Event.
+        
+        :param data: Data dictionary, Empty as function doesn't need it.
+        :type data: dict
+
+        :rtype: None
+        """
+        if data.get('entity_type') != EntityType.CHAPTER:
+            return
+        
+        self.mark_saved()
+
+    def mark_saved(self) -> None:
+        """
+        Marks all nested components as clean.
+        
+        :rtype: None
+        """
+        # # self.text_editor and self.tag_manager
+        super().mark_saved()
+
+        self._dirty = False
+        
+        
+    def set_enabled(self, enabled: bool) -> None:
+        """
+        Enables/disables the entire editor panel.
+        
+        :param enabled: True if want to enable editor panel, otherwise False
+        :type enabled: bool
+        
+        :rtype: None
+        """
+        # self.text_editor and self.tag_manager
+        super().set_enabled(enabled)
+
+        self.title_input.setEnabled(enabled)
+
+    def _emit_title_change(self) -> None:
+        """
+        Emits the signal to update the outline after the user finishes editing the title.
+        
+        :rtype: None
+        """
+        if self.current_chapter_id is not None:
+            bus.publish(Events.OUTLINE_NAME_CHANGE, data={
+                'entity_type': EntityType.CHAPTER,
+                'ID': self.current_chapter_id,
+                'new_title': self.title_input.text().strip(),
+            })

@@ -150,7 +150,7 @@ class AppCoordinator(QObject):
         :rtype: None
         """
         id = data.get('ID')
-        parent = data.pop('parent', None)
+        parent = data.pop('parent', self)
 
         if id == -1 or not parent:
             return True # No item loaded
@@ -331,6 +331,7 @@ class AppCoordinator(QObject):
     # --- Load Content Logic (Called by Outline Managers) ---
 
     @receiver(Events.OUTLINE_LOAD_REQUESTED)
+    @receiver(Events.MARK_SAVED)
     def load_outline(self, data: dict) -> None:
         """
         Calls the correct repository and publishes an event with
@@ -417,12 +418,12 @@ class AppCoordinator(QObject):
         return_data = {'entity_type': entity_type}
 
         if entity_type == EntityType.CHAPTER:
-            content = self.chapter_repo.get_chapter_content(chapter_id=item_id)
-            if content is None: content = ""
+            chap_data: dict = self.chapter_repo.get_chapter_details(chapter_id=item_id)
             tags_data = self.tag_repo.get_tags_for_chapter(chapter_id=item_id)
             tag_names = [name for _, name in tags_data] if tags_data else []
             return_data['ID'] = item_id
-            return_data['content'] = content
+            return_data['title'] = chap_data.get('Title', '')
+            return_data['content'] = chap_data.get('Text_Content', '')
             return_data['tags'] = tag_names
 
         elif entity_type == EntityType.LORE:
