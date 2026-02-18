@@ -107,48 +107,6 @@ class LoreEditor(BaseEditor):
         self.set_enabled(False)
         self.mark_saved()
 
-    def load_lore(self, lore_id: int, title: str, category: str, content: str, tag_names: list[str]) -> None:
-        """
-        Loads Lore Entry data into the editor fields.
-        
-        This method updates the Title, Category, and Content fields, and 
-        calls :py:meth:`.mark_saved` to reset the dirty state. 
-        
-        :param lore_id: The ID of the Lore Entry
-        :type lore_id: int
-        :param title: The title of the Lore Entry
-        :type title: str
-        :param category: The category of the Lore Entry
-        :type category: str
-        :param content: The content of the Lore Entry
-        :type content: str
-        :param tag_names: A list of the names of all tags applied to the Lore Entry
-        :type tag_names: list[str]
-
-        :rtype: None
-        """
-        self.set_enabled(False)
-        self.current_lore_id = lore_id
-
-        self.title_input.setText(title)
-        
-        # Handle Category: Add if it doesn't exist, then set current index
-        index = self.category_combo.findText(category)
-        if index == -1:
-            self.category_combo.insertItem(0, category)
-            self.category_combo.setCurrentIndex(0)
-        else:
-            self.category_combo.setCurrentIndex(index)
-            
-        self.text_editor.set_html_content(content)
-        self.tag_manager.set_tags(tag_names)
-        
-        # Store initial state for dirtiness check
-        self._initial_title = title
-        self._initial_category = category
-        self.mark_saved()
-        self.set_enabled(True)
-
     @receiver(Events.LORE_CATEGORIES_CHANGED)
     def set_available_categories(self, data: dict) -> None:
         """
@@ -168,22 +126,6 @@ class LoreEditor(BaseEditor):
         self.category_combo.addItems(categories)
         self.category_combo.setCurrentText(current_text)
         self.category_combo.blockSignals(False)
-
-    def get_data(self) -> dict[str, Any]:
-        """
-        Returns the current state of all editable fields for MainWindow to save.
-
-        This method returns the data in the edittor fields as a dictionary.
-        
-        :rtype dict[str, Any]
-        """
-        return {
-            'id': self.current_lore_id,
-            'title': self.title_input.text().strip(),
-            'category': self.category_combo.currentText().strip(),
-            'content': self.text_editor.get_html_content(),
-            'tags': self.tag_manager.get_tags()
-        }
         
     def is_dirty(self) -> bool:
         """

@@ -24,14 +24,6 @@ class CharacterEditor(BaseEditor):
     with repositories directly.
     """
 
-    # State tracking for unsaved changes
-    _initial_name: str = ""
-    _initial_status: str = ""
-    _initial_age: int = -1
-    _initial_dob: str = ""
-    _initial_occupation: str = ""
-    _initial_physical: str = ""
-
     current_char_id: int | None = None
     """The database ID of the character currently loaded in the editor, or :py:obj:`None`."""
 
@@ -54,7 +46,7 @@ class CharacterEditor(BaseEditor):
 
         is_spell_checking = current_settings.get('is_spell_checking')
 
-        # --- 1. Sub-components ---
+        # --- Sub-components ---
         self.description_editor = BasicTextEditor(is_spell_checking)
         self.text_editor = BasicTextEditor(is_spell_checking)  # Moved up for clarity
         self.name_input = QLineEdit()
@@ -68,7 +60,7 @@ class CharacterEditor(BaseEditor):
         self.dob_input = QLineEdit()
         self.occupation_input = QLineEdit()
 
-        # --- 2. Layout Setup ---
+        # --- Layout Setup ---
         
         # Header Group (Name & Status)
         header_group = QWidget()
@@ -90,8 +82,6 @@ class CharacterEditor(BaseEditor):
         details_layout.addWidget(self.dob_input)
         details_layout.addWidget(QLabel("Occupation:"))
         details_layout.addWidget(self.occupation_input)
-
-        # --- SIDE-BY-SIDE EDITORS (The Change) ---
         
         # Bottom Container
         editors_container = QWidget()
@@ -115,7 +105,7 @@ class CharacterEditor(BaseEditor):
         editors_layout.addWidget(description_group, 1) # Equal stretch
         editors_layout.addWidget(physical_group, 1)    # Equal stretch
 
-        # --- 3. Overall Layout (Vertical) ---
+        # --- Overall Layout (Vertical) ---
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
@@ -134,75 +124,6 @@ class CharacterEditor(BaseEditor):
         self.name_input.editingFinished.connect(self._emit_name_change)
         
         self.setEnabled(False)
-
-    # =========================================================================
-    # PUBLIC INTERFACE (Data/State Management)
-    # =========================================================================
-
-    def load_character(self, char_id: int, name: str, description: str, status: str,
-                       age: int, dob: str, occupation: str, physical: str) -> None:
-        """
-        Loads character data into the editor fields.
-        
-        This method updates the name, status, and description fields, and 
-        calls :py:meth:`.mark_saved` to reset the dirty state. This method
-        also fills the tag fields.
-        
-        :param name: The title of the new character.
-        :type name: str
-        :param description: The description of the character
-        :type status: str
-        :param status: The status of the character (Dead, Alive, etc.)
-        :param age: The age of the character.
-        :type age: int
-        :param dob: The characters date of birth.
-        :type dob: str
-        :param occupation: The characters Occupation/Schooling
-        :type occupation: str
-        :param physical: The characters physical description.
-        :type physical: str
-        
-        :rtype: None
-        """
-        self.current_char_id = char_id
-        
-        self.name_input.setText(name)
-        
-        # Temporarily block signals to prevent triggering _set_dirty when setting new text
-        self.status_combo.blockSignals(True)
-        # Find the status string in the combo box, fall back to 'Unknown' if not found
-        index = self.status_combo.findText(status, Qt.MatchFlag.MatchExactly)
-        if index == -1:
-            index = self.status_combo.findText("Unknown", Qt.MatchFlag.MatchExactly)
-        self.status_combo.setCurrentIndex(index)
-        self.status_combo.blockSignals(False)
-
-        self.description_editor.set_html_content(description)
-        self.age_spin.setValue(age)
-        self.dob_input.setText(dob)
-        self.occupation_input.setText(occupation)
-        self.text_editor.set_html_content(physical)
-        
-        self.mark_saved()
-        self.setEnabled(True)
-
-    def get_data(self) -> dict[str, Any]:
-        """
-        Returns the current state of all editable fields for MainWindow to save.
-
-        This method returns the data in the edittor fields as a dictionary.
-        
-        :rtype dict[str, Any]
-        """
-        return {
-            'name': self.get_name(),
-            'status': self.get_status(),
-            'description': self.get_description_content(),
-            'age': self.age_spin.value(),
-            'date_of_birth': self.dob_input.text().strip(),
-            'occupation_school': self.occupation_input.text().strip(),
-            'physical_description': self.text_editor.get_html_content()
-        }
     
     def is_dirty(self) -> bool:
         """
@@ -282,35 +203,6 @@ class CharacterEditor(BaseEditor):
         self.dob_input.setEnabled(enabled)
         self.occupation_input.setEnabled(enabled)
         self.description_editor.setEnabled(enabled)
-        
-    # --- Data Retrieval Methods ---
-    
-    def get_name(self) -> str:
-        """
-        Returns the current character name from the input field.
-        
-        :returns: The character's name, trimmed of whitespace.
-        :rtype: str
-        """
-        return self.name_input.text().strip()
-    
-    def get_status(self) -> str:
-        """
-        Returns the current character status from the combo box.
-        
-        :returns: The selected character status.
-        :rtype: str
-        """
-        return self.status_combo.currentText().strip()
-
-    def get_description_content(self) -> str:
-        """
-        Returns the rich text description content as HTML string.
-        
-        :returns: The description content in HTML format.
-        :rtype: str
-        """
-        return self.description_editor.get_html_content()
 
     def _emit_name_change(self) -> None:
         """
