@@ -1,6 +1,8 @@
 # src/python/ui/note_editor.py
 
-from PySide6.QtWidgets import QVBoxLayout, QGroupBox, QSplitter
+from PySide6.QtWidgets import (
+    QVBoxLayout, QGroupBox, QSplitter, QLineEdit, QWidget, QHBoxLayout, QLabel
+)
 from PySide6.QtCore import Qt
 
 from .base_editor import BaseEditor
@@ -24,6 +26,9 @@ class NoteEditor(BaseEditor):
     :ivar tag_manager: The tag management component.
     :vartype tag_manager: TagManagerWidget
     """
+
+    current_note_id: int | None = None
+    """The database ID of the Note currently loaded in the editor, int or None."""
     
     def __init__(self, current_settings, parent=None) -> None:
         """
@@ -49,22 +54,36 @@ class NoteEditor(BaseEditor):
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
 
-        # 1. Tagging Group Box
+        # Title group
+        title_group = QWidget()
+        title_layout = QHBoxLayout(title_group)
+        self.title_input = QLineEdit()
+        self.title_input.setPlaceholderText("Enter Note Title (e.g., 'Outline, Story Idea)")
+        title_label = QLabel("Title:")
+        
+        title_layout.addWidget(title_label)
+        title_layout.addWidget(self.title_input)
+
+        # Tagging Group Box
         tag_group = QGroupBox("Note Tags (Genres, Themes, POVs)")
         tag_group.setAlignment(Qt.AlignmentFlag.AlignCenter)
         tag_layout = QVBoxLayout(tag_group)
         tag_layout.setContentsMargins(10, 20, 10, 10)
         tag_layout.addWidget(self.tag_manager)
 
+        # Splitter
         editor_splitter = QSplitter(Qt.Orientation.Vertical)
-        editor_splitter.addWidget(tag_group) # Use the new group containing stats bar
+        editor_splitter.addWidget(title_group)
+        editor_splitter.addWidget(tag_group)
         editor_splitter.addWidget(self.text_editor)
-        editor_splitter.setSizes([100, 900]) 
+        editor_splitter.setSizes([100, 100, 800]) 
 
-        # Add the splitter to the main layout
         main_layout.addWidget(editor_splitter)
 
         self.setEnabled(False)
+
+        self.title_input.textChanged.connect(self._set_dirty)
+        self.title_input.editingFinished.connect(self._emit_title_change)
 
     @receiver(Events.MARK_SAVED)
     def mark_saved_connection(self, data: dict) -> None:
@@ -111,6 +130,8 @@ class NoteEditor(BaseEditor):
         :rtype: dict
         """
         return {
+            'ID': self.current_note_id,
+            'title': self.title_input.text(),
             'content': self.text_editor.get_html_content(),
             'tags': self.tag_manager.get_tags()
         }
@@ -149,11 +170,61 @@ class NoteEditor(BaseEditor):
         """
         if data.get('entity_type') != EntityType.NOTE:
             return
+        
+        self.current_note_id = data.get('ID')
+        if not self.current_note_id:
+            return
 
-        content, tags = data['content'], data['tags']
-
-        self.text_editor.set_html_content(content)
-        self.tag_manager.set_tags(tags)
+        self.title_input.setText((data.get('title')))
+        self.tag_manager.set_tags(data.get('tags'))
+        self.text_editor.set_html_content(data.get('content'))
 
         self.mark_saved()
         self.set_enabled(True)
+
+    def is_dirty(self) -> bool:
+        """
+        Returns the dirty flag to see if the editor is dirty.
+        
+        :returns: True if changes are detected, False otherwise.
+        :rtype: bool
+        """
+        return self._dirty or super().is_dirty()
+    
+    def _set_dirty(self) -> None:
+        """
+        Sets the dirty flag to be True.
+        
+        :rtype: None
+        """
+        if not self.current_note_id:
+            return False
+        
+        self._dirty = True
+
+    def set_enabled(self, enabled: bool) -> None:
+        """
+        Enables/disables the entire editor panel.
+        
+        :param enabled: True if want to enable editor panel, otherwise False
+        :type enabled: bool
+        
+        :rtype: None
+        """
+        # self.text_editor and self.tag_manager
+        super().set_enabled(enabled)
+
+        self.title_input.setEnabled(enabled)
+
+    def _emit_title_change(self) -> None:
+        """
+        Emits the signal to update the outline after the user finishes editing the title.
+        
+        :rtype: None
+        """
+        if self.current_note_id is not None:
+            bus.publish(Events.OUTLINE_NAME_CHANGE, data={
+                'entity_type': EntityType.NOTE,
+                'ID': self.current_note_id,
+                'new_title': self.title_input.text().strip(),
+            })
