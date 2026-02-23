@@ -32,7 +32,7 @@ class ChapterEditor(BaseEditor):
     """
 
     current_chapter_id: int | None = None
-    """The database ID of the Lore Entry currently loaded in the editor, or :py:obj:`None`."""
+    """The database ID of the Chapter currently loaded in the editor, int or None."""
     
     def __init__(self, current_settings: dict, parent=None) -> None:
         """
@@ -301,21 +301,6 @@ class ChapterEditor(BaseEditor):
             return False
         
         self._dirty = True
-
-    @receiver(Events.MARK_SAVED)
-    def mark_saved_connection(self, data: dict) -> None:
-        """
-        A connection for the mark saved Event.
-        
-        :param data: Data dictionary, Empty as function doesn't need it.
-        :type data: dict
-
-        :rtype: None
-        """
-        if data.get('entity_type') != EntityType.CHAPTER:
-            return
-        
-        self.mark_saved()
 
     def mark_saved(self) -> None:
         """

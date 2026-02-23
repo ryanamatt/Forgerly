@@ -438,11 +438,12 @@ class AppCoordinator(QObject):
             return_data |= self.character_repo.get_character_details(char_id=item_id)
 
         elif entity_type == EntityType.NOTE:
-            content = self.note_repo.get_note_content(note_id=item_id)
+            note_data: dict = self.note_repo.get_note_details(note_id=item_id)
             tags_data = self.tag_repo.get_tags_for_note(item_id)
             tag_names = [name for _, name in tags_data] if tags_data else []
             return_data['ID'] = item_id
-            return_data['content'] = content
+            return_data['title'] = note_data.get('Title')
+            return_data['content'] = note_data.get('Content', '')
             return_data['tags'] = tag_names
 
         bus.publish(Events.DATA_LOADED, data=return_data)

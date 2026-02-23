@@ -51,9 +51,9 @@ class NoteRepository:
             logger.error("Failed to retrieve all basic notes.", exc_info=True)
             raise e
         
-    def get_note_content(self, note_id: int) -> str | None:
+    def get_note_details(self, note_id: int) -> str | None:
         """
-        Retrieves the content for a specific note ID
+        Retrieves the title and content for a specific note ID.
         
         Gathers only the content of a note.
 
@@ -63,12 +63,11 @@ class NoteRepository:
         :returns: Returns a str of the content if successful, otherwise None
         :rtype: str or None
         """
-        query = "SELECT Content FROM Notes WHERE ID = ?;"
+        query = "SELECT Title, Content FROM Notes WHERE ID = ?;"
         try:
             result = self.db._execute_query(query, (note_id,), fetch_one=True)
-            content = result['Content'] if result else None
-            logger.debug(f"Retrieved content for Note ID: {note_id}. Found: {content is not None}")
-            return content
+            logger.debug(f"Retrieved content for Note ID: {note_id}.")
+            return result
         except DatabaseError as e:
             logger.error(f"Failed to retrieve content for Note ID: {note_id}.", exc_info=True)
             raise e
