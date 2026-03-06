@@ -579,10 +579,7 @@ class MainWindow(QMainWindow):
         to prevent UI freezing.
         
         :rtype: None
-        """
-        # Get the skipped version from settings (if any)
-        skipped_version = self.current_settings.get('skipped_update_version', '')
-        
+        """        
         # Create and start the update check thread
         self.update_thread = UpdateCheckThread(
             owner="ryanamatt",
@@ -593,15 +590,14 @@ class MainWindow(QMainWindow):
         
         # Connect the signal to handle results
         self.update_thread.update_checked.connect(
-            lambda available, info: self._on_update_checked(available, info, skipped_version)
+            lambda available, info: self._on_update_checked(available, info)
         )
         
         # Start the background check
         self.update_thread.start()
         logger.debug("Update check thread started.")
 
-    def _on_update_checked(self, update_available: bool, release_info: dict, 
-                        skipped_version: str) -> None:
+    def _on_update_checked(self, update_available: bool, release_info: dict) -> None:
         """
         Handles the result of the update check.
         
@@ -609,8 +605,6 @@ class MainWindow(QMainWindow):
         :type update_available: bool
         :param release_info: Information about the latest release.
         :type release_info: dict
-        :param skipped_version: The version the user chose to skip (if any).
-        :type skipped_version: str
         :rtype: None
         """
         if not update_available or not release_info:
@@ -620,8 +614,8 @@ class MainWindow(QMainWindow):
         latest_version = release_info.get('version')
         
         # Don't show the dialog if the user previously skipped this version
-        if latest_version == skipped_version:
-            logger.info(f"Update v{latest_version} is available but was previously skipped by user.")
+        if not self.current_settings.get('check_for_updates', True):
+            logger.info(f"Update v{latest_version} is available but not checking for updates.")
             return
         
         # Show the update dialog
@@ -630,8 +624,7 @@ class MainWindow(QMainWindow):
         
         dialog_result = dialog.exec()
         
-        # Save the skipped version if the user chose to skip it
+        # # Save the skipped version if the user chose to skip it
         if dialog.should_skip_version():
-            self.current_settings['skipped_update_version'] = latest_version
-            self.settings_manager.save_setting('skipped_update_version', latest_version)
+            self.current_settings['check_for_updates'] = False
             logger.info(f"User chose to skip version {latest_version}")

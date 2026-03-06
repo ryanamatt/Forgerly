@@ -219,36 +219,8 @@ class SettingsDialog(QDialog):
         )
         update_layout.addWidget(self.update_check_checkbox)
         
-        # Show skipped version info
-        skipped_version = self.current_settings.get('skipped_update_version', '')
-        if skipped_version:
-            info_label = QLabel(f"Currently skipping version: v{skipped_version}")
-            info_label.setStyleSheet("color: #888; font-style: italic;")
-            update_layout.addWidget(info_label)
-            
-            # Reset button to clear skipped version
-            reset_button = QPushButton("Reset Skipped Versions")
-            reset_button.setMaximumWidth(200)
-            reset_button.clicked.connect(self._on_reset_skipped_version)
-            update_layout.addWidget(reset_button)
-        
         update_group.setLayout(update_layout)
         parent_layout.addWidget(update_group)
-
-    def _on_reset_skipped_version(self):
-        """
-        Clears the skipped version setting so the user will see all future updates.
-        
-        :rtype: None
-        """
-        self.current_settings['skipped_update_version'] = ''
-        QMessageBox.information(
-            self,
-            "Reset Complete",
-            "You will now be notified about all future updates."
-        )
-        # Refresh the dialog to hide the reset button
-        self.close()
 
     def _on_accept(self):
         """
