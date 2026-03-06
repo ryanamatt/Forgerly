@@ -1,12 +1,21 @@
 # src/python/ui/dialogs/update_dialog.py
 
+import os
+import sys
+import subprocess
+import zipfile
+import tempfile
+import platform
+import requests
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
-    QTextEdit, QCheckBox, QFrame
+    QCheckBox, QFrame
 )
-from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QDesktopServices, QFont
+from PySide6.QtGui import QFont
 from ...utils.logger import get_logger
+
+import markdown
+from PySide6.QtWidgets import QTextBrowser
 
 logger = get_logger(__name__)
 
@@ -86,11 +95,11 @@ class UpdateDialog(QDialog):
         layout.addWidget(notes_label)
         
         # Release notes text area
-        self.notes_text = QTextEdit()
+        self.notes_text = QTextBrowser()
         self.notes_text.setReadOnly(True)
-        self.notes_text.setPlainText(
-            self.release_info.get('body') or "No release notes available."
-        )
+        raw_markdown = self.release_info.get('body') or "No release notes available."
+        html_notes = markdown.markdown(raw_markdown)
+        self.notes_text.setHtml(html_notes)
         layout.addWidget(self.notes_text, 1)  # Stretch factor of 1
         
         # Checkbox to skip this version
@@ -136,15 +145,48 @@ class UpdateDialog(QDialog):
         """
         download_url = self.release_info.get('download_url') or self.release_info.get('url')
         
-        if download_url:
-            logger.info(f"Opening download URL: {download_url}")
-            print(download_url)
-            # QDesktopServices.openUrl(QUrl(download_url))
-        else:
+        if not download_url:
             logger.warning("No download URL available in release info.")
+            return
         
-        self.skip_this_version = self.skip_checkbox.isChecked()
-        self.accept()
+        try:
+            temp_dir = tempfile.mkdtemp()
+            zip_path = os.path.join(temp_dir, "update.zip")
+
+            response = requests.get(download_url)
+            with open(zip_path, 'wb') as f:
+                f.write(response.content)
+
+            stage_dir = os.path.join(temp_dir, "staged")
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(stage_dir)
+
+            # Trigger the swap
+            self.execute_swap_and_restart(stage_dir)
+            
+        except Exception as e:
+            logger.error(f"Update failed: {e}")
+            self.reject()
+
+    def execute_swap_and_restart(self, stage_dir: str):
+        app_dir = os.getcwd()  # Root of Forgerly
+        
+        if platform.system() == "Windows":
+            # We use a 'ping' trick to create a delay, then move files, then restart
+            # This runs in a hidden cmd window after Forgerly exits
+            cmd = (
+                f'timeout /t 2 /nobreak > NUL && '  # Wait for process to die
+                f'xcopy "{stage_dir}\\*" "{app_dir}" /s /e /y && ' # Overwrite
+                f'start "" "{sys.executable}" "{os.path.join(app_dir, "run_app.py")}"' # Restart
+            )
+            subprocess.Popen(cmd, shell=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
+        
+        else:
+            # Linux/macOS equivalent
+            cmd = f'sleep 2 && cp -rf "{stage_dir}/"* "{app_dir}" && python3 "{app_dir}/run_app.py" &'
+            subprocess.Popen(cmd, shell=True)
+
+        sys.exit(0)
     
     def _on_later_clicked(self) -> None:
         """

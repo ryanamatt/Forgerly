@@ -2,6 +2,7 @@
 
 import requests
 import platform
+import re
 from ..utils._version import __version__
 from ..utils.logger import get_logger
 
@@ -75,9 +76,11 @@ class UpdateChecker:
                 return False, None
                         
             logger.info(f"Latest version on GitHub: {latest_version}, Current version: {self.current_version}")
+
+            strip_curr_ver = re.sub(r'[^0-9.]', '', self.current_version)
             
             # Compare versions
-            if self._is_newer_version(latest_version, self.current_version):
+            if self._is_newer_version(latest_version, strip_curr_ver):
                 release_info = {
                     'version': latest_version,
                     'tag_name': tag_name,

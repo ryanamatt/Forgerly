@@ -7,7 +7,6 @@ from PySide6.QtCore import Qt, QTimer, QTimer, QThread, Signal
 from PySide6.QtGui import QCloseEvent, QResizeEvent, QIcon
 import sys
 import ctypes
-import requests
 from typing import Any
 
 from .db_connector import DBConnector
