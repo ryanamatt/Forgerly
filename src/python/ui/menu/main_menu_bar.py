@@ -153,7 +153,14 @@ class MainMenuBar(QMenuBar):
         find_action.setShortcut(f"{self._mod_key}+F")
         find_action.triggered.connect(lambda: bus.publish(Events.TOGGLE_SEARCH_BAR))
 
+        # Find + Replace Action
+        find_replace_action = QAction("Find & Replace", self)
+        find_replace_action.setIcon(QIcon(":icons/find.svg"))
+        find_replace_action.setShortcut(f"{self._mod_key}+H")
+        find_replace_action.triggered.connect(lambda: bus.publish(Events.TOGGLE_SEARCH_REPLACE_BAR))
+
         edit_menu.addAction(find_action)
+        edit_menu.addAction(find_replace_action)
 
     def _setup_view_menu(self) -> None:
         """
@@ -224,7 +231,7 @@ class MainMenuBar(QMenuBar):
         help_menu = self.addMenu("&Help")
         about_action = QAction("&About", self)
         about_action.setIcon(QIcon(":icons/information.svg"))
-        about_action.setShortcut(f"{self._mod_key}+H")
+        about_action.setShortcut("F1")
         about_action.triggered.connect(self._show_about_dialog)
         help_menu.addAction(about_action)
 

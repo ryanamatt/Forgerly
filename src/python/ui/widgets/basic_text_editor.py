@@ -349,6 +349,35 @@ class BasicTextEditor(QWidget):
         self.editor.setExtraSelections([])
         logger.debug("Search highlights cleared via SEARCH_CLOSED event.")
 
+    @receiver(Events.REPLACE_WORD)
+    def _replace_text(self, data: dict) -> None:
+        """
+        Replaces a highlighted searched word with the replacing text.
+
+        :param data: The data containing {search_text: str, replacte_text: str}
+        :type data: dict 
+        :rtype: None
+        """
+        search_text = data.get('search_text')
+        replace_text = data.get('replace_text', "")
+
+        if not self.isEnabled() or not search_text:
+            return
+
+        cursor = self.editor.document().find(search_text, self.editor.textCursor())
+        
+        if cursor.isNull():
+            cursor = self.editor.document().find(search_text)
+
+        if not cursor.isNull():
+            cursor.beginEditBlock()
+            cursor.insertText(replace_text)
+            cursor.endEditBlock()
+            
+            self.editor.setTextCursor(cursor)
+            
+            self._search_text({'search_text': search_text})
+
     def _clear_spell_check_formatting(self) -> None:
         """
         Removes all spell-check underlines from the document.
