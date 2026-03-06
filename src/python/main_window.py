@@ -1,7 +1,7 @@
 # src/python/main_window.py
 
 from PySide6.QtWidgets import (
-    QMainWindow, QSplitter, QMessageBox, QDialog, QFrame, QHBoxLayout, QLineEdit
+QMainWindow, QSplitter, QMessageBox, QDialog, QFrame, QVBoxLayout, QPushButton, QLineEdit, QWidget, QHBoxLayout
 )
 from PySide6.QtCore import Qt, QTimer, QTimer, QThread, Signal
 from PySide6.QtGui import QCloseEvent, QResizeEvent, QIcon
@@ -279,32 +279,61 @@ class MainWindow(QMainWindow):
         """
         self.search_container = QFrame(self)
         self.search_container.setObjectName("SearchContainer")
-        self.search_container.setFixedHeight(45) 
-        # Style it to look like a floating bar below the menu
+        
+        # We will manage the height dynamically in the toggle functions
+        self.search_container.setFixedWidth(200)
+        
         self.search_container.setStyleSheet("""
             QFrame#SearchContainer {
-                background: rgba(45, 45, 45, 230); 
+                background: rgba(45, 45, 45, 240); 
                 border: 1px solid #555555;
-                border-top: none; /* Blends into the menu bar */
+                border-top: none;
                 border-bottom-left-radius: 8px;
                 border-bottom-right-radius: 8px;
             }
         """)
 
-        layout = QHBoxLayout(self.search_container)
-        # Increase the bottom margin to prevent clipping the QLineEdit focus border
-        layout.setContentsMargins(10, 5, 10, 8)
+        # Use a Vertical Layout to stack Find and Replace rows
+        self.search_layout = QVBoxLayout(self.search_container)
+        self.search_layout.setContentsMargins(10, 8, 10, 10)
+        self.search_layout.setSpacing(8)
 
+        # --- Row 1: Find ---
         self.search_bar = QLineEdit()
-        self.search_bar.setPlaceholderText("Search...")
-        
-        layout.addWidget(self.search_bar)
-        self.search_container.hide() # Hidden by default
+        self.search_bar.setPlaceholderText("Find...")
+        self.search_layout.addWidget(self.search_bar)
 
-        # Connect to the event bus
+        # --- Row 2: Replace (Contained in a widget for easy toggling) ---
+        self.replace_widget = QWidget()
+        replace_row_layout = QHBoxLayout(self.replace_widget)
+        replace_row_layout.setContentsMargins(0, 0, 0, 0)
+        replace_row_layout.setSpacing(5)
+
+        self.replace_bar = QLineEdit()
+        self.replace_bar.setPlaceholderText("Replace with...")
+        
+        self.replace_btn = QPushButton("Replace")
+        self.replace_btn.setFixedWidth(70)
+        self.replace_btn.setCursor(Qt.PointingHandCursor)
+        self.replace_btn.setStyleSheet("font-size: 10px; font-weight: bold;")
+        
+        replace_row_layout.addWidget(self.replace_bar)
+        replace_row_layout.addWidget(self.replace_btn)
+        
+        self.search_layout.addWidget(self.replace_widget)
+
+        # Initial State
+        self.replace_widget.hide()
+        self.search_container.hide()
+
+        # Signals
         self.search_bar.textChanged.connect(
-            lambda: bus.publish(Events.SEARCH_CONTENT, data={'search_text': self.search_bar.displayText()})
+            lambda: bus.publish(Events.SEARCH_CONTENT, data={'search_text': self.search_bar.text()})
         )
+        self.replace_btn.clicked.connect(lambda: bus.publish(Events.REPLACE_WORD, data={
+            'search_text': self.search_bar.text(),
+            'replace_text': self.replace_bar.text()
+        }))
 
     # --- Coordinator/ViewManager ---
 
@@ -551,7 +580,7 @@ class MainWindow(QMainWindow):
         stats_dialog.exec()
 
     @receiver(Events.TOGGLE_SEARCH_BAR)
-    def _toggle_search(self, data: dict = None):
+    def _toggle_search(self, data: dict = None) -> None:
         """
         Toggles whether you can see the search bar or not.
         
@@ -559,14 +588,47 @@ class MainWindow(QMainWindow):
         :type data: dict
         :rtype: None
         """
-        if self.search_container.isHidden():
+        if self.search_container.isHidden() or not self.replace_widget.isHidden():
+            self.replace_widget.hide()
+            # Set height for one row (similar to your previous 45px)
+            self.search_container.setFixedHeight(50) 
+            self.search_container.show()
+            self.search_container.raise_()
+            self.search_bar.setFocus()
+            self.search_bar.selectAll()
+        else:
+            self._close_search()
+
+    @receiver(Events.TOGGLE_SEARCH_REPLACE_BAR)
+    def _toggle_replace(self, data: dict = None) -> None:
+        """
+        Toggles whether you can see the replace bar or not.
+        
+        :param data: Empty Dict needed for recieving
+        :type data: dict
+        :rtype: None
+        """
+        # If hidden or only in Find mode, show Replace
+        if self.search_container.isHidden() or self.replace_widget.isHidden():
+            self.replace_widget.show()
+            # Set height for two rows (double the space)
+            self.search_container.setFixedHeight(95) 
             self.search_container.show()
             self.search_container.raise_()
             self.search_bar.setFocus()
         else:
-            bus.publish(Events.SEARCH_CLOSED)
-            self.search_bar.setText("")
-            self.search_container.hide()
+            self._close_search()
+
+    def _close_search(self) -> None:
+        """
+        Closes the Search and replace bar.
+
+        :rtype: None
+        """
+        bus.publish(Events.SEARCH_CLOSED)
+        self.search_bar.setText("")
+        self.replace_bar.setText("")
+        self.search_container.hide()
 
     # --- Update Checking ---
 

@@ -14,8 +14,10 @@ class Events(str, Enum):
 
     # Edit Menu Bar Events
     SEARCH_CONTENT = "edit.search_content"
+    REPLACE_WORD = "edit.replace_word"
     TOGGLE_SEARCH_BAR = "edit.toggle_search_bar"
     SEARCH_CLOSED = "edit.search_hide"
+    TOGGLE_SEARCH_REPLACE_BAR = "edit.toggle_search_replace_bar"
 
     # Content/Selection
     CONTENT_CHANGED = "editor.content_changed"
