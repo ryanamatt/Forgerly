@@ -1,26 +1,63 @@
 # Changelog
 All notable changes to Forgerly will be documented in this file.
 
+## v0.5.0 - 2026-3-16
+
+## ✨ Added
+
+- When Clicking on a Character in the Relationship Graph Outline the
+  Graph will zoom in on the character that was clicked.
+
+- Pressing the Escape key will now clear a Character Node that
+  was selected to connect to another character node.
+
+- A New Text Field has been Added to the Chapter Editor to allow
+  the user to edit the chaper title there.
+
+- A New Text Field has been Added to the Note Editor to allow
+  the user to edit the chaper title there.
+
+- An Update Checker has been added to automatically check for new updates of the software. This
+  is a setting that can also be disabled if the users wishes.
+
+- Added a Replace Bar to go along side the Find Bar. User is able to replace instances of
+  words easier now.
+
+## 🐛 Fixes
+ - Fix Bug Where Title would update when changing to a different entity before the user
+  was prompted to save.
+
 ## v0.4.8 - 2026-2-16
 
 ## ✨ Added
 
 - New Button Allows the user to export their Relationship Graph with a new button the toolbar.
+
   - New Dialog Window with several options you may want to export your graph.
+
   - Export as PNG, JPG, SVG, or PDF
+
 - A New Setting to Toggle the Spell Checker on/off (Default is off).
+
 - Lore Entry Titles and Characters Names are now added as words for Spell Checking to ensure
-you are spelling them correctly and the Spell Checker does not falsely flag them as misspelled.
+  you are spelling them correctly and the Spell Checker does not falsely flag them as misspelled.
+
 - Directed Relationship Types has been added.
+
 - A New Setting allowing the user to toggle on/off the Chapter Statistics at the top of the
-Chapter Editor.
+  Chapter Editor.
+
 - Added a Search Bar for the Chapter Outline allowing the user to search chapter titles and tags.
+
 - Creating a new note can now also be done in the Menu Bar.
+
 - Added A Find Search bar (Ctrl+F) to find things in the current editor.
 
 ## 🐛 Fixes
 - Fix Bug where Relationship Edge Line Style did not update when changed.
+
 - Fix Bug  when showing the Text Size in the Text Editor allowing the user to see the full number.
+
 - Fix Bug when renaming a Character's name using the Text Box in the Character Editor.
 
 ## v0.4.7 - 2026-01-26
