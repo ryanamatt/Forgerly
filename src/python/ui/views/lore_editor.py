@@ -101,9 +101,6 @@ class LoreEditor(BaseEditor):
         self.title_input.textChanged.connect(self._set_dirty)
         self.category_combo.currentIndexChanged.connect(self._set_dirty)
         
-        # Emit signal when title edit is finished (for Outline update)
-        self.title_input.editingFinished.connect(self._emit_title_change)
-        
         self.set_enabled(False)
         self.mark_saved()
 
@@ -188,19 +185,6 @@ class LoreEditor(BaseEditor):
 
         self.title_input.setEnabled(enabled)
         self.category_combo.setEnabled(enabled)
-
-    def _emit_title_change(self) -> None:
-        """
-        Emits the signal to update the outline after the user finishes editing the title.
-        
-        :rtype: None
-        """
-        if self.current_lore_id is not None:
-            bus.publish(Events.OUTLINE_NAME_CHANGE, data={
-                'entity_type': EntityType.LORE,
-                'ID': self.current_lore_id,
-                'new_title': self.title_input.text().strip(),
-            })
 
     def get_save_data(self) -> dict:
         """

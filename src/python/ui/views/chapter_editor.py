@@ -116,7 +116,6 @@ class ChapterEditor(BaseEditor):
         self.setEnabled(False)
 
         self.title_input.textChanged.connect(self._set_dirty)
-        self.title_input.editingFinished.connect(self._emit_title_change)
 
     @receiver(Events.CONTENT_CHANGED)
     @receiver(Events.SELECTION_CHANGED)
@@ -327,16 +326,3 @@ class ChapterEditor(BaseEditor):
         super().set_enabled(enabled)
 
         self.title_input.setEnabled(enabled)
-
-    def _emit_title_change(self) -> None:
-        """
-        Emits the signal to update the outline after the user finishes editing the title.
-        
-        :rtype: None
-        """
-        if self.current_chapter_id is not None:
-            bus.publish(Events.OUTLINE_NAME_CHANGE, data={
-                'entity_type': EntityType.CHAPTER,
-                'ID': self.current_chapter_id,
-                'new_title': self.title_input.text().strip(),
-            })
