@@ -121,7 +121,7 @@ class CharacterEditor(BaseEditor):
         self.dob_input.textChanged.connect(self._set_dirty)
         self.occupation_input.textChanged.connect(self._set_dirty)
         
-        self.name_input.editingFinished.connect(self._emit_name_change)
+        self.name_input.textChanged.connect(self._set_dirty)
         
         self.setEnabled(False)
     
@@ -203,20 +203,6 @@ class CharacterEditor(BaseEditor):
         self.dob_input.setEnabled(enabled)
         self.occupation_input.setEnabled(enabled)
         self.description_editor.setEnabled(enabled)
-
-    def _emit_name_change(self) -> None:
-        """
-        Emits the :py:attr:`.char_name_changed` signal after the user finishes 
-        editing the name (e.g., focus leaves the :py:class:`~PySide6.QtWidgets.QLineEdit`).
-        
-        :rtype: None
-        """
-        if self.current_char_id is not None:
-            bus.publish(Events.OUTLINE_NAME_CHANGE, data={
-                'entity_type': EntityType.CHARACTER,
-                'ID': self.current_char_id,
-                'new_title': self.name_input.text().strip(),
-            })
 
     def get_save_data(self) -> dict:
         """
