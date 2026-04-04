@@ -646,9 +646,10 @@ class AppCoordinator(QObject):
     @receiver(Events.GRAPH_LOAD_REQUESTED)
     def load_relationship_graph_data(self, data: dict = None) -> None:
         """
-        Fetches all character nodes, relationship edges, and relationship types 
-        required for the graph editor. At the end calls GRAPH_DATA_LOADED event with
-        the graph data.
+        Fetches all character nodes, relationship edges, junction nodes, junction
+        spokes, and relationship types required for the graph editor.
+
+        At the end, calls ``GRAPH_DATA_LOADED`` with the complete graph data dict.
 
         :rtype: None
         """
@@ -662,8 +663,15 @@ class AppCoordinator(QObject):
         node_positons = self.relationship_repo.get_all_node_positions() or []
         relationship_types = self.relationship_repo.get_all_relationship_types() or []
 
+        # Fetch junction data
+        junctions_raw = self.relationship_repo.get_all_junctions_for_graph() or []
+        spokes_raw = self.relationship_repo.get_all_junction_connections() or []
+
         # Process data into a standard graph dictionary structure
-        graph_data = self._process_graph_data(relationships, node_positons, relationship_types)
+        graph_data = self._process_graph_data(
+            relationships, node_positons, relationship_types,
+            junctions_raw, spokes_raw
+        )
 
         # Emit signal to the RelationshipEditor
         bus.publish(Events.GRAPH_DATA_LOADED, data=graph_data)
@@ -721,22 +729,195 @@ class AppCoordinator(QObject):
         data.update({'Name': self.character_repo.get_character_name(char_id=id)})
         bus.publish(Events.REL_CHAR_DETAILS_RETURN, data=data)
 
-    def _process_graph_data(self, relationships: list[dict], node_positions: list[dict], 
-                            relationship_types: list[dict]) -> dict:
+    # =========================================================================
+    # Junction Event Handlers
+    # =========================================================================
+
+    @receiver(Events.JUNCTION_CREATE_REQUESTED)
+    def create_junction(self, data: dict) -> None:
         """
-        Proceess all the graph data. It takes in the relationships, node_positions, relationship_types
-        and creates the nodes data and edges data to be returned as a dict.
-        
-        :param relationships: A list of relationships with the relationship attributes a dict.
+        Creates a new junction node and its two initial spokes atomically.
+
+        The ``data`` dict must contain:
+
+        * ``type_id`` (int) – relationship type for the junction
+        * ``x``, ``y`` (float) – canvas position for the new junction
+        * ``intensity`` (int) – spoke line weight
+        * ``description`` (str) – optional spoke note
+        * ``source_endpoint_type`` (str) – ``'character'`` | ``'junction'``
+        * ``source_char_id`` (int | None)
+        * ``source_junc_id`` (int | None)
+        * ``target_endpoint_type`` (str) – ``'character'`` | ``'junction'``
+        * ``target_char_id`` (int | None)
+        * ``target_junc_id`` (int | None)
+
+        :param data: Event payload described above.
+        :type data: dict
+        :rtype: None
+        """
+        try:
+            type_id = data['type_id']
+            x, y = data['x'], data['y']
+            intensity = data.get('intensity', 5)
+            description = data.get('description', '')
+
+            # 1. Create the junction row
+            junction_id = self.relationship_repo.create_junction(
+                type_id=type_id, x=x, y=y
+            )
+            if not junction_id:
+                raise RuntimeError("Junction row was not created.")
+
+            # 2. Create the incoming spoke (source → junction)
+            self.relationship_repo.create_junction_connection(
+                junction_id=junction_id,
+                endpoint_type=data['source_endpoint_type'],
+                character_id=data.get('source_char_id'),
+                target_junction_id=data.get('source_junc_id'),
+                role='incoming',
+                intensity=intensity,
+                description=description
+            )
+
+            # 3. Create the outgoing spoke (junction → target)
+            self.relationship_repo.create_junction_connection(
+                junction_id=junction_id,
+                endpoint_type=data['target_endpoint_type'],
+                character_id=data.get('target_char_id'),
+                target_junction_id=data.get('target_junc_id'),
+                role='outgoing',
+                intensity=intensity,
+                description=description
+            )
+
+            logger.info(f"Junction {junction_id} created with 2 initial spokes.")
+            self.load_relationship_graph_data()
+
+        except Exception as e:
+            logger.error(f"Failed to create junction: {e}", exc_info=True)
+            QMessageBox.critical(None, "Junction Error",
+                                 f"Could not create junction node: {e}")
+
+    @receiver(Events.JUNCTION_DELETE_REQUESTED)
+    def delete_junction(self, data: dict) -> None:
+        """
+        Deletes a junction node and all its spokes (CASCADE in DB).
+
+        :param data: Dict containing ``{'junction_id': int}``.
+        :type data: dict
+        :rtype: None
+        """
+        junction_id = data.get('junction_id')
+        if junction_id is None:
+            return
+        try:
+            self.relationship_repo.delete_junction(junction_id)
+            self.load_relationship_graph_data()
+        except Exception as e:
+            logger.error(f"Failed to delete junction {junction_id}: {e}", exc_info=True)
+
+    @receiver(Events.JUNCTION_SPOKE_DELETE_REQUESTED)
+    def delete_junction_spoke(self, data: dict) -> None:
+        """
+        Deletes a single junction spoke.  If the parent junction then has no
+        remaining spokes, the orphan cleanup also removes it.
+
+        :param data: Dict containing ``{'spoke_id': int, 'junction_id': int}``.
+        :type data: dict
+        :rtype: None
+        """
+        spoke_id = data.get('spoke_id')
+        if spoke_id is None:
+            return
+        try:
+            self.relationship_repo.delete_junction_connection(spoke_id)
+            self.relationship_repo.delete_orphan_junctions()
+            self.load_relationship_graph_data()
+        except Exception as e:
+            logger.error(f"Failed to delete junction spoke {spoke_id}: {e}", exc_info=True)
+
+    @receiver(Events.JUNCTION_POSITION_SAVE_REQUESTED)
+    def save_junction_position(self, data: dict) -> None:
+        """
+        Persists the new canvas position of a junction after it is dragged.
+
+        :param data: Dict containing ``{'junction_id': int, 'x': float, 'y': float}``.
+        :type data: dict
+        :rtype: None
+        """
+        try:
+            self.relationship_repo.update_junction_position(
+                junction_id=data['junction_id'],
+                x=data['x'],
+                y=data['y']
+            )
+        except Exception as e:
+            logger.error(f"Failed to save junction position: {e}", exc_info=True)
+
+    @receiver(Events.JUNCTION_SPOKE_EDIT_REQUESTED)
+    def edit_junction_spoke(self, data: dict) -> None:
+        """
+        Handles a request to update a spoke's intensity and description.
+
+        Currently re-uses the ``RelationshipCreationDialog`` to collect a new
+        intensity value.  The spoke's endpoints cannot be changed after creation
+        (delete and recreate instead).
+
+        :param data: Dict with keys ``spoke_id``, ``junction``, ``endpoint``,
+            and ``spoke_data`` (the existing spoke dict for pre-population).
+        :type data: dict
+        :rtype: None
+        """
+        spoke_id = data.get('spoke_id')
+        spoke_data = data.get('spoke_data', {})
+        if spoke_id is None:
+            return
+        try:
+            new_intensity = spoke_data.get('intensity', 5)
+            new_description = spoke_data.get('description', '')
+            self.relationship_repo.update_junction_connection(
+                connection_id=spoke_id,
+                intensity=new_intensity,
+                description=new_description
+            )
+            self.load_relationship_graph_data()
+        except Exception as e:
+            logger.error(f"Failed to edit junction spoke {spoke_id}: {e}", exc_info=True)
+
+    # =========================================================================
+    # Graph Data Processing
+    # =========================================================================
+
+    def _process_graph_data(self, relationships: list[dict], node_positions: list[dict],
+                            relationship_types: list[dict],
+                            junctions_raw: list[dict] | None = None,
+                            spokes_raw: list[dict] | None = None) -> dict:
+        """
+        Processes all the graph data into the unified dict expected by
+        :py:meth:`.RelationshipEditor.load_graph`.
+
+        In addition to the existing ``'nodes'`` and ``'edges'`` keys the
+        returned dict now also contains:
+
+        * ``'junctions'`` – list of junction display dicts
+        * ``'spokes'`` – list of spoke display dicts
+
+        :param relationships: Raw relationship rows from the DB.
         :type relationships: list[dict]
-        :param node_positions: The postition of the nodes (characters)
+        :param node_positions: Raw node position rows from the DB.
         :type node_positions: list[dict]
-        :param relationship_types: A list of the types of relationships with the relationship_types
-            attributes as dict.
+        :param relationship_types: Raw relationship type rows from the DB.
         :type relationship_types: list[dict]
-        :return: Returns a dict of nodes and edges. {'nodes': nodes, 'edges': edges}
+        :param junctions_raw: Raw junction rows from the DB.
+        :type junctions_raw: list[dict] or None
+        :param spokes_raw: Raw junction connection rows from the DB.
+        :type spokes_raw: list[dict] or None
+        :return: Dict with keys ``nodes``, ``edges``, ``junctions``, ``spokes``.
         :rtype: dict
         """
+        junctions_raw = junctions_raw or []
+        spokes_raw = spokes_raw or []
+
         # --- Node Processing ---
         char_ids = set()
         for rel in relationships:
@@ -785,7 +966,42 @@ class AppCoordinator(QObject):
                 'description': rel.get('Description'),
                 'is_visible': True
             })
-        return {'nodes': nodes, 'edges': edges}
+
+        # --- Junction Processing ---
+        junctions = []
+        for junc in junctions_raw:
+            junctions.append({
+                'junction_id':    junc['Junction_ID'],
+                'x':              junc.get('X_Position', 0),
+                'y':              junc.get('Y_Position', 0),
+                'label':          junc.get('Label', ''),
+                'color_override': junc.get('Color_Override', ''),
+                'type_id':        junc.get('Type_ID'),
+                'short_label':    junc.get('Short_Label', ''),
+                'default_color':  junc.get('Default_Color', '#888888'),
+                'is_directed':    junc.get('Is_Directed', 0),
+                'line_style':     junc.get('Line_Style', 'Solid'),
+            })
+
+        # --- Spoke Processing ---
+        spokes = []
+        for spoke in spokes_raw:
+            spokes.append({
+                'id':                  spoke['Connection_ID'],
+                'junction_id':         spoke['Junction_ID'],
+                'endpoint_type':       spoke['Endpoint_Type'],
+                'character_id':        spoke.get('Character_ID'),
+                'target_junction_id':  spoke.get('Target_Junction_ID'),
+                'role':                spoke.get('Role', 'incoming'),
+                'intensity':           spoke.get('Intensity', 5),
+                'description':         spoke.get('Description', ''),
+                'label':               spoke.get('Short_Label', ''),
+                'color':               spoke.get('Default_Color', '#888888'),
+                'style':               spoke.get('Line_Style', 'Solid'),
+                'is_directed':         spoke.get('Is_Directed', 0),
+            })
+
+        return {'nodes': nodes, 'edges': edges, 'junctions': junctions, 'spokes': spokes}
 
     # --- Export Logic ---
 

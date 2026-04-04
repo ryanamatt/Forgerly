@@ -1,7 +1,8 @@
 # src\python\ui\widgets/graph_items.py
 
 from PySide6.QtWidgets import (
-    QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem, QMenu, QWidget
+    QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsTextItem, QMenu, QWidget,
+    QGraphicsItem, QGraphicsRectItem
 )
 from PySide6.QtCore import Qt, QPointF, Signal, QRectF, QObject, QLineF, QEvent
 from PySide6.QtGui import QColor, QPen, QBrush, QFont, QMouseEvent, QCursor, QPainter, QPainterPath
@@ -50,9 +51,9 @@ class CharacterNode(QGraphicsEllipseItem):
         :type x: float
         :param y: The initial Y position of the node.
         :type y: float
-        :param color: The color string for the node (e.g., "#RRGGBB").
+        :param color: The color string for the node (e.g., \"#RRGGBB\").
         :type color: str
-        :param shape: The shape type for the node (e.g., "ellipse").
+        :param shape: The shape type for the node (e.g., \"ellipse\").
         :type shape: str
         :param parent: The parent Qt item.
         :type parent: :py:class:`~PySide6.QtWidgets.QGraphicsItem` or None
@@ -165,7 +166,7 @@ class CharacterNode(QGraphicsEllipseItem):
         if change == self.GraphicsItemChange.ItemPositionHasChanged:
             if self.scene():
                 for item in self.scene().items():
-                    if isinstance(item, RelationshipEdge):
+                    if isinstance(item, (RelationshipEdge, JunctionSpoke)):
                         item.update_position()
         return super().itemChange(change, value)
     
@@ -271,6 +272,7 @@ class CharacterNode(QGraphicsEllipseItem):
         menu = QMenu()
 
         connect_action = menu.addAction("Connect to Character...")
+        connect_junction_action = menu.addAction("Connect via Junction Node...")
         set_visible_action = menu.addAction("Make Character Invisible")
 
         lock_node_action_text = "Unlock Character" if self.is_locked else "Lock Character"
@@ -285,6 +287,9 @@ class CharacterNode(QGraphicsEllipseItem):
 
         if action == connect_action:
             editor.handle_node_right_click(self)
+
+        elif action == connect_junction_action:
+            editor.handle_junction_source_click(self)
 
         elif action == set_visible_action:
             self.is_hidden = not self.is_hidden
@@ -362,6 +367,451 @@ class CharacterNode(QGraphicsEllipseItem):
             path.lineTo(p)
         path.closeSubpath()
         return path
+
+# =============================================================================
+# Junction Node
+# =============================================================================
+
+class JunctionNodeSignals(QObject):
+    """
+    Signal emitter for :py:class:`.JunctionNode`.
+    Necessary because QGraphicsItem cannot be a direct QObject subclass.
+    """
+    junction_moved = Signal(int, float, float)
+    """Emitted on mouse release — carries (junction_id, new_x, new_y)."""
+
+
+class JunctionNode(QGraphicsItem):
+    """
+    An invisible midpoint marker on the relationship canvas.
+
+    Junction nodes allow multiple relationship spokes to converge on a single
+    visual point, enabling family-tree-style layouts (e.g., two parents
+    sharing a child). On the canvas a junction renders as a small, semi-
+    transparent diamond that is only visible when hovered or selected so it
+    does not clutter the graph.
+
+    A junction is always associated with a :py:class:`.Relationship_Type`
+    (stored via ``type_id``).  All :py:class:`.JunctionSpoke` lines that
+    connect to this junction inherit that type's color and style unless an
+    explicit override is stored in the database.
+    """
+
+    RADIUS = 8  # Half-width of the hit-test diamond
+
+    def __init__(self, junction_id: int, x: float, y: float,
+                 color: str = '#888888', label: str = '', parent=None) -> None:
+        """
+        Initializes the junction node.
+
+        :param junction_id: The unique database ID of this junction.
+        :type junction_id: int
+        :param x: Initial scene X position.
+        :type x: float
+        :param y: Initial scene Y position.
+        :type y: float
+        :param color: Display color inherited from the relationship type.
+        :type color: str
+        :param label: Optional short label shown beside the junction diamond.
+        :type label: str
+        :param parent: Parent graphics item (usually None).
+
+        :rtype: None
+        """
+        super().__init__(parent)
+
+        self.junction_id = junction_id
+        self.junction_color = color
+        self.signals = JunctionNodeSignals()
+
+        self._hovered = False
+        self._selected_for_connect = False
+
+        self.setPos(x, y)
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, True)
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges, True)
+        self.setAcceptHoverEvents(True)
+        self.setZValue(0.5)  # Draw above edges, below character nodes
+
+        # Optional label
+        self._label_item = QGraphicsTextItem(label, self)
+        self._label_item.setFont(QFont("Arial", 8))
+        self._label_item.setDefaultTextColor(QColor(self.junction_color))
+        lw = self._label_item.boundingRect().width()
+        self._label_item.setPos(-lw / 2, self.RADIUS + 2)
+        self._label_item.setVisible(bool(label))
+
+    # ------------------------------------------------------------------
+    # QGraphicsItem interface
+    # ------------------------------------------------------------------
+
+    def boundingRect(self) -> QRectF:
+        """Returns the bounding rectangle used for hit-testing and repaints."""
+        r = self.RADIUS + 2  # Small padding for pen width
+        return QRectF(-r, -r, 2 * r, 2 * r)
+
+    def paint(self, painter: QPainter, option: Any, widget: Any = None) -> None:
+        """
+        Draws the junction as a small diamond.
+
+        When neither hovered nor involved in a connection attempt the diamond
+        is nearly transparent, keeping the canvas clean.  When hovered or
+        selected it becomes fully opaque.
+
+        :param painter: The QPainter instance.
+        :param option: Style option (unused).
+        :param widget: Target widget (unused).
+        :rtype: None
+        """
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        r = self.RADIUS
+        points = [QPointF(0, -r), QPointF(r, 0), QPointF(0, r), QPointF(-r, 0)]
+
+        color = QColor(self.junction_color)
+
+        if self._selected_for_connect:
+            color = QColor("gold")
+            color.setAlphaF(1.0)
+            pen = QPen(color.darker(150), 2, Qt.PenStyle.DashLine)
+        elif self._hovered:
+            color.setAlphaF(0.85)
+            pen = QPen(color.darker(150), 1.5)
+        else:
+            color.setAlphaF(0.35)
+            pen = QPen(color.darker(120), 1, Qt.PenStyle.DotLine)
+
+        painter.setPen(pen)
+        painter.setBrush(QBrush(color))
+        painter.drawPolygon(points)
+
+    # ------------------------------------------------------------------
+    # Hover / interaction
+    # ------------------------------------------------------------------
+
+    def hoverEnterEvent(self, event) -> None:
+        """Shows the junction more prominently on hover."""
+        self._hovered = True
+        self.setCursor(QCursor(Qt.CursorShape.SizeAllCursor))
+        self.update()
+        super().hoverEnterEvent(event)
+
+    def hoverLeaveEvent(self, event) -> None:
+        """Returns the junction to its subtle appearance."""
+        self._hovered = False
+        self.unsetCursor()
+        self.update()
+        super().hoverLeaveEvent(event)
+
+    def set_selection_highlight(self, highlight: bool) -> None:
+        """
+        Toggles the gold selection ring used during connection creation.
+
+        :param highlight: True to show selection highlight.
+        :type highlight: bool
+        :rtype: None
+        """
+        self._selected_for_connect = highlight
+        self.update()
+
+    def contextMenuEvent(self, event) -> None:
+        """
+        Context menu for a junction node: add spoke, or delete junction.
+
+        :param event: The right-click event.
+        :rtype: None
+        """
+        menu = QMenu()
+        add_spoke_char_action = menu.addAction("Add spoke → Character...")
+        add_spoke_junction_action = menu.addAction("Add spoke → New Junction...")
+        menu.addSeparator()
+        delete_action = menu.addAction("Delete Junction")
+
+        view = self.scene().views()[0]
+        editor: 'RelationshipEditor' = view.parent()
+
+        action = menu.exec(event.screenPos())
+
+        if action == add_spoke_char_action:
+            editor.handle_junction_add_spoke(self, target_type='character')
+        elif action == add_spoke_junction_action:
+            editor.handle_junction_add_spoke(self, target_type='junction')
+        elif action == delete_action:
+            bus.publish(Events.JUNCTION_DELETE_REQUESTED, data={'junction_id': self.junction_id})
+
+    # ------------------------------------------------------------------
+    # Movement
+    # ------------------------------------------------------------------
+
+    def itemChange(self, change: QGraphicsItem.GraphicsItemChange, value: Any) -> Any:
+        """
+        Propagates position changes to all attached :py:class:`.JunctionSpoke` lines.
+
+        :param change: The type of state change.
+        :param value: The new value.
+        :returns: The (potentially snapped) new position.
+        :rtype: Any
+        """
+        if change == self.GraphicsItemChange.ItemPositionChange and self.scene():
+            view = self.scene().views()[0]
+            if view.snap_to_grid:
+                grid = view.grid_size
+                pt = value.toPoint()
+                value = QPointF(
+                    round(pt.x() / grid) * grid,
+                    round(pt.y() / grid) * grid
+                )
+
+        if change == self.GraphicsItemChange.ItemPositionHasChanged and self.scene():
+            for item in self.scene().items():
+                if isinstance(item, JunctionSpoke):
+                    item.update_position()
+
+        return super().itemChange(change, value)
+
+    def mouseReleaseEvent(self, event) -> None:
+        """
+        Emits the :py:attr:`.junction_moved` signal so the coordinator can
+        persist the new position.
+
+        :param event: The mouse release event.
+        :rtype: None
+        """
+        super().mouseReleaseEvent(event)
+        pos = self.scenePos()
+        self.signals.junction_moved.emit(self.junction_id, pos.x(), pos.y())
+
+
+# =============================================================================
+# Junction Spoke
+# =============================================================================
+
+class JunctionSpoke(QGraphicsLineItem):
+    """
+    A line segment connecting a :py:class:`.JunctionNode` to either a
+    :py:class:`.CharacterNode` or another :py:class:`.JunctionNode`.
+
+    Spokes are the visual edges of the junction sub-graph.  They share the
+    visual style (color, line style, thickness/intensity) of the relationship
+    type stored on their parent junction and carry a context menu for editing
+    or deletion.
+    """
+
+    def __init__(self, spoke_data: dict[str, Any],
+                 junction: 'JunctionNode',
+                 endpoint: 'CharacterNode | JunctionNode',
+                 parent=None) -> None:
+        """
+        Initializes a junction spoke.
+
+        :param spoke_data: Database row data for this connection, including
+            ``id``, ``role`` (``'incoming'`` | ``'outgoing'``), ``intensity``,
+            ``color``, ``style``, ``label``, ``is_directed``, and
+            ``description``.
+        :type spoke_data: dict[str, Any]
+        :param junction: The :py:class:`.JunctionNode` at the convergence end.
+        :type junction: :py:class:`.JunctionNode`
+        :param endpoint: The :py:class:`.CharacterNode` or
+            :py:class:`.JunctionNode` at the far end of this spoke.
+        :type endpoint: :py:class:`.CharacterNode` or :py:class:`.JunctionNode`
+        :param parent: Parent graphics item (usually None).
+        :rtype: None
+        """
+        super().__init__(parent)
+
+        self.spoke_data = spoke_data
+        self.junction = junction
+        self.endpoint = endpoint
+
+        self.setFlag(QGraphicsLineItem.GraphicsItemFlag.ItemIsSelectable, True)
+
+        # Label in the middle of the spoke
+        self.label_item = QGraphicsTextItem(spoke_data.get('label', ''), self)
+
+        self.update_position()
+
+    # ------------------------------------------------------------------
+    # Pen / appearance
+    # ------------------------------------------------------------------
+
+    def _update_pen(self) -> None:
+        """
+        Rebuilds the :py:class:`~PySide6.QtGui.QPen` from ``spoke_data``.
+        Mirrors the logic in :py:meth:`.RelationshipEdge._update_pen`.
+
+        :rtype: None
+        """
+        intensity = self.spoke_data.get('intensity', 5)
+        color = QColor(self.spoke_data.get('color', '#888888'))
+
+        opacity = 0.5 + (intensity / 10.0) * 0.5
+        color.setAlphaF(opacity)
+
+        normalized = intensity / 10.0
+        thickness = 1 + (normalized ** 1.5) * 9
+
+        pen = QPen(color, thickness)
+
+        match self.spoke_data.get('style', 'Solid').lower():
+            case 'dash':
+                pen.setStyle(Qt.PenStyle.DashLine)
+            case 'dot':
+                pen.setStyle(Qt.PenStyle.DotLine)
+            case 'dashdot':
+                pen.setStyle(Qt.PenStyle.DashDotLine)
+            case _:
+                pen.setStyle(Qt.PenStyle.SolidLine)
+
+        self.setPen(pen)
+
+    # ------------------------------------------------------------------
+    # Position / geometry
+    # ------------------------------------------------------------------
+
+    def _endpoint_radius(self) -> float:
+        """Returns the visual radius of the endpoint for line-shortening."""
+        if isinstance(self.endpoint, CharacterNode):
+            return self.endpoint.NODE_RADIUS
+        # JunctionNode — use its hit radius
+        return JunctionNode.RADIUS
+
+    def update_position(self) -> None:
+        """
+        Recalculates the line between the junction centre and the endpoint
+        centre, shortening each end by the respective radius so the line
+        does not overlap the node body.
+
+        Also repositions the midpoint label.
+
+        :rtype: None
+        """
+        self._update_pen()
+
+        p_junc = self.junction.scenePos()
+        p_end = self.endpoint.scenePos()
+        line = QLineF(p_junc, p_end)
+        length = line.length()
+
+        j_radius = JunctionNode.RADIUS
+        e_radius = self._endpoint_radius()
+
+        if length > (j_radius + e_radius + 2):
+            dx = p_end.x() - p_junc.x()
+            dy = p_end.y() - p_junc.y()
+
+            j_offset_x = dx * (j_radius / length)
+            j_offset_y = dy * (j_radius / length)
+            e_offset_x = dx * (e_radius / length)
+            e_offset_y = dy * (e_radius / length)
+
+            start = QPointF(p_junc.x() + j_offset_x, p_junc.y() + j_offset_y)
+            end   = QPointF(p_end.x()  - e_offset_x, p_end.y()  - e_offset_y)
+        else:
+            return
+
+        self.setLine(start.x(), start.y(), end.x(), end.y())
+
+        mid = (start + end) / 2
+        label_rect = self.label_item.boundingRect()
+        angle = self._calculate_angle(start, end)
+        self.label_item.setRotation(angle)
+        self.label_item.setTransformOriginPoint(label_rect.width() / 2, label_rect.height() / 2)
+        self.label_item.setPos(mid.x() - label_rect.width() / 2,
+                               mid.y() - label_rect.height() / 2)
+
+    def paint(self, painter: QPainter, option, widget) -> None:
+        """
+        Paints the spoke and optionally an arrowhead for directed types.
+
+        :param painter: The QPainter instance.
+        :param option: Style option.
+        :param widget: Target widget.
+        :rtype: None
+        """
+        self.update_position()
+        super().paint(painter, option, widget)
+
+        if self.spoke_data.get('is_directed') and self.spoke_data.get('role') == 'outgoing':
+            self._draw_arrowhead(painter)
+
+    def _draw_arrowhead(self, painter: QPainter) -> None:
+        """
+        Draws a small triangular arrowhead at the endpoint end of the spoke.
+
+        :param painter: The QPainter instance.
+        :rtype: None
+        """
+        line = self.line()
+        if line.length() < 10:
+            return
+
+        painter.setBrush(self.pen().color())
+        painter.setPen(Qt.PenStyle.NoPen)
+
+        angle = math.atan2(-line.dy(), line.dx())
+        arrow_size = 10 + (self.pen().width() * 2.5)
+
+        p1 = line.p2()
+        p2 = p1 - QPointF(math.cos(angle + math.pi / 6) * arrow_size,
+                           -math.sin(angle + math.pi / 6) * arrow_size)
+        p3 = p1 - QPointF(math.cos(angle - math.pi / 6) * arrow_size,
+                           -math.sin(angle - math.pi / 6) * arrow_size)
+
+        painter.drawPolygon([p1, p2, p3])
+
+    def _calculate_angle(self, p1: QPointF, p2: QPointF) -> float:
+        """
+        Calculates the label rotation angle, flipping 180° to prevent
+        upside-down text.
+
+        :param p1: Start point.
+        :type p1: QPointF
+        :param p2: End point.
+        :type p2: QPointF
+        :returns: Angle in degrees.
+        :rtype: float
+        """
+        dx = p2.x() - p1.x()
+        dy = p2.y() - p1.y()
+        angle = math.degrees(math.atan2(-dy, dx))
+        if angle > 90 or angle < -90:
+            angle += 180
+        return angle
+
+    # ------------------------------------------------------------------
+    # Context menu
+    # ------------------------------------------------------------------
+
+    def contextMenuEvent(self, event: QEvent) -> None:
+        """
+        Context menu for a junction spoke: edit details or delete.
+
+        :param event: The right-click event.
+        :rtype: None
+        """
+        menu = QMenu()
+        edit_action   = menu.addAction("Edit Spoke")
+        delete_action = menu.addAction("Delete Spoke")
+
+        action = menu.exec(event.screenPos())
+
+        if action == edit_action:
+            bus.publish(Events.JUNCTION_SPOKE_EDIT_REQUESTED, data={
+                'spoke_id': self.spoke_data.get('id'),
+                'junction': self.junction,
+                'endpoint': self.endpoint,
+                'spoke_data': self.spoke_data
+            })
+        elif action == delete_action:
+            bus.publish(Events.JUNCTION_SPOKE_DELETE_REQUESTED, data={
+                'spoke_id': self.spoke_data.get('id'),
+                'junction_id': self.junction.junction_id
+            })
+
+
+# =============================================================================
+# RelationshipEdge (unchanged except ItemPositionHasChanged update above)
+# =============================================================================
 
 class RelationshipEdge(QGraphicsLineItem):
     """

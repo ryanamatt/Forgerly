@@ -52,6 +52,9 @@ class SchemaMigrator:
         if project_version_parts < [0, 5, 0]:
             self._migrate_to_0_5_0()
 
+        if project_version_parts <= [0, 5, 0]:
+            self._migrate_to_0_5_1()
+
         # Finally, update the .nfp file
         self._update_config_version(app_version)
 
@@ -61,7 +64,7 @@ class SchemaMigrator:
         
         :rtype: None
         """
-        create_snapshots_table = """
+        create_snapshots_table  = """
         CREATE TABLE IF NOT EXISTS Snapshots (
             ID              INTEGER PRIMARY KEY,
             Timestamp       DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -75,6 +78,61 @@ class SchemaMigrator:
         
         try:
             self.db._execute_transaction([(create_snapshots_table, None)])
+        except Exception as e:
+            raise
+
+    def _migrate_to_0_5_1(self) -> None:
+        """
+        Migrates the schema to new 0.5.1 shema.
+        
+        :rtype: None
+        """
+        create_graph_junctions = """
+            CREATE TABLE IF NOT EXISTS Graph_Junctions (
+                ID                      INTEGER PRIMARY KEY,
+                X_Position              FLOAT NOT NULL DEFAULT 0,
+                Y_Position              FLOAT NOT NULL DEFAULT 0,
+                Type_ID                 INTEGER NOT NULL,          -- Relationship type shown on all spokes
+                Label                   TEXT DEFAULT '',           -- Override label (blank = use type Short_Label)
+                Color_Override          TEXT DEFAULT '',           -- Hex override (blank = use type Default_Color)
+
+                FOREIGN KEY (Type_ID) REFERENCES Relationship_Types(ID) ON DELETE CASCADE
+            );
+        """
+        
+        create_junction_connections = """
+            CREATE TABLE IF NOT EXISTS Junction_Connections (
+                ID                      INTEGER PRIMARY KEY,
+                Junction_ID             INTEGER NOT NULL,
+                Endpoint_Type           TEXT NOT NULL CHECK (Endpoint_Type IN ('character', 'junction')),
+                Character_ID            INTEGER,           -- Set when Endpoint_Type = 'character'
+                Target_Junction_ID      INTEGER,           -- Set when Endpoint_Type = 'junction'
+                Role                    TEXT NOT NULL DEFAULT 'incoming'
+                                            CHECK (Role IN ('incoming', 'outgoing')),
+                Intensity               INTEGER DEFAULT 5, -- Line weight (1-10)
+                Description             TEXT DEFAULT '',
+
+                CHECK (
+                    (Endpoint_Type = 'character' AND Character_ID IS NOT NULL AND Target_Junction_ID IS NULL) OR
+                    (Endpoint_Type = 'junction'  AND Target_Junction_ID IS NOT NULL AND Character_ID IS NULL)
+                ),
+
+                FOREIGN KEY (Junction_ID)        REFERENCES Graph_Junctions(ID) ON DELETE CASCADE,
+                FOREIGN KEY (Character_ID)       REFERENCES Characters(ID)      ON DELETE CASCADE,
+                FOREIGN KEY (Target_Junction_ID) REFERENCES Graph_Junctions(ID) ON DELETE CASCADE
+            );
+        """
+
+        create_indexes = """
+                CREATE INDEX IF NOT EXISTS idx_junction_connections_junction ON Junction_Connections (Junction_ID);
+                CREATE INDEX IF NOT EXISTS idx_junction_connections_character ON Junction_Connections (Character_ID);
+                CREATE INDEX IF NOT EXISTS idx_junction_connections_target ON Junction_Connections (Target_Junction_ID);
+                CREATE INDEX IF NOT EXISTS idx_junction_type ON Graph_Junctions (Type_ID);
+        """
+        
+        try:
+            self.db._execute_transaction([(create_graph_junctions, None), 
+                                          (create_junction_connections, None), (create_indexes, None)])
         except Exception as e:
             raise
 

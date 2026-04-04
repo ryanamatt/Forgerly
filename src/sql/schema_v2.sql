@@ -233,7 +233,46 @@ CREATE TABLE IF NOT EXISTS Character_Node_Positions (
 );
 
 -- -----------------------------------------------------------------------------
--- 4. Indexes (Performance)
+-- 4. Junction Node Tables
+-- -----------------------------------------------------------------------------
+
+-- GRAPH_JUNCTIONS: Canvas midpoint markers for convergent relationship display.
+CREATE TABLE IF NOT EXISTS Graph_Junctions (
+    ID                      INTEGER PRIMARY KEY,
+    X_Position              FLOAT NOT NULL DEFAULT 0,
+    Y_Position              FLOAT NOT NULL DEFAULT 0,
+    Type_ID                 INTEGER NOT NULL,          -- Relationship type shown on all spokes
+    Label                   TEXT DEFAULT '',           -- Override label (blank = use type Short_Label)
+    Color_Override          TEXT DEFAULT '',           -- Hex override (blank = use type Default_Color)
+
+    FOREIGN KEY (Type_ID) REFERENCES Relationship_Types(ID) ON DELETE CASCADE
+);
+
+-- For undirected relationship types the role is stored as 'incoming' by convention.
+CREATE TABLE IF NOT EXISTS Junction_Connections (
+    ID                      INTEGER PRIMARY KEY,
+    Junction_ID             INTEGER NOT NULL,
+    Endpoint_Type           TEXT NOT NULL CHECK (Endpoint_Type IN ('character', 'junction')),
+    Character_ID            INTEGER,           -- Set when Endpoint_Type = 'character'
+    Target_Junction_ID      INTEGER,           -- Set when Endpoint_Type = 'junction'
+    Role                    TEXT NOT NULL DEFAULT 'incoming'
+                                CHECK (Role IN ('incoming', 'outgoing')),
+    Intensity               INTEGER DEFAULT 5, -- Line weight (1-10)
+    Description             TEXT DEFAULT '',
+
+    -- Exactly one of (Character_ID, Target_Junction_ID) must be set
+    CHECK (
+        (Endpoint_Type = 'character' AND Character_ID IS NOT NULL AND Target_Junction_ID IS NULL) OR
+        (Endpoint_Type = 'junction'  AND Target_Junction_ID IS NOT NULL AND Character_ID IS NULL)
+    ),
+
+    FOREIGN KEY (Junction_ID)        REFERENCES Graph_Junctions(ID) ON DELETE CASCADE,
+    FOREIGN KEY (Character_ID)       REFERENCES Characters(ID)      ON DELETE CASCADE,
+    FOREIGN KEY (Target_Junction_ID) REFERENCES Graph_Junctions(ID) ON DELETE CASCADE
+);
+
+-- -----------------------------------------------------------------------------
+-- 5. Indexes (Performance)
 -- -----------------------------------------------------------------------------
 
 -- Indexes to improve lookup performance on foreign keys
@@ -263,3 +302,9 @@ CREATE INDEX IF NOT EXISTS idx_char_locations_loc ON Character_Locations (Locati
 
 -- Index for quick look up of Chapters by Title (e.g., for search/autocomplete)
 CREATE INDEX IF NOT EXISTS idx_chapters_title ON Chapters (Title);
+
+-- Junction indexes
+CREATE INDEX IF NOT EXISTS idx_junction_connections_junction ON Junction_Connections (Junction_ID);
+CREATE INDEX IF NOT EXISTS idx_junction_connections_character ON Junction_Connections (Character_ID);
+CREATE INDEX IF NOT EXISTS idx_junction_connections_target ON Junction_Connections (Target_Junction_ID);
+CREATE INDEX IF NOT EXISTS idx_junction_type ON Graph_Junctions (Type_ID);

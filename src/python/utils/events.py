@@ -92,7 +92,13 @@ class Events(str, Enum):
     REL_DELETE_REQUESTED = "graph.rel_delete"
     REL_DETAILS_REQUESTED = "graph.rel_details_requested"
     REL_DETAILS_RETURN = "graph._rel_details_return"
-    
+
+    JUNCTION_CREATE_REQUESTED = "junction.create_requested"
+    JUNCTION_DELETE_REQUESTED = "junction.delete_requested"
+    JUNCTION_SPOKE_DELETE_REQUESTED = "junction.spoke.delete_requested"
+    JUNCTION_SPOKE_EDIT_REQUESTED = "junction.spoke.edit_requested"
+    JUNCTION_POSITION_SAVE_REQUESTED = "junction.position.save_requested"
+
     # Export Events
     EXPORT_REQUESTED = "export.requested"
     EXPORT_PERFORM = "export.perform"
