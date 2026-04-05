@@ -165,6 +165,9 @@ class CharacterNode(QGraphicsEllipseItem):
 
         if change == self.GraphicsItemChange.ItemPositionHasChanged:
             if self.scene():
+                # Reposition any junction nodes whose spokes connect to this character,
+                # then refresh all edges and spokes so lines follow the new positions.
+                self._reposition_connected_junctions()
                 for item in self.scene().items():
                     if isinstance(item, (RelationshipEdge, JunctionSpoke)):
                         item.update_position()
@@ -199,6 +202,54 @@ class CharacterNode(QGraphicsEllipseItem):
                     return True
                 
         return False
+
+    def _reposition_connected_junctions(self) -> None:
+        """
+        Moves every :py:class:`.JunctionNode` that has a spoke touching this
+        character to the geometric midpoint of **all** its spoke endpoints.
+
+        This keeps junction diamonds visually centred between the nodes they
+        connect as any connected character is dragged around the canvas.
+
+        The repositioning is done silently (``setPos`` without emitting
+        ``junction_moved``) because the drag is still in progress; the final
+        persistent save happens in :py:meth:`JunctionNode.mouseReleaseEvent`
+        when the user releases the mouse on the junction itself.  Junction
+        positions that were auto-adjusted here are therefore persisted the
+        next time the user explicitly drags the junction, or on the next full
+        graph reload.
+
+        :rtype: None
+        """
+        if not self.scene():
+            return
+
+        # Collect every JunctionSpoke in the scene whose endpoint is this node.
+        # Group spokes by their parent junction so we can process each junction once.
+        junction_to_spokes: dict['JunctionNode', list['JunctionSpoke']] = {}
+        for item in self.scene().items():
+            if isinstance(item, JunctionSpoke) and item.endpoint is self:
+                junc = item.junction
+                junction_to_spokes.setdefault(junc, []).append(item)
+
+        for junction, _ in junction_to_spokes.items():
+            # Gather ALL spokes attached to this junction (not just the ones
+            # that touch this character) so the midpoint uses every endpoint.
+            all_spokes_for_junction = [
+                s for s in self.scene().items()
+                if isinstance(s, JunctionSpoke) and s.junction is junction
+            ]
+            if not all_spokes_for_junction:
+                continue
+
+            avg_x = sum(s.endpoint.scenePos().x() for s in all_spokes_for_junction) / len(all_spokes_for_junction)
+            avg_y = sum(s.endpoint.scenePos().y() for s in all_spokes_for_junction) / len(all_spokes_for_junction)
+
+            # Move the junction without triggering its own itemChange cascade
+            # (blockSignals isn't available on QGraphicsItem, so we use a guard flag).
+            junction._repositioning = True
+            junction.setPos(avg_x, avg_y)
+            junction._repositioning = False
 
     def mouseReleaseEvent(self, event) -> None:
         """
@@ -426,6 +477,7 @@ class JunctionNode(QGraphicsItem):
 
         self._hovered = False
         self._selected_for_connect = False
+        self._repositioning = False  # Guard: True while CharacterNode is auto-centering this junction
 
         self.setPos(x, y)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, True)
@@ -547,11 +599,19 @@ class JunctionNode(QGraphicsItem):
         """
         Propagates position changes to all attached :py:class:`.JunctionSpoke` lines.
 
+        When the junction is being repositioned automatically by a moving
+        :py:class:`.CharacterNode` (``_repositioning=True``) the snap and spoke
+        cascade are skipped — the character's own ``itemChange`` already handles
+        the full spoke refresh in that case.
+
         :param change: The type of state change.
         :param value: The new value.
         :returns: The (potentially snapped) new position.
         :rtype: Any
         """
+        if self._repositioning:
+            return super().itemChange(change, value)
+
         if change == self.GraphicsItemChange.ItemPositionChange and self.scene():
             view = self.scene().views()[0]
             if view.snap_to_grid:
@@ -810,7 +870,7 @@ class JunctionSpoke(QGraphicsLineItem):
 
 
 # =============================================================================
-# RelationshipEdge (unchanged except ItemPositionHasChanged update above)
+# RelationshipEdge
 # =============================================================================
 
 class RelationshipEdge(QGraphicsLineItem):
