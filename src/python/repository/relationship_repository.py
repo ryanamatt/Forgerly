@@ -10,7 +10,7 @@ logger = get_logger(__name__)
 class RelationshipRepository:
     """
     Manages all database operations for the Character_Relationship, Relationship_Types, 
-    and Character_Node_Positions entities.
+    Character_Node_Positions, Graph_Junctions, and Junction_Connections entities.
 
     This class serves as the Data Access Object (DAO) for Character_Relationship, 
     Relationship_Types, and Character_Node_Positions, handling CRUD operations and 
@@ -533,3 +533,272 @@ class RelationshipRepository:
         except DatabaseError as e:
             logger.error(f"Failed to delete relationship type ID: {type_id}.", exc_info=True)
             raise e
+
+    # =========================================================================
+    # Graph Junctions
+    # =========================================================================
+
+    def get_all_junctions_for_graph(self) -> DBRowList:
+        """
+        Retrieves all junction nodes joined with their relationship type data.
+
+        Each row contains the junction's canvas position, its associated
+        relationship type style (color, label, line style, directionality),
+        and any per-junction overrides.
+
+        :returns: List of dicts, one per junction.
+        :rtype: :py:class:`~app.utils.types.DBRowList`
+        """
+        query = """
+        SELECT
+            GJ.ID           AS Junction_ID,
+            GJ.X_Position,
+            GJ.Y_Position,
+            GJ.Label,
+            GJ.Color_Override,
+            RT.ID           AS Type_ID,
+            RT.Short_Label,
+            RT.Default_Color,
+            RT.Is_Directed,
+            RT.Line_Style
+        FROM Graph_Junctions GJ
+        JOIN Relationship_Types RT ON GJ.Type_ID = RT.ID;
+        """
+        try:
+            results = self.db._execute_query(query, fetch_all=True)
+            logger.debug(f"Retrieved {len(results)} junctions for the graph.")
+            return results
+        except DatabaseError as e:
+            logger.error("Failed to retrieve junctions for graph.", exc_info=True)
+            raise e
+
+    def get_all_junction_connections(self) -> DBRowList:
+        """
+        Retrieves all junction connection spokes, joining with the parent
+        junction's type data for rendering.
+
+        :returns: List of dicts, one per spoke/connection row.
+        :rtype: :py:class:`~app.utils.types.DBRowList`
+        """
+        query = """
+        SELECT
+            JC.ID               AS Connection_ID,
+            JC.Junction_ID,
+            JC.Endpoint_Type,
+            JC.Character_ID,
+            JC.Target_Junction_ID,
+            JC.Role,
+            JC.Intensity,
+            JC.Description,
+            RT.Short_Label,
+            RT.Default_Color,
+            RT.Is_Directed,
+            RT.Line_Style
+        FROM Junction_Connections JC
+        JOIN Graph_Junctions GJ ON JC.Junction_ID = GJ.ID
+        JOIN Relationship_Types RT ON GJ.Type_ID = RT.ID;
+        """
+        try:
+            results = self.db._execute_query(query, fetch_all=True)
+            logger.debug(f"Retrieved {len(results)} junction connections.")
+            return results
+        except DatabaseError as e:
+            logger.error("Failed to retrieve junction connections.", exc_info=True)
+            raise e
+
+    def create_junction(self, type_id: int, x: float = 0.0, y: float = 0.0,
+                        label: str = '', color_override: str = '') -> int | None:
+        """
+        Creates a new graph junction node.
+
+        :param type_id: The ID of the relationship type this junction represents.
+        :type type_id: int
+        :param x: Initial X canvas position.
+        :type x: float
+        :param y: Initial Y canvas position.
+        :type y: float
+        :param label: Optional display label override (empty = use type Short_Label).
+        :type label: str
+        :param color_override: Optional hex color override (empty = use type Default_Color).
+        :type color_override: str
+        :returns: The new junction's database ID, or None on failure.
+        :rtype: int or None
+        """
+        query = """
+        INSERT INTO Graph_Junctions (Type_ID, X_Position, Y_Position, Label, Color_Override)
+        VALUES (?, ?, ?, ?, ?);
+        """
+        params = (type_id, x, y, label, color_override)
+        try:
+            junction_id = self.db._execute_commit(query, params, fetch_id=True)
+            if junction_id:
+                logger.info(f"Created new junction: ID={junction_id}, Type_ID={type_id}.")
+            return junction_id
+        except DatabaseError as e:
+            logger.error(f"Failed to create junction with Type_ID={type_id}.", exc_info=True)
+            raise e
+
+    def update_junction_position(self, junction_id: int, x: float, y: float) -> bool:
+        """
+        Updates the canvas position of an existing junction.
+
+        :param junction_id: The junction's database ID.
+        :type junction_id: int
+        :param x: New X canvas position.
+        :type x: float
+        :param y: New Y canvas position.
+        :type y: float
+        :returns: True on success.
+        :rtype: bool
+        """
+        query = "UPDATE Graph_Junctions SET X_Position = ?, Y_Position = ? WHERE ID = ?;"
+        try:
+            success = self.db._execute_commit(query, (x, y, junction_id))
+            if success:
+                logger.debug(f"Updated junction position: ID={junction_id}, x={x}, y={y}.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to update junction position: ID={junction_id}.", exc_info=True)
+            raise e
+
+    def delete_junction(self, junction_id: int) -> bool:
+        """
+        Deletes a junction and all its connected spokes (via CASCADE).
+
+        :param junction_id: The junction's database ID.
+        :type junction_id: int
+        :returns: True on success.
+        :rtype: bool
+        """
+        query = "DELETE FROM Graph_Junctions WHERE ID = ?;"
+        try:
+            success = self.db._execute_commit(query, (junction_id,))
+            if success:
+                logger.info(f"Deleted junction: ID={junction_id} (spokes cascade-deleted).")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to delete junction: ID={junction_id}.", exc_info=True)
+            raise e
+
+    # =========================================================================
+    # Junction Connections / Spokes
+    # =========================================================================
+
+    def create_junction_connection(self, junction_id: int, endpoint_type: str,
+                                   character_id: int | None = None,
+                                   target_junction_id: int | None = None,
+                                   role: str = 'incoming',
+                                   intensity: int = 5,
+                                   description: str = '') -> int | None:
+        """
+        Creates a single spoke connecting a junction to a character or another junction.
+
+        Exactly one of ``character_id`` or ``target_junction_id`` must be provided,
+        matching the ``endpoint_type`` value (``'character'`` | ``'junction'``).
+
+        :param junction_id: The parent junction's database ID.
+        :type junction_id: int
+        :param endpoint_type: Either ``'character'`` or ``'junction'``.
+        :type endpoint_type: str
+        :param character_id: Character endpoint ID (when endpoint_type='character').
+        :type character_id: int or None
+        :param target_junction_id: Junction endpoint ID (when endpoint_type='junction').
+        :type target_junction_id: int or None
+        :param role: ``'incoming'`` (endpoint→junction) or ``'outgoing'`` (junction→endpoint).
+        :type role: str
+        :param intensity: Visual line weight 1–10.
+        :type intensity: int
+        :param description: Optional descriptive note for this spoke.
+        :type description: str
+        :returns: The new connection's database ID, or None on failure.
+        :rtype: int or None
+        """
+        query = """
+        INSERT INTO Junction_Connections
+            (Junction_ID, Endpoint_Type, Character_ID, Target_Junction_ID, Role, Intensity, Description)
+        VALUES (?, ?, ?, ?, ?, ?, ?);
+        """
+        params = (junction_id, endpoint_type, character_id, target_junction_id,
+                  role, intensity, description)
+        try:
+            conn_id = self.db._execute_commit(query, params, fetch_id=True)
+            if conn_id:
+                logger.info(f"Created junction connection: ID={conn_id}, "
+                            f"Junction={junction_id}, Type={endpoint_type}.")
+            return conn_id
+        except DatabaseError as e:
+            logger.error(f"Failed to create junction connection for junction {junction_id}.",
+                         exc_info=True)
+            raise e
+
+    def update_junction_connection(self, connection_id: int, intensity: int,
+                                   description: str = '') -> bool:
+        """
+        Updates the intensity and description of an existing junction spoke.
+
+        :param connection_id: The spoke's database ID.
+        :type connection_id: int
+        :param intensity: New visual line weight 1–10.
+        :type intensity: int
+        :param description: Updated descriptive note.
+        :type description: str
+        :returns: True on success.
+        :rtype: bool
+        """
+        query = """
+        UPDATE Junction_Connections SET Intensity = ?, Description = ? WHERE ID = ?;
+        """
+        try:
+            success = self.db._execute_commit(query, (intensity, description, connection_id))
+            if success:
+                logger.info(f"Updated junction connection: ID={connection_id}.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to update junction connection: ID={connection_id}.", exc_info=True)
+            raise e
+
+    def delete_junction_connection(self, connection_id: int) -> bool:
+        """
+        Deletes a single junction spoke by its ID.
+
+        :param connection_id: The spoke's database ID.
+        :type connection_id: int
+        :returns: True on success.
+        :rtype: bool
+        """
+        query = "DELETE FROM Junction_Connections WHERE ID = ?;"
+        try:
+            success = self.db._execute_commit(query, (connection_id,))
+            if success:
+                logger.info(f"Deleted junction connection: ID={connection_id}.")
+            return success
+        except DatabaseError as e:
+            logger.error(f"Failed to delete junction connection: ID={connection_id}.", exc_info=True)
+            raise e
+
+    def delete_orphan_junctions(self) -> int:
+        """
+        Removes any junctions that have no remaining connections.
+
+        Called automatically after spoke deletions to keep the database clean.
+
+        :returns: The number of orphan junctions deleted.
+        :rtype: int
+        """
+        query = """
+        DELETE FROM Graph_Junctions
+        WHERE ID NOT IN (SELECT DISTINCT Junction_ID FROM Junction_Connections);
+        """
+        try:
+            # Use raw cursor to get rowcount
+            if not self.db.conn:
+                raise DatabaseError("DB not connected.")
+            cursor = self.db.conn.execute(query)
+            self.db.conn.commit()
+            count = cursor.rowcount
+            if count:
+                logger.info(f"Deleted {count} orphan junction(s).")
+            return count
+        except Exception as e:
+            logger.error("Failed to delete orphan junctions.", exc_info=True)
+            raise DatabaseError("Failed to delete orphan junctions.", original_exception=e) from e

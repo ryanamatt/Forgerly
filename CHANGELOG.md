@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to Forgerly will be documented in this file.
 
+## [Unreleased]
+
+- Add Junctions to the Graph to allow for Relationships to connect to each other therfore allowing
+  more creativity when creating your graphs.
+
 ## v0.5.0 - 2026-3-16
 
 ## ✨ Added

@@ -89,7 +89,7 @@ def generate_fake_data(db_connector: DBConnector, profile_name: str):
         )
         
         if chapter_id:
-            chapter_repo.update_chapter_content(chapter_id, html_content)
+            chapter_repo.update_chapter_content(chapter_id, title, html_content)
         
         if i % (max(1, NUM_CHAPTERS // 5)) == 0:
             print(f"  ... Created {i} chapters.")

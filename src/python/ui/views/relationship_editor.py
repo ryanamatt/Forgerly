@@ -10,7 +10,7 @@ from typing import Any
 import math
 
 from ...resources_rc import *
-from ..widgets.graph_items import CharacterNode, RelationshipEdge
+from ..widgets.graph_items import CharacterNode, RelationshipEdge, JunctionNode, JunctionSpoke
 from ..widgets.relationship_canvas import RelationshipCanvas
 from ..dialogs.relationship_dialog import RelationshipCreationDialog
 from ..dialogs.graph_export_dialog import GraphExportDialog
@@ -25,10 +25,12 @@ class RelationshipEditor(QWidget):
     graph-based editor for managing character relationships.
 
     It utilizes a :py:class:`~PySide6.QtWidgets.QGraphicsScene` and
-    :py:class:`~PySide6.QtWidgets.QGraphicsView` to display :py:class:`.CharacterNode`
-    and :py:class:`.RelationshipEdge` objects. This component is primarily responsible
+    :py:class:`~PySide6.QtWidgets.QGraphicsView` to display :py:class:`.CharacterNode`,
+    :py:class:`.RelationshipEdge`, :py:class:`.JunctionNode`, and
+    :py:class:`.JunctionSpoke` objects. This component is primarily responsible
     for the visual arrangement and editing of relationship properties, with the
-    persistence managed by an external controller (:py:class:`~app.services.app_coordinator.AppCoordinator`).
+    persistence managed by an external controller
+    (:py:class:`~app.services.app_coordinator.AppCoordinator`).
     """
 
     def __init__(self, parent=None) -> None:
@@ -50,9 +52,19 @@ class RelationshipEditor(QWidget):
         self.nodes: dict[int, CharacterNode] = {}
         self.edges: list[RelationshipEdge] = []
 
+        # Junction storage
+        self.junctions: dict[int, JunctionNode] = {}
+        self.spokes: list[JunctionSpoke] = []
+
         self.available_rel_types: list[dict] = []
         self.selected_node_a: CharacterNode | None = None
         self.selected_node_b: CharacterNode | None = None
+
+        # Junction connection mode state
+        # Tracks a source CharacterNode or JunctionNode awaiting a second click.
+        self._junction_source: CharacterNode | JunctionNode | None = None
+        self._junction_source_type: str = ''     # 'character' | 'junction'
+        self._pending_junction_target_type: str = ''  # 'character' | 'junction'
 
         self.bulk_is_locked: bool = False
         self.is_label_visible: bool = True
@@ -162,8 +174,8 @@ class RelationshipEditor(QWidget):
 
     def _apply_intensity_filter(self) -> None:
         """
-        Filters edges based on the current intensity threshold.
-        Edges with intensity below the threshold are hidden.
+        Filters edges and spokes based on the current intensity threshold.
+        Edges/spokes with intensity below the threshold are hidden.
         
         :rtype: None
         """
@@ -183,6 +195,13 @@ class RelationshipEditor(QWidget):
             edge.setVisible(final_visibility)
             edge.label_item.setVisible(final_visibility and self.is_label_visible)
 
+        # Apply threshold to junction spokes as well
+        for spoke in self.spokes:
+            spoke_intensity = spoke.spoke_data.get('intensity', 5)
+            should_be_visible = spoke_intensity >= self.intensity_threshold
+            spoke.setVisible(should_be_visible)
+            spoke.label_item.setVisible(should_be_visible and self.is_label_visible)
+
     @receiver(Events.REL_TYPES_RECEIVED)
     def set_available_relationship_types(self, data: dict) -> None:
         """
@@ -199,6 +218,7 @@ class RelationshipEditor(QWidget):
     def clear_selection(self) -> None:
         """
         Clears the current node selection (both A and B) and removes the visual highlight.
+        Also resets any in-progress junction connection state.
         
         :rtype: None
         """
@@ -217,6 +237,9 @@ class RelationshipEditor(QWidget):
         if self.selected_node_b:
             self.selected_node_b.set_selection_highlight(False)
             self.selected_node_b = None
+
+        # Clear junction connection mode
+        self._clear_junction_mode()
             
     def handle_node_right_click(self, node: CharacterNode) -> None:
         """
@@ -341,10 +364,11 @@ class RelationshipEditor(QWidget):
         Recieves graph data from :py:class:`~app.services.app_coordinator.AppCoordinator` 
         and populates the :py:class:`~PySide6.QtWidgets.QGraphicsScene`.
         
-        This clears the existing graph and draws all new nodes and edges based on the data.
+        This clears the existing graph and draws all new nodes, edges, junction nodes,
+        and junction spokes based on the incoming data.
         
-        :param graph_data: A dictionary containing 'nodes' (list of character data) and 'edges' 
-            (list of relationship data).
+        :param graph_data: A dictionary containing ``'nodes'``, ``'edges'``,
+            ``'junctions'``, and ``'spokes'`` lists.
         :type graph_data: dict[str, list[dict[str, Any]]]
         
         :rtype: None
@@ -356,6 +380,8 @@ class RelationshipEditor(QWidget):
             self.scene.clear()
             self.nodes = {}
             self.edges = []
+            self.junctions = {}
+            self.spokes = []
 
             # Create and place Nodes (Characters)
             for node_data in graph_data.get('nodes', []):
@@ -423,6 +449,49 @@ class RelationshipEditor(QWidget):
                     self.scene.addItem(edge)
                     self.edges.append(edge)
 
+            # ----------------------------------------------------------------
+            # Create Junction Nodes
+            # ----------------------------------------------------------------
+            for junc_data in graph_data.get('junctions', []):
+                junc_id = junc_data['junction_id']
+                color = junc_data.get('color_override') or junc_data.get('default_color', '#888888')
+                label = junc_data.get('label') or junc_data.get('short_label', '')
+
+                junc_node = JunctionNode(
+                    junction_id=junc_id,
+                    x=junc_data.get('x', 0),
+                    y=junc_data.get('y', 0),
+                    color=color,
+                    label=label
+                )
+                junc_node.signals.junction_moved.connect(self._save_junction_position)
+                self.scene.addItem(junc_node)
+                self.junctions[junc_id] = junc_node
+
+            # Create Junction Spokes
+            # Must be done after all junctions AND character nodes are added to the scene.
+            for spoke_data in graph_data.get('spokes', []):
+                junc_id = spoke_data['junction_id']
+                if junc_id not in self.junctions:
+                    continue  # Junction not loaded (shouldn't happen)
+
+                junction = self.junctions[junc_id]
+
+                if spoke_data['endpoint_type'] == 'character':
+                    char_id = spoke_data.get('character_id')
+                    if char_id not in self.nodes:
+                        continue
+                    endpoint = self.nodes[char_id]
+                else:  # 'junction'
+                    target_junc_id = spoke_data.get('target_junction_id')
+                    if target_junc_id not in self.junctions:
+                        continue
+                    endpoint = self.junctions[target_junc_id]
+
+                spoke = JunctionSpoke(spoke_data, junction, endpoint)
+                self.scene.addItem(spoke)
+                self.spokes.append(spoke)
+
             self._apply_intensity_filter()
 
             # Fit the view to the new content (or center on (0,0) if empty)
@@ -440,6 +509,174 @@ class RelationshipEditor(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Graph Load Error", f"An error occurred while loading graph data: {e}")
             self.scene.clear()
+
+    # =========================================================================
+    # Junction Connection Mode
+    # =========================================================================
+
+    def handle_junction_source_click(self, source: 'CharacterNode | JunctionNode') -> None:
+        """
+        Begins or completes a junction-based connection from a character or junction node.
+
+        On the **first** click the source is stored and highlighted.  On the
+        **second** click (on any different character or junction node) a new
+        junction is placed at the midpoint, connected to both endpoints, and
+        the coordinator is asked to persist everything.
+
+        :param source: The node that was clicked to start the junction connection.
+        :type source: :py:class:`.CharacterNode` or :py:class:`.JunctionNode`
+        :rtype: None
+        """
+        if self._junction_source is None:
+            # First click — store source
+            self.clear_selection()
+            self._junction_source = source
+            source_type = 'character' if isinstance(source, CharacterNode) else 'junction'
+            self._junction_source_type = source_type
+            source.set_selection_highlight(True)
+
+            self.view.setDragMode(QGraphicsView.DragMode.NoDrag)
+            self.view.setCursor(Qt.CursorShape.CrossCursor)
+
+            start_pos = source.scenePos()
+            self.temp_line = QGraphicsLineItem(QLineF(start_pos, start_pos))
+            self.temp_line.setPen(QPen(Qt.GlobalColor.darkGray, 1, Qt.PenStyle.DashLine))
+            self.scene.addItem(self.temp_line)
+            self.view.setMouseTracking(True)
+
+            name = getattr(source, 'name', f'Junction {getattr(source, "junction_id", "")}')
+            self.view.setToolTip(f"Junction mode: {name} → click a character or junction to connect.")
+
+        elif self._junction_source is source:
+            # Clicked same source — cancel
+            self._clear_junction_mode()
+
+        else:
+            # Second click — create the junction midpoint
+            if not self.available_rel_types:
+                QMessageBox.critical(self, "Error", "No relationship types defined.")
+                self._clear_junction_mode()
+                return
+
+            target = source
+            target_type = 'character' if isinstance(target, CharacterNode) else 'junction'
+
+            # Compute midpoint between source and target for the new junction position
+            src_pos = self._junction_source.scenePos()
+            tgt_pos = target.scenePos()
+            mid_x = (src_pos.x() + tgt_pos.x()) / 2
+            mid_y = (src_pos.y() + tgt_pos.y()) / 2
+
+            # Prompt user to choose a relationship type for this junction
+            dialog = RelationshipCreationDialog(
+                relationship_types=self.available_rel_types,
+                char_a_name=getattr(self._junction_source, 'name',
+                                    f'Junction {getattr(self._junction_source, "junction_id", "")}'),
+                char_b_name=getattr(target, 'name',
+                                    f'Junction {getattr(target, "junction_id", "")}'),
+                parent=self
+            )
+
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                type_id, description, intensity = dialog.get_relationship_data()
+
+                # Determine endpoint IDs
+                src_char_id = getattr(self._junction_source, 'char_id', None)
+                src_junc_id = getattr(self._junction_source, 'junction_id', None)
+                tgt_char_id = getattr(target, 'char_id', None)
+                tgt_junc_id = getattr(target, 'junction_id', None)
+
+                bus.publish(Events.JUNCTION_CREATE_REQUESTED, data={
+                    'type_id': type_id,
+                    'x': mid_x,
+                    'y': mid_y,
+                    'intensity': intensity,
+                    'description': description,
+                    # Source spoke
+                    'source_endpoint_type': self._junction_source_type,
+                    'source_char_id': src_char_id,
+                    'source_junc_id': src_junc_id,
+                    # Target spoke
+                    'target_endpoint_type': target_type,
+                    'target_char_id': tgt_char_id,
+                    'target_junc_id': tgt_junc_id,
+                })
+
+            self._clear_junction_mode()
+
+    def handle_junction_add_spoke(self, junction: JunctionNode,
+                                  target_type: str = 'character') -> None:
+        """
+        Begins the two-click process for adding a new spoke to an existing junction.
+
+        The junction is treated as the fixed source; the user then clicks a
+        character node (if ``target_type='character'``) or an empty area where
+        a new junction will be created (if ``target_type='junction'``).
+
+        :param junction: The existing :py:class:`.JunctionNode` to extend.
+        :type junction: :py:class:`.JunctionNode`
+        :param target_type: The kind of endpoint to connect: ``'character'`` or ``'junction'``.
+        :type target_type: str
+        :rtype: None
+        """
+        self.clear_selection()
+        self._junction_source = junction
+        self._junction_source_type = 'junction'
+        self._pending_junction_target_type = target_type
+        junction.set_selection_highlight(True)
+
+        self.view.setDragMode(QGraphicsView.DragMode.NoDrag)
+        self.view.setCursor(Qt.CursorShape.CrossCursor)
+
+        start_pos = junction.scenePos()
+        self.temp_line = QGraphicsLineItem(QLineF(start_pos, start_pos))
+        self.temp_line.setPen(QPen(Qt.GlobalColor.darkGray, 1, Qt.PenStyle.DashLine))
+        self.scene.addItem(self.temp_line)
+        self.view.setMouseTracking(True)
+
+        hint = "a character node" if target_type == 'character' else "another junction"
+        self.view.setToolTip(f"Click {hint} to add spoke from junction {junction.junction_id}.")
+
+    def _clear_junction_mode(self) -> None:
+        """
+        Resets all junction connection mode state and removes any temporary visuals.
+
+        :rtype: None
+        """
+        if self._junction_source:
+            self._junction_source.set_selection_highlight(False)
+        self._junction_source = None
+        self._junction_source_type = ''
+        self._pending_junction_target_type = ''
+
+        if hasattr(self, 'temp_line') and self.temp_line:
+            self.scene.removeItem(self.temp_line)
+            self.temp_line = None
+            self.view.setMouseTracking(False)
+
+        self.view.unsetCursor()
+        self.view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        self.view.setToolTip("")
+
+    def _save_junction_position(self, junction_id: int, x: float, y: float) -> None:
+        """
+        Publishes a position-save event for a junction node after it is dragged.
+
+        :param junction_id: The junction's database ID.
+        :type junction_id: int
+        :param x: New X canvas position.
+        :type x: float
+        :param y: New Y canvas position.
+        :type y: float
+        :rtype: None
+        """
+        bus.publish(Events.JUNCTION_POSITION_SAVE_REQUESTED, data={
+            'junction_id': junction_id, 'x': x, 'y': y
+        })
+
+    # =========================================================================
+    # Existing helpers
+    # =========================================================================
 
     def _find_empty_space(self, start_x: float, start_y: float) -> tuple[float, float]:
         """
@@ -590,6 +827,11 @@ class RelationshipEditor(QWidget):
                     else:
                         edge.setVisible(False)
 
+            # Also hide/show spokes connected to this character node
+            for spoke in self.spokes:
+                if spoke.endpoint is node_item:
+                    spoke.setVisible(is_visible)
+
     @receiver(Events.REL_CHAR_CLICKED_ON)
     def _handle_char_click_to_zoom(self, data: dict) -> None:
         """
@@ -709,7 +951,7 @@ class RelationshipEditor(QWidget):
 
     def toggle_labels(self) -> None:
         """
-        Toggles Whether or not the Short Labels are Visible on the Graph Edges.
+        Toggles Whether or not the Short Labels are Visible on the Graph Edges and Spokes.
 
         :rtype: None        
         """
@@ -718,6 +960,10 @@ class RelationshipEditor(QWidget):
         for edge in self.edges:
             if edge.isVisible():
                 edge.label_item.setVisible(self.is_label_visible)
+
+        for spoke in self.spokes:
+            if spoke.isVisible():
+                spoke.label_item.setVisible(self.is_label_visible)
 
         icon_name = "visible-on.svg" if self.is_label_visible else "visible-off.svg"
         self.toggle_labels_action.setIcon(QIcon(f":icons/{icon_name}"))
@@ -775,7 +1021,7 @@ class RelationshipEditor(QWidget):
         :rtype: None
         """
         if event.key() == Qt.Key.Key_Escape:
-            if self.selected_node_a:
+            if self.selected_node_a or self._junction_source:
                 self.clear_selection()
 
         super().keyPressEvent(event)
