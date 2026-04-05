@@ -52,7 +52,7 @@ class ChapterEditor(BaseEditor):
 
         self.current_settings = current_settings
         self.wpm = current_settings.get('words_per_minute')
-        self.is_showing_stats = current_settings.get('is_showing_chapter_stats', 'FAILED')
+        self.is_showing_stats = current_settings.get('is_showing_chapter_stats', False)
 
         self.current_lookup_dialog = None
 
